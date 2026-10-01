@@ -29,6 +29,8 @@ export const Waypoint = z.object({
   lon: LongitudeEast,
   label: cleanText(80).optional(),
   poiId: z.string().regex(/^[a-z0-9-]{1,64}$/).optional(),
+  /** Minutes spent at this stop (timeline). */
+  dwellMin: z.number().int().min(0).max(240).optional(),
 });
 
 export const RouteParameters = z.object({

@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import type { OverlayKind } from '../features/routes/overlays';
 
 export type Mode = 'orbit' | 'jezero';
-export type Tab = 'explore' | 'route' | 'science' | 'environment' | 'missions';
+export type Tab = 'explore' | 'route' | 'science' | 'environment';
 
 export type LayerId =
   | 'viking'
@@ -93,6 +93,15 @@ interface AppState {
   inspected: { lat: number; lon: number } | null;
   setInspected(p: { lat: number; lon: number } | null): void;
   insertWaypoint(index: number, w: Omit<WaypointEntry, 'id'>): void;
+  /** Saved mission currently open (null id: unsaved, e.g. opened from a share link). */
+  activeMission: { id: string | null; name: string } | null;
+  setActiveMission(m: { id: string | null; name: string } | null): void;
+  /** Incremented whenever saved missions change (re-reads browser storage). */
+  missionsVersion: number;
+  bumpMissions(): void;
+  /** Transient message shown on the map (info) or as an alert (error). */
+  notice: { kind: 'info' | 'error'; text: string } | null;
+  setNotice(n: { kind: 'info' | 'error'; text: string } | null): void;
   setDwell(id: string, minutes: number): void;
   selectPoi(id: string | null): void;
   setEvaStart(ms: number): void;
@@ -164,7 +173,7 @@ export const useApp = create<AppState>((set) => ({
       return { waypoints: list, result: null };
     }),
   setWaypoints: (list) => set({ waypoints: list.map(withId), result: null }),
-  clearWaypoints: () => set({ waypoints: [], result: null }),
+  clearWaypoints: () => set({ waypoints: [], result: null, activeMission: null }),
   setPicking: (picking) => set({ picking }),
   setProfile: (profile) => set({ profile }),
   setReturnToStart: (returnToStart) => set({ returnToStart, result: null }),
@@ -180,6 +189,12 @@ export const useApp = create<AppState>((set) => ({
     set((s) => ({
       waypoints: s.waypoints.map((w) => (w.id === id ? { ...w, dwellMin: minutes } : w)),
     })),
+  activeMission: null,
+  setActiveMission: (activeMission) => set({ activeMission }),
+  missionsVersion: 0,
+  bumpMissions: () => set((s) => ({ missionsVersion: s.missionsVersion + 1 })),
+  notice: null,
+  setNotice: (notice) => set({ notice }),
   insertWaypoint: (index, w) =>
     set((s) => {
       const list = [...s.waypoints];

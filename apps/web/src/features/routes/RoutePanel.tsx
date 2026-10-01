@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useApp, type WaypointEntry } from '../../app/store';
-import { JEZERO } from '../../config';
+import { DATASET_ID, JEZERO } from '../../config';
 import { explanationText, isWarning } from '../../lib/explain';
 import {
   formatCoordinate,
@@ -19,6 +19,7 @@ import {
   formatElevation,
 } from '../../lib/format';
 import { IconPin, IconUp, IconX } from '../../ui/icons';
+import { MissionActions, SavedMissions } from '../missions/MissionControls';
 import { ElevationProfile } from './ElevationProfile';
 import { Timeline } from './Timeline';
 import { computeRoutes } from './compute';
@@ -78,6 +79,7 @@ export function RoutePanel() {
     <section aria-labelledby="route-title">
       <h2 id="route-title">{t('route.title')}</h2>
       <p className="lede">{t('route.intro')}</p>
+      <SavedMissions />
 
       {gridBlocked && <p className="alert alert-danger">{t('route.gridUnavailable')}</p>}
       {s.gridStatus === 'loading' && (
@@ -321,6 +323,12 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
             </div>
           </dl>
 
+          <MissionActions
+            route={primary}
+            timeline={timeline}
+            names={(w, i) => waypointName(t, w, i, s.waypoints.length)}
+          />
+
           {timeline && (
             <Timeline
               timeline={timeline}
@@ -423,7 +431,7 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
         {t('route.algorithm', {
           algorithm: primary.algorithmVersion,
           params: primary.parameterSet,
-          data: 'jezero-v1',
+          data: DATASET_ID,
         })}
         {elapsedMs !== null && ` · ${Math.round(elapsedMs)} ms`}
       </p>

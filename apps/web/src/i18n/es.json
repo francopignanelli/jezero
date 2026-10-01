@@ -28,7 +28,6 @@
     "route": "Planificar",
     "science": "Ciencia",
     "environment": "Condiciones",
-    "missions": "Misiones",
     "label": "Paneles principales",
     "hidePanel": "Ocultar panel"
   },
@@ -256,9 +255,29 @@
     "nowLine": "Ahora mismo en Jezero (calculado): sol {{sol}}, {{time}} LTST."
   },
   "missions": {
-    "title": "Mis misiones",
-    "signedOut": "Iniciá sesión para guardar misiones. Explorar y planificar rutas funciona sin cuenta.",
-    "comingSoon": "Las cuentas y misiones guardadas se están conectando."
+    "saved_one": "Misión guardada ({{count}})",
+    "saved_other": "Misiones guardadas ({{count}})",
+    "name": "Nombre de la misión",
+    "save": "Guardar misión",
+    "update": "Guardar nueva versión",
+    "share": "Copiar enlace",
+    "export": "Exportar ▾",
+    "csv": "Itinerario (CSV)",
+    "briefing": "Imprimir resumen",
+    "actions": "Acciones de la misión",
+    "open": "Abrir",
+    "rename": "Renombrar",
+    "renameSave": "Guardar",
+    "delete": "Borrar",
+    "confirmDelete": "¿Borrar la misión guardada \"{{name}}\" de este navegador?",
+    "localOnly": "Guardadas solo en este navegador. No hace falta cuenta; si borrás los datos del sitio se pierden.",
+    "savedNotice": "Se guardó \"{{name}}\" (versión {{version}}) en este navegador.",
+    "storageUnavailable": "Este navegador no permite guardar (ventana privada o almacenamiento bloqueado). Usá el enlace o una exportación.",
+    "linkCopied": "Enlace copiado. Quien lo abra obtiene los mismos datos de entrada y recalcula la misma ruta.",
+    "copyPrompt": "Copiá este enlace:",
+    "sharedOpened": "Se abrió la misión compartida \"{{name}}\".",
+    "shareInvalid": "Este enlace no es una misión válida de Copernico; no se cargó nada.",
+    "versionChanged": "Se guardó con otra versión del planificador o de los datos, así que se recalculó y la ruta puede diferir."
   },
   "assistant": {
     "title": "Asistente de misión",
@@ -354,5 +373,15 @@
     },
     "note": "Horas en Tiempo Solar Verdadero Local de Jezero (pasá el cursor para ver UTC), calculadas con Mars24. Las horas LTST son horas marcianas (1/24 de sol, unos 61,6 minutos terrestres); las duraciones están en horas terrestres. El tiempo en cada parada es un supuesto que definís vos (20 min por defecto).",
     "daylightBadStart": "El Sol está por debajo de {{deg}}° a la salida ({{time}} LTST). Empezá más tarde a la mañana."
+  },
+  "briefing": {
+    "title": "Resumen de la misión",
+    "kicker": "Copernico · Resumen de caminata · Cráter Jezero",
+    "start": "Inicio planificado: {{ltst}} LTST en Jezero ({{utc}})",
+    "mapAlt": "Vista 3D de la ruta planificada",
+    "summary": "Resumen",
+    "evaTotal": "EVA total (con paradas)",
+    "daylightWarning": "Atención: el Sol baja del umbral de luz diurna durante esta EVA.",
+    "sources": "Fuentes de datos y versiones"
   }
 }

@@ -28,7 +28,6 @@
     "route": "Plan",
     "science": "Science",
     "environment": "Conditions",
-    "missions": "Missions",
     "label": "Main panels",
     "hidePanel": "Hide panel"
   },
@@ -256,9 +255,29 @@
     "nowLine": "Right now at Jezero (calculated): sol {{sol}}, {{time}} LTST."
   },
   "missions": {
-    "title": "My missions",
-    "signedOut": "Sign in to save missions. Exploring and route planning work without an account.",
-    "comingSoon": "Accounts and saved missions are being connected."
+    "saved_one": "Saved mission ({{count}})",
+    "saved_other": "Saved missions ({{count}})",
+    "name": "Mission name",
+    "save": "Save mission",
+    "update": "Save new version",
+    "share": "Copy share link",
+    "export": "Export ▾",
+    "csv": "Itinerary (CSV)",
+    "briefing": "Print briefing",
+    "actions": "Mission actions",
+    "open": "Open",
+    "rename": "Rename",
+    "renameSave": "Save",
+    "delete": "Delete",
+    "confirmDelete": "Delete the saved mission \"{{name}}\" from this browser?",
+    "localOnly": "Saved in this browser only. No account is needed; clearing site data removes them.",
+    "savedNotice": "Saved \"{{name}}\" (version {{version}}) in this browser.",
+    "storageUnavailable": "This browser does not allow saving (private window or blocked storage). Use the share link or an export instead.",
+    "linkCopied": "Share link copied. Anyone who opens it gets the same inputs and recomputes the same route.",
+    "copyPrompt": "Copy this share link:",
+    "sharedOpened": "Opened the shared mission \"{{name}}\".",
+    "shareInvalid": "This share link is not a valid Copernico mission; nothing was loaded.",
+    "versionChanged": "It was saved with a different planner or data version, so it was recomputed and the route may differ."
   },
   "assistant": {
     "title": "Mission assistant",
@@ -354,5 +373,15 @@
     },
     "note": "Times are Local True Solar Time at Jezero (hover for UTC), calculated with Mars24. LTST hours are Mars hours (1/24 of a sol, about 61.6 Earth minutes); durations are in Earth hours. Stop time is an assumption you set per stop (default 20 min).",
     "daylightBadStart": "The Sun is below {{deg}}° at departure ({{time}} LTST). Start later in the morning."
+  },
+  "briefing": {
+    "title": "Mission briefing",
+    "kicker": "Copernico · Marswalk briefing · Jezero Crater",
+    "start": "Planned start: {{ltst}} LTST at Jezero ({{utc}})",
+    "mapAlt": "3D view of the planned route",
+    "summary": "Summary",
+    "evaTotal": "EVA total (with stops)",
+    "daylightWarning": "Warning: the Sun drops below the daylight threshold during this EVA.",
+    "sources": "Data sources and versions"
   }
 }

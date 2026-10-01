@@ -637,6 +637,24 @@ export class MarsScene {
     this.annotations.setGroupVisible(groupId, !this.hiddenGroups.has(groupId));
   }
 
+  /** JPEG of the current 3D view (read right after a render, while the drawing buffer is valid). */
+  snapshot(): Promise<string | null> {
+    if (this.isDestroyed()) return Promise.resolve(null);
+    const scene = this.widget.scene;
+    return new Promise((resolve) => {
+      const once = () => {
+        scene.postRender.removeEventListener(once);
+        try {
+          resolve(scene.canvas.toDataURL('image/jpeg', 0.85));
+        } catch {
+          resolve(null);
+        }
+      };
+      scene.postRender.addEventListener(once);
+      scene.requestRender();
+    });
+  }
+
   setAnnotationsMuted(groupId: string, muted: boolean): void {
     if (!this.isDestroyed()) this.annotations.setGroupMuted(groupId, muted);
   }

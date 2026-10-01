@@ -1433,3 +1433,159 @@ details.samples > summary {
   color: var(--text);
   font: inherit;
 }
+
+/* ---------- Missions: saved list, actions, toast ---------- */
+.saved-missions {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.saved-missions > summary {
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.saved-missions ul {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 0;
+}
+.saved-missions li {
+  display: grid;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.saved-main {
+  display: grid;
+  gap: 2px;
+}
+.saved-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mission-actions {
+  margin: 14px 0 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.mission-actions .field {
+  margin-bottom: 8px;
+}
+.menu {
+  position: relative;
+}
+.menu > summary {
+  list-style: none;
+}
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+.menu-items {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  display: grid;
+  min-width: 170px;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.menu-items button {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.menu-items button:hover,
+.menu-items button:focus-visible {
+  background: var(--surface-2);
+}
+.toast {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(520px, calc(100% - 24px));
+  padding: 6px 6px 6px 14px;
+  transform: translateX(-50%);
+  border: 1px solid var(--info);
+  border-radius: 999px;
+  background: rgb(18 22 29 / 0.96);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-sm);
+}
+.toast-error {
+  border-color: var(--danger);
+}
+
+/* ---------- Printable briefing ---------- */
+.briefing {
+  display: none;
+}
+@media print {
+  .app {
+    display: none !important;
+  }
+  .briefing {
+    display: block;
+    padding: 0;
+    color: #111;
+    background: #fff;
+    font: 10.5pt/1.4 var(--font-sans);
+  }
+  .briefing h1 {
+    margin: 0 0 4px;
+    font-size: 18pt;
+  }
+  .briefing h2 {
+    margin: 14pt 0 4pt;
+    font-size: 11.5pt;
+    border-bottom: 1px solid #999;
+  }
+  .briefing-kicker {
+    margin: 0;
+    font-size: 8.5pt;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #555;
+  }
+  .briefing-map {
+    width: 100%;
+    max-height: 9cm;
+    object-fit: cover;
+    margin: 8pt 0;
+  }
+  .briefing table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .briefing th,
+  .briefing td {
+    padding: 2pt 6pt 2pt 0;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 0.5pt solid #ddd;
+  }
+  .briefing section {
+    break-inside: avoid;
+  }
+  body {
+    background: #fff !important;
+  }
+}

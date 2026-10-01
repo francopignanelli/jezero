@@ -16,6 +16,9 @@ export const DATA_VERSION: string =
 export const absoluteDataUrl = (path: string): string =>
   new URL(dataUrl(path), window.location.href).href;
 
+/** Identifier of the built Jezero data set (grid, tiles, snapshots) recorded with every mission. */
+export const DATASET_ID = 'jezero-v1';
+
 /** Initial orbital view over Jezero (planetocentric °N, °E). */
 export const JEZERO = { lat: 18.44, lon: 77.45 } as const;
 
@@ -34,9 +37,8 @@ export const JEZERO_OPERATIONAL_VIEW = {
 
 /**
  * Features that are hidden until they work end to end (no placeholder UI in the product).
- * Enable locally with VITE_FEATURE_ASSISTANT=true / VITE_FEATURE_MISSIONS=true.
+ * Enable locally with VITE_FEATURE_ASSISTANT=true.
  */
 export const FEATURES = {
   assistant: import.meta.env.VITE_FEATURE_ASSISTANT === 'true',
-  missions: import.meta.env.VITE_FEATURE_MISSIONS === 'true',
 } as const;

@@ -6,18 +6,19 @@ import { ExplorePanel } from '../features/exploration/ExplorePanel';
 import { InspectorCard } from '../features/inspector/InspectorCard';
 import { LayersControl } from '../features/layers/LayersControl';
 import { MapLegend } from '../features/layers/Legends';
-import { MissionsPanel } from '../features/missions/MissionsPanel';
+import { useShareLinkLoader } from '../features/missions/MissionControls';
 import { RoutePanel } from '../features/routes/RoutePanel';
 import { SciencePanel } from '../features/science/SciencePanel';
 import { FEATURES } from '../config';
 import { MarsCanvas } from '../render/MarsCanvas';
-import { IconFolder, IconGlobe, IconRoute, IconScience, IconSun, IconX } from '../ui/icons';
+import { IconGlobe, IconRoute, IconScience, IconSun, IconX } from '../ui/icons';
 import { LoadingScreen } from './LoadingScreen';
 import { PrototypeNotice } from './PrototypeNotice';
+import { Toast } from './Toast';
 import { TopBar } from './TopBar';
 import { useApp, type Tab } from './store';
 
-const ALL_TABS: Array<{
+const TABS: Array<{
   id: Tab;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   panel: ComponentType;
@@ -26,9 +27,7 @@ const ALL_TABS: Array<{
   { id: 'route', icon: IconRoute, panel: RoutePanel },
   { id: 'science', icon: IconScience, panel: SciencePanel },
   { id: 'environment', icon: IconSun, panel: EnvironmentPanel },
-  { id: 'missions', icon: IconFolder, panel: MissionsPanel },
 ];
-const TABS = ALL_TABS.filter((x) => x.id !== 'missions' || FEATURES.missions);
 
 export function App() {
   const { t } = useTranslation();
@@ -37,6 +36,7 @@ export function App() {
   const panelOpen = useApp((s) => s.panelOpen);
   const setPanelOpen = useApp((s) => s.setPanelOpen);
   const picking = useApp((s) => s.picking);
+  useShareLinkLoader();
   const Panel = (TABS.find((x) => x.id === tab) ?? TABS[0]!).panel;
 
   return (
@@ -87,6 +87,7 @@ export function App() {
         <LayersControl />
         <MapLegend />
         <InspectorCard />
+        <Toast />
         {picking && (
           <div className="picking-banner" role="status">
             {t('route.picking')}

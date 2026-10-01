@@ -17,6 +17,7 @@ import { routingClient } from '../features/routes/routingClient';
 import type { OverlayKind } from '../features/routes/overlays';
 import { arrowsAlong, buildTrack, pointAt, type Track } from '../lib/routeTrack';
 import type { Annotation } from './annotations';
+import { registerScene } from './sceneRegistry';
 import { MarsScene, type LineSpec, type LonLatRect } from './marsScene';
 import { densify, simplify, type LatLonPoint } from './pathGeometry';
 
@@ -69,6 +70,7 @@ export function MarsCanvas() {
       return;
     }
     sceneRef.current = scene;
+    registerScene(scene);
     if (import.meta.env.DEV) (window as unknown as { __copernico?: MarsScene }).__copernico = scene;
     const { setLoading, setSceneReady } = useApp.getState();
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -152,6 +154,7 @@ export function MarsCanvas() {
 
     return () => {
       media.removeEventListener('change', onMotion);
+      registerScene(null);
       scene.destroy();
       sceneRef.current = null;
     };
