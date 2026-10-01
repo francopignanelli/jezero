@@ -1,4 +1,4 @@
-import { Cartesian2, Cartesian3, type Scene } from 'cesium';
+import { Cartesian2, Cartesian3, Ray, type Scene } from 'cesium';
 import { MARS_SPHERE_RADIUS_M, normalizeLon180 } from '@copernico/domain';
 
 /**
@@ -42,6 +42,7 @@ const OFFSETS: ReadonlyArray<readonly [number, number, string]> = [
 ];
 
 // Occluding sphere slightly inside the reference sphere so surface points ~2.5 km below it stay visible.
+const OCCLUSION_MS = 150;
 const OCCLUDER_RADIUS_M = MARS_SPHERE_RADIUS_M - 12_000;
 
 /** True if the straight line from the camera to the point passes through the occluding sphere. */
@@ -70,6 +71,10 @@ export class AnnotationLayer {
   private hidden = new Set<string>();
   private muted = new Set<string>();
   private scratch = new Cartesian2();
+  /** Terrain-occlusion results per label, refreshed at most every OCCLUSION_MS. */
+  private occluded = new Map<HTMLElement, boolean>();
+  private occlusionAt = 0;
+  private refreshQueued = false;
 
   constructor(
     container: HTMLElement,
@@ -133,6 +138,17 @@ export class AnnotationLayer {
     const camera = scene.camera.positionWC;
     const w = scene.canvas.clientWidth;
     const h = scene.canvas.clientHeight;
+    const now = performance.now();
+    const refresh = now - this.occlusionAt > OCCLUSION_MS;
+    if (refresh) this.occlusionAt = now;
+    else if (!this.refreshQueued) {
+      // Make sure the last camera position gets a fresh occlusion pass once motion stops.
+      this.refreshQueued = true;
+      window.setTimeout(() => {
+        this.refreshQueued = false;
+        this.scene.requestRender();
+      }, OCCLUSION_MS);
+    }
     const candidates: Array<Placed & { x: number; y: number; d: number; rank: number }> = [];
 
     for (const [group, items] of this.groups) {
@@ -143,6 +159,8 @@ export class AnnotationLayer {
         if (p.a.maxCameraDistanceM !== undefined && d > p.a.maxCameraDistanceM) continue;
         if (p.a.minCameraDistanceM !== undefined && d < p.a.minCameraDistanceM) continue;
         if (isBehindPlanet(camera, p.anchor)) continue;
+        if (refresh) this.occluded.set(p.el, this.hiddenByTerrain(camera, p.anchor, d));
+        if (this.occluded.get(p.el)) continue;
         const s = scene.cartesianToCanvasCoordinates(p.anchor, this.scratch);
         if (!s || s.x < -50 || s.y < -50 || s.x > w + 50 || s.y > h + 50) continue;
         if (!p.width) {
@@ -186,6 +204,17 @@ export class AnnotationLayer {
         break;
       }
     }
+  }
+
+  /** True when rendered terrain lies between the camera and the label anchor (ridges, crater rim). */
+  private hiddenByTerrain(camera: Cartesian3, anchor: Cartesian3, distance: number): boolean {
+    if (distance > 600_000) return false; // from orbit the sphere test is enough
+    const dir = Cartesian3.normalize(
+      Cartesian3.subtract(anchor, camera, new Cartesian3()),
+      new Cartesian3(),
+    );
+    const hit = this.scene.globe.pick(new Ray(camera, dir), this.scene);
+    return !!hit && Cartesian3.distance(camera, hit) < distance - Math.max(60, distance * 0.01);
   }
 
   destroy(): void {

@@ -181,10 +181,6 @@ function lineMaterials(style: LineStyle): LineLayer[] {
             gapColor: COLOURS.outline.withAlpha(0.35),
             dashLength: 16,
           }),
-          depthFail: new PolylineDashMaterialProperty({
-            color: COLOURS.alternative.withAlpha(0.45),
-            dashLength: 16,
-          }),
         },
       ];
     case 'traverse':
@@ -198,11 +194,6 @@ function lineMaterials(style: LineStyle): LineLayer[] {
             outlineColor: COLOURS.outline.withAlpha(0.7 * a),
             outlineWidth: 1,
           }),
-          depthFail: new PolylineOutlineMaterialProperty({
-            color: COLOURS.traverse.withAlpha(0.55 * a),
-            outlineColor: COLOURS.outline.withAlpha(0.4 * a),
-            outlineWidth: 1,
-          }),
         },
       ];
     }
@@ -212,11 +203,6 @@ function lineMaterials(style: LineStyle): LineLayer[] {
           width: 5,
           material: new PolylineGlowMaterialProperty({
             color: COLOURS.boundary.withAlpha(0.9),
-            glowPower: 0.3,
-            taperPower: 1,
-          }),
-          depthFail: new PolylineGlowMaterialProperty({
-            color: COLOURS.boundary.withAlpha(0.45),
             glowPower: 0.3,
             taperPower: 1,
           }),
@@ -321,6 +307,7 @@ export class MarsScene {
       scene.backgroundColor = Color.fromCssColorString('#020306');
     }
     this.annotations = new AnnotationLayer(container, scene);
+    scene.preRender.addEventListener(() => this.fadeImageryTiers());
     scene.postRender.addEventListener(() => {
       this.renderSky();
       if (this.sky?.animating) window.requestAnimationFrame(() => this.requestRender());
@@ -426,6 +413,24 @@ export class MarsScene {
     this.requestRender();
   }
 
+  /**
+   * CTX and HiRISE are greyscale mosaics over the colour Viking globe. Seen from far away their
+   * footprints read as grey squares, so each tier fades in only once it fills most of the view.
+   */
+  private fadeImageryTiers(): void {
+    const h = this.widget.camera.positionCartographic.height + 2_500; // above the Jezero floor
+    const fade = (layer: ImageryLayer | undefined, far: number, near: number) => {
+      if (!layer) return;
+      const a = Math.min(1, Math.max(0, (far - h) / (far - near)));
+      if (Math.abs(layer.alpha - a) > 0.01) {
+        layer.alpha = a;
+        this.requestRender();
+      }
+    };
+    fade(this.rasters.get('ctx'), 160_000, 70_000);
+    fade(this.rasters.get('hirise'), 25_000, 12_000);
+  }
+
   // ---------- rasters ----------
 
   addTiledLayer(spec: RasterLayerSpec): void {
@@ -512,7 +517,8 @@ export class MarsScene {
           color: Color.fromCssColorString(m.color),
           outlineColor: Color.fromCssColorString('#f3efe9').withAlpha(0.9),
           outlineWidth: 1.5,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          // Always on top only up close; from afar terrain hides points behind ridges.
+          disableDepthTestDistance: 3_000,
           scaleByDistance: new NearFarScalar(1.5e3, 1.25, 8e5, 0.55),
           // Surface detail belongs to the operational view; from orbit, the crater label stands in.
           distanceDisplayCondition: new DistanceDisplayCondition(0, 450_000),
@@ -589,7 +595,8 @@ export class MarsScene {
           width: 14,
           height: 14,
           alignedAxis: axis,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          // Always on top only up close; from afar terrain hides points behind ridges.
+          disableDepthTestDistance: 3_000,
           distanceDisplayCondition: new DistanceDisplayCondition(0, 40_000),
         },
       });
