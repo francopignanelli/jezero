@@ -1616,3 +1616,17 @@ details.samples > summary {
   gap: 8px;
   margin: 12px 0 0;
 }
+
+.swatch-r {
+  background: rgb(230 40 40);
+}
+.swatch-g {
+  background: rgb(40 200 60);
+}
+.swatch-b {
+  background: rgb(50 90 240);
+}
+.segmented-sm button {
+  padding: 4px 10px;
+  font-size: var(--fs-xs);
+}

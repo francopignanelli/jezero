@@ -251,6 +251,9 @@ export class MarsScene {
   private readonly groups = new Map<string, Entity[]>();
   private readonly hiddenGroups = new Set<string>();
   private readonly lineSpecs = new Map<string, LineSpec[]>();
+  /** Lines without their own see-through style, and the material to use when looking down. */
+  private readonly seeThrough = new Map<Entity, MaterialProperty>();
+  private overhead = true;
   private handler: ScreenSpaceEventHandler;
   private sky: SkyRenderer | null = null;
   private terrain: TerrainProvider = new EllipsoidTerrainProvider({ ellipsoid: MARS_SPHERE });
@@ -307,7 +310,10 @@ export class MarsScene {
       scene.backgroundColor = Color.fromCssColorString('#020306');
     }
     this.annotations = new AnnotationLayer(container, scene);
-    scene.preRender.addEventListener(() => this.fadeImageryTiers());
+    scene.preRender.addEventListener(() => {
+      this.fadeImageryTiers();
+      this.updateLineOcclusion();
+    });
     scene.postRender.addEventListener(() => {
       this.renderSky();
       if (this.sky?.animating) window.requestAnimationFrame(() => this.requestRender());
@@ -417,6 +423,24 @@ export class MarsScene {
    * CTX and HiRISE are greyscale mosaics over the colour Viking globe. Seen from far away their
    * footprints read as grey squares, so each tier fades in only once it fills most of the view.
    */
+  /**
+   * Looking steeply down, coarser terrain tiles can sit a few metres above lines draped on the 1 m
+   * model, so lines stay visible through terrain there. In low, grazing views ridges really do hide
+   * them, so they are depth-tested (otherwise they float over the horizon).
+   */
+  private updateLineOcclusion(): void {
+    const overhead = this.widget.camera.pitch < CesiumMath.toRadians(-35);
+    if (overhead === this.overhead) return;
+    this.overhead = overhead;
+    for (const [entity, material] of this.seeThrough) {
+      if (entity.polyline)
+        entity.polyline.depthFailMaterial = overhead
+          ? material
+          : (undefined as unknown as MaterialProperty);
+    }
+    this.requestRender();
+  }
+
   private fadeImageryTiers(): void {
     const h = this.widget.camera.positionCartographic.height + 2_500; // above the Jezero floor
     const fade = (layer: ImageryLayer | undefined, far: number, near: number) => {
@@ -450,6 +474,11 @@ export class MarsScene {
       tileHeight: 256,
     });
     this.addProvider(spec.id, provider, spec.minLevel);
+  }
+
+  /** Ids of raster layers starting with `prefix` (for removing a family of overlays). */
+  rasterIds(prefix: string): string[] {
+    return [...this.rasters.keys()].filter((k) => k.startsWith(prefix));
   }
 
   /** Drapes an RGBA image whose pixels are aligned with lon/lat (equirectangular grid). */
@@ -550,9 +579,14 @@ export class MarsScene {
             arcType: ArcType.NONE, // vertices are already dense and draped on the rendered terrain
             distanceDisplayCondition: new DistanceDisplayCondition(0, 300_000),
             material,
-            ...(depthFail ? { depthFailMaterial: depthFail } : {}),
+            ...(depthFail
+              ? { depthFailMaterial: depthFail }
+              : this.overhead
+                ? { depthFailMaterial: material }
+                : {}),
           },
         });
+        if (!depthFail) this.seeThrough.set(entity, material);
         g.push(entity);
         this.widget.entities.add(entity);
       });
@@ -725,7 +759,10 @@ export class MarsScene {
   clearGroup(groupId: string): void {
     const g = this.groups.get(groupId);
     if (!g) return;
-    for (const e of g) this.widget.entities.remove(e);
+    for (const e of g) {
+      this.widget.entities.remove(e);
+      this.seeThrough.delete(e);
+    }
     g.length = 0;
     this.requestRender();
   }

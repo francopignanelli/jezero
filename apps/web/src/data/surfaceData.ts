@@ -59,3 +59,23 @@ export const loadImageryLayer = (id: string) =>
   json<{ id: string; rectangle: { west: number; south: number; east: number; north: number }; minLevel: number; maxLevel: number; tiles: number }>(
     `tiles/imagery/${id}/layer.json`,
   );
+
+export type CrismComposite = 'car' | 'maf';
+
+/** CRISM MTRDR browse composites snapshotted by scripts/data/snapshot-crism.ts. */
+export interface CrismManifest {
+  retrievedUtc: string;
+  uncertainty: string;
+  observations: Array<{
+    id: string;
+    startTime: string;
+    west: number;
+    east: number;
+    south: number;
+    north: number;
+    mPerPixel: number;
+    composites: Partial<Record<CrismComposite, { file: string; bands: string[]; description: string }>>;
+  }>;
+}
+
+export const loadCrism = () => json<CrismManifest>('crism/crism.json');

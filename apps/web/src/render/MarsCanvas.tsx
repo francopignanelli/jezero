@@ -6,6 +6,7 @@ import { DATA_VERSION, JEZERO_OPERATIONAL_VIEW, dataUrl } from '../config';
 import { POIS } from '../data/catalog';
 import {
   loadCoverage,
+  loadCrism,
   loadImageryLayer,
   loadIngenuity,
   loadRover,
@@ -64,6 +65,7 @@ export function MarsCanvas() {
   const routeCursorM = useApp((s) => s.routeCursorM);
   const inspected = useApp((s) => s.inspected);
   const playRequest = useApp((s) => s.playRequest);
+  const crismComposite = useApp((s) => s.crismComposite);
 
   // Create the scene once and load everything the first view needs before revealing it.
   useEffect(() => {
@@ -222,7 +224,7 @@ export function MarsCanvas() {
     const scene = sceneRef.current;
     if (!scene) return;
     for (const [id, visible] of Object.entries(layers)) {
-      if (!OVERLAYS.includes(id as OverlayKind) && id !== 'reach')
+      if (!OVERLAYS.includes(id as OverlayKind) && id !== 'reach' && id !== 'crism')
         scene.setLayerVisible(id, visible);
     }
     scene.setLayerVisible('roverLatest', layers.rover);
@@ -371,6 +373,26 @@ export function MarsCanvas() {
     return () => run.stop();
   }, [playRequest]);
 
+  // CRISM mineral-indicator composites: one draped image per observation, oldest first.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    for (const id of scene.rasterIds('crism:')) scene.removeLayer(id);
+    if (!layers.crism) return;
+    let cancelled = false;
+    void loadCrism().then(async (m) => {
+      for (const o of m?.observations ?? []) {
+        const c = o.composites[crismComposite];
+        if (!c || cancelled) continue;
+        const img = await signalOnly(dataUrl(`crism/${c.file}?v=${DATA_VERSION}`));
+        if (img && !cancelled) await scene.setImageOverlay(`crism:${o.id}`, img, o);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [layers.crism, crismComposite]);
+
   // Inspected point marker.
   useEffect(() => {
     const scene = sceneRef.current;
@@ -441,6 +463,36 @@ async function drape(scene: MarsScene, points: LatLonPoint[], liftM: number) {
     ...p,
     heightM: (Number.isFinite(heights[i]!) ? heights[i]! : 0) + liftM,
   }));
+}
+
+/**
+ * CRISM browse composite with opacity proportional to signal: the brightest channel sets alpha, so
+ * weak or absent indicators let the imagery show through and strong ones stand out. Colours are the
+ * published ones; non-scene pixels (alpha 0 in the PNG) stay transparent.
+ */
+async function signalOnly(url: string): Promise<HTMLCanvasElement | null> {
+  const img = new Image();
+  img.src = url;
+  try {
+    await img.decode();
+  } catch {
+    return null;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = data.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 0) continue;
+    const peak = Math.max(d[i]!, d[i + 1]!, d[i + 2]!) / 255;
+    d[i + 3] = Math.round(255 * Math.min(0.9, Math.max(0, (peak - 0.12) * 1.6)));
+  }
+  ctx.putImageData(data, 0, 0);
+  return canvas;
 }
 
 /** Semi-transparent mask over the crater with a clear window for the route-planning coverage. */

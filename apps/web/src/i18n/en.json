@@ -75,7 +75,8 @@
       "pois": "Science points of interest",
       "ingenuity": "Ingenuity flights",
       "sky": "Stars, planets & Milky Way",
-      "reach": "Round-trip reach from start"
+      "reach": "Round-trip reach from start",
+      "crism": "Mineral indicators (CRISM)"
     },
     "close": "Close layers"
   },
@@ -102,6 +103,25 @@
       "needStart": "Add a start point in Plan to see how far a crew can go and return.",
       "computing": "Computing reach…",
       "band": "≤ {{h}} h · {{area}} km²"
+    },
+    "crism": {
+      "title": "CRISM mineral indicators",
+      "composite": "Composite",
+      "caveat": "{{n}} MRO CRISM observations ({{years}}), 18 m. Indicators, not identifications: confirming a mineral needs its spectrum.",
+      "car": {
+        "name": "Carbonate · clay",
+        "r": "Red: D2300 (Fe/Mg clay, carbonate)",
+        "g": "Green: BD2500_2 (carbonate)",
+        "b": "Blue: BD1900_2 (hydration)",
+        "hint": "Bluish or yellowish white often indicates carbonate; red/magenta may indicate Fe/Mg phyllosilicate; blue, other hydrated minerals."
+      },
+      "maf": {
+        "name": "Mafic",
+        "r": "Red: OLINDEX3 (olivine)",
+        "g": "Green: LCPINDEX2 (low-Ca pyroxene)",
+        "b": "Blue: HCPINDEX2 (high-Ca pyroxene)",
+        "hint": "Red/orange often indicates olivine; green, low-Ca pyroxene; blue, high-Ca pyroxene."
+      }
     }
   },
   "provenance": {

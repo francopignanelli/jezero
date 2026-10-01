@@ -256,6 +256,38 @@
       "expect": {}
     },
     {
+      "id": "crism-mtrdr",
+      "title": "CRISM map-projected targeted reduced data records (MTRDR): summary-parameter browse composites",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "CRISM",
+      "productId": "mrocr_4001: HRL000040FF, FRT000047A3, FRT00005850, FRT00005C5E, FRT000066A4, FRT0001FB74 (BRCARJ, BRMAFJ)",
+      "publisher": "NASA PDS Geosciences Node (JHU/APL CRISM team)",
+      "landingPage": "https://pds-geosciences.wustl.edu/missions/mro/crism.htm",
+      "accessUrl": "https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-mptargeted-v1/mrocr_4001/",
+      "access": "download",
+      "published": "2017-07-17",
+      "coverage": {
+        "west": 77.2,
+        "east": 77.7,
+        "south": 18.3,
+        "north": 18.7
+      },
+      "resolution": {
+        "value": 18,
+        "unit": "m/px (HRL: 36 m/px)"
+      },
+      "units": "Byte-scaled RGB composites of spectral summary parameters (band depths and indices; unitless)",
+      "crs": "Equirectangular, planetocentric, east longitude, sphere R = 3394.8398 km, standard parallel 15°: rows and columns are lines of latitude and longitude",
+      "verticalDatum": null,
+      "uncertainty": "Summary parameters indicate, but do not identify, minerals; confirmation needs spectra. Georeferencing from MRO pointing: offsets of one to a few CRISM pixels (18–36 m) relative to the HiRISE TRN mosaic are possible. Observations from 2007 and 2011; dust and illumination differ between them.",
+      "license": "NASA PDS (public)",
+      "citation": "Seelos, F.P. et al. (2016) CRISM MTRDR, MRO-M-CRISM-5-RDR-MPTARGETED-V1.0, NASA PDS. Composites after Viviano-Beck, C.E. et al. (2014) JGR Planets 119, 1403–1431, doi:10.1002/2014JE004627.",
+      "role": [
+        "science-layer"
+      ],
+      "expect": {}
+    },
+    {
       "id": "m2020-mmgis",
       "title": "Mars 2020 rover waypoints, traverse, samples and Ingenuity flights (MMGIS)",
       "mission": "Mars 2020",

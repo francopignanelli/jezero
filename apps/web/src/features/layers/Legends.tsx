@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { loadCrism, type CrismManifest } from '../../data/surfaceData';
 import { useApp } from '../../app/store';
 import { RAMP, REACH_COLOURS, SLOPE_COLOURS, type OverlayKind } from '../routes/overlays';
 
@@ -100,6 +102,47 @@ export function ReachLegend() {
   );
 }
 
+/** CRISM composite switch and the meaning of each colour channel. */
+export function CrismLegend() {
+  const { t } = useTranslation();
+  const composite = useApp((s) => s.crismComposite);
+  const setComposite = useApp((s) => s.setCrismComposite);
+  const [manifest, setManifest] = useState<CrismManifest | null>(null);
+  useEffect(() => {
+    void loadCrism().then(setManifest);
+  }, []);
+  const years = [
+    ...new Set((manifest?.observations ?? []).map((o) => o.startTime.slice(0, 4))),
+  ].join(', ');
+  return (
+    <div className="legend" role="group" aria-label={t('legend.crism.title')}>
+      <strong>{t('legend.crism.title')}</strong>
+      <div className="segmented segmented-sm" role="group" aria-label={t('legend.crism.composite')}>
+        {(['car', 'maf'] as const).map((c) => (
+          <button
+            key={c}
+            type="button"
+            aria-pressed={composite === c}
+            onClick={() => setComposite(c)}
+          >
+            {t(`legend.crism.${c}.name`)}
+          </button>
+        ))}
+      </div>
+      {(['r', 'g', 'b'] as const).map((ch) => (
+        <div key={ch} className="legend-row">
+          <span className={`swatch swatch-${ch}`} />
+          {t(`legend.crism.${composite}.${ch}`)}
+        </div>
+      ))}
+      <span className="meta">{t(`legend.crism.${composite}.hint`)}</span>
+      <span className="meta">
+        {t('legend.crism.caveat', { n: manifest?.observations.length ?? 0, years })}
+      </span>
+    </div>
+  );
+}
+
 /** Legends for the analysis overlays that are currently visible, shown on the map. */
 export function MapLegend() {
   const layers = useApp((s) => s.layers);
@@ -107,6 +150,7 @@ export function MapLegend() {
   const ranges = useApp((s) => s.overlayRanges);
   if (mode !== 'jezero') return null;
   const items = [
+    layers.crism && <CrismLegend key="crism" />,
     layers.reach && <ReachLegend key="reach" />,
     layers.slope && <SlopeLegend key="slope" />,
     layers.elevation && ranges.elevation && (

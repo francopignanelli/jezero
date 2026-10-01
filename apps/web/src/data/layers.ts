@@ -61,6 +61,15 @@ export const LAYERS: LayerDef[] = [
       'Round-trip walking time from the first waypoint to every cell and back, over the same 5 m grid and 20° limit as the planner (Dijkstra, default speed model with the timeline factor). Grid paths are up to ~8 % longer than smoothed routes, so the area is conservative. Bands stop at the EVA limit minus ingress.',
     swatch: '#3ff0c0',
   },
+  {
+    id: 'crism',
+    group: 'science',
+    kind: 'tiles',
+    datasets: ['crism-mtrdr'],
+    derivation:
+      'Published CRISM browse composites (byte-scaled summary parameters, Viviano-Beck et al. 2014), draped without resampling: the products are already rows of latitude and columns of longitude. CAR: red D2300, green BD2500_2, blue BD1900_2. MAF: red OLINDEX3, green LCPINDEX2, blue HCPINDEX2. Indicators only; spectra are needed to identify minerals.',
+    swatch: '#e5c07b',
+  },
   { id: 'coverage', group: 'terrain', kind: 'vector', datasets: ['hirise-dtm-trn'], swatch: '#6cc6e6' },
   { id: 'pois', group: 'science', kind: 'vector', datasets: ['m2020-mmgis'], swatch: '#b69cff' },
   { id: 'samples', group: 'surface', kind: 'vector', datasets: ['m2020-mmgis'], swatch: '#ff9ad5' },

@@ -19,7 +19,8 @@ export type LayerId =
   | 'pois'
   | 'ingenuity'
   | 'sky'
-  | 'reach';
+  | 'reach'
+  | 'crism';
 
 export interface WaypointEntry {
   id: string;
@@ -70,6 +71,9 @@ interface AppState {
   routeCursorM: number | null;
   /** Route fly-through: a request nonce, and whether it is running. */
   playRequest: number | null;
+  /** Which CRISM browse composite is shown (carbonate/clay or mafic). */
+  crismComposite: 'car' | 'maf';
+  setCrismComposite(c: 'car' | 'maf'): void;
   playing: boolean;
   setPlay(request: number | null, playing: boolean): void;
   /** Round-trip reach overlay from the first waypoint (bands in hours, cumulative areas). */
@@ -137,6 +141,7 @@ export const useApp = create<AppState>((set) => ({
     ingenuity: false,
     sky: true,
     reach: false,
+    crism: false,
   },
   waypoints: [],
   picking: false,
@@ -161,6 +166,8 @@ export const useApp = create<AppState>((set) => ({
   overlayRanges: {},
   routeCursorM: null,
   playRequest: null,
+  crismComposite: 'car',
+  setCrismComposite: (crismComposite) => set({ crismComposite }),
   playing: false,
   setPlay: (playRequest, playing) => set({ playRequest, playing }),
   reach: null,

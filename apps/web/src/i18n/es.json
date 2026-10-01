@@ -75,7 +75,8 @@
       "pois": "Puntos de interés científico",
       "ingenuity": "Vuelos de Ingenuity",
       "sky": "Estrellas, planetas y Vía Láctea",
-      "reach": "Alcance ida y vuelta desde el inicio"
+      "reach": "Alcance ida y vuelta desde el inicio",
+      "crism": "Indicadores minerales (CRISM)"
     },
     "close": "Cerrar capas"
   },
@@ -102,6 +103,25 @@
       "needStart": "Agregá un punto de inicio en Planificar para ver hasta dónde puede ir y volver la tripulación.",
       "computing": "Calculando el alcance…",
       "band": "≤ {{h}} h · {{area}} km²"
+    },
+    "crism": {
+      "title": "Indicadores minerales CRISM",
+      "composite": "Composición",
+      "caveat": "{{n}} observaciones de MRO CRISM ({{years}}), 18 m. Son indicadores, no identificaciones: confirmar un mineral requiere su espectro.",
+      "car": {
+        "name": "Carbonato · arcilla",
+        "r": "Rojo: D2300 (arcilla Fe/Mg, carbonato)",
+        "g": "Verde: BD2500_2 (carbonato)",
+        "b": "Azul: BD1900_2 (hidratación)",
+        "hint": "Blanco azulado o amarillento suele indicar carbonato; rojo/magenta, filosilicato de Fe/Mg; azul, otros minerales hidratados."
+      },
+      "maf": {
+        "name": "Máfico",
+        "r": "Rojo: OLINDEX3 (olivino)",
+        "g": "Verde: LCPINDEX2 (piroxeno pobre en Ca)",
+        "b": "Azul: HCPINDEX2 (piroxeno rico en Ca)",
+        "hint": "Rojo/naranja suele indicar olivino; verde, piroxeno pobre en Ca; azul, piroxeno rico en Ca."
+      }
     }
   },
   "provenance": {

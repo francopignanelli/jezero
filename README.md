@@ -23,7 +23,7 @@ and dated environmental context.
 |---|---|---|
 | Mars Global Surveyor | MOLA | Global relief |
 | Mars Odyssey | THEMIS | Thermal inertia |
-| Mars Reconnaissance Orbiter | HiRISE, CTX | 1 m terrain and slopes, imagery |
+| Mars Reconnaissance Orbiter | HiRISE, CTX, CRISM | 1 m terrain and slopes, imagery, mineral indicators |
 | Viking Orbiters | — | Global color |
 | Mars 2020 | Perseverance localization, MEDA, samples, Ingenuity | Traverse, samples, measured environment |
 
@@ -45,6 +45,7 @@ scripts/geospatial/run.sh terrain        # quantized-mesh terrain tiles (Mars sp
 scripts/geospatial/run.sh imagery        # Viking / CTX / HiRISE imagery tiles
 npx tsx scripts/data/snapshot-rover.ts   # Perseverance traverse, samples, Ingenuity
 npx tsx scripts/data/snapshot-meda.ts    # MEDA per-sol summaries (sols 1740–1859)
+npx tsx scripts/data/snapshot-crism.ts   # CRISM MTRDR carbonate and mafic composites (~6 MB)
 npx tsx scripts/data/build-sky.ts && scripts/geospatial/run.sh sky   # stars + Milky Way
 npx tsx scripts/data/validate-grid.ts    # grid vs PDS PLACES + guided-route check
 ```
@@ -99,7 +100,6 @@ Implemented:
 Not yet done (see `docs/UPDATE_PLAN.md`):
 - Public deployment.
 - A reachability overlay.
-- The CRISM mineralogy layer.
 - The demo video.
 - The optional assistant (Gemini).
 
