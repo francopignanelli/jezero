@@ -1,6 +1,6 @@
 # Reproducible geospatial toolchain for Copernico (GDAL/PROJ with IAU_2015 Mars CRSs).
-# The base tag is pinned by digest in docs/datasets.md after each rebuild.
-FROM ghcr.io/osgeo/gdal:ubuntu-small-latest
+# Base pinned by tag and digest (stable GDAL 3.13.3 with PROJ IAU_2015 CRSs) for reproducible builds.
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.13.3@sha256:64250faf833c06d4b21afce4c27190039ba7ab58d70f0eebc87cf77d929c0b40
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3-pip python3-venv python3-numpy python3-dev g++ libglm-dev \
