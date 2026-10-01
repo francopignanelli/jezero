@@ -5,7 +5,11 @@ import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
 /** Cesium's prebuilt Workers/Assets/ThirdParty/Widgets, wherever npm workspaces hoisted the package. */
-const CESIUM_BUILD = join(dirname(createRequire(import.meta.url).resolve('cesium/package.json')), 'Build', 'Cesium');
+const CESIUM_BUILD = join(
+  dirname(createRequire(import.meta.url).resolve('cesium/package.json')),
+  'Build',
+  'Cesium',
+);
 const CESIUM_DIRS = ['Workers', 'ThirdParty', 'Assets', 'Widgets'];
 const CESIUM_BASE = 'cesium';
 const DATA_DIR = resolve(import.meta.dirname, '../../data/build');

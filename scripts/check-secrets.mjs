@@ -15,7 +15,11 @@ const PATTERNS = [
   { name: 'Private key', re: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
 ];
 
-const SKIP = [/^LICENSE$/, /\.(png|jpe?g|webp|gif|ico|tif|bin|woff2?|zip|gz)$/i, /package-lock\.json$/];
+const SKIP = [
+  /^LICENSE$/,
+  /\.(png|jpe?g|webp|gif|ico|tif|bin|woff2?|zip|gz)$/i,
+  /package-lock\.json$/,
+];
 
 function gitFiles() {
   const out = execFileSync('git', ['ls-files', '-co', '--exclude-standard'], { encoding: 'utf8' });

@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      # Typecheck, lint, unit/property tests (network-guarded: zero live AI or external calls), secret scan.
+      - run: npm run verify
+      - run: npm run format:check
+  # End-to-end tests need the built planetary data (data/build, ~110 MB, gitignored). They run
+  # locally (`npm run test:e2e`) until the data is published to the static host (UPDATE_PLAN step 7).

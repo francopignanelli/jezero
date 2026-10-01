@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { AssistantAction, AssistantRequest, MissionInput, MissionName, Registration } from './index';
+import {
+  AssistantAction,
+  AssistantRequest,
+  MissionInput,
+  MissionName,
+  Registration,
+} from './index';
 
 const valid = {
   name: '  Delta front  walk ',
@@ -29,9 +35,15 @@ describe('mission contract', () => {
   });
 
   it('rejects out-of-range coordinates, west longitudes and too many waypoints', () => {
-    expect(() => MissionInput.parse({ ...valid, waypoints: [{ lat: 91, lon: 77 }, valid.waypoints[1]] })).toThrow();
-    expect(() => MissionInput.parse({ ...valid, waypoints: [{ lat: 18, lon: -77 }, valid.waypoints[1]] })).toThrow();
-    expect(() => MissionInput.parse({ ...valid, waypoints: Array(21).fill(valid.waypoints[0]) })).toThrow();
+    expect(() =>
+      MissionInput.parse({ ...valid, waypoints: [{ lat: 91, lon: 77 }, valid.waypoints[1]] }),
+    ).toThrow();
+    expect(() =>
+      MissionInput.parse({ ...valid, waypoints: [{ lat: 18, lon: -77 }, valid.waypoints[1]] }),
+    ).toThrow();
+    expect(() =>
+      MissionInput.parse({ ...valid, waypoints: Array(21).fill(valid.waypoints[0]) }),
+    ).toThrow();
   });
 
   it('rejects unknown regions and oversized geometry', () => {
@@ -41,7 +53,15 @@ describe('mission contract', () => {
       MissionInput.parse({
         ...valid,
         route: {
-          metrics: { horizontalDistanceM: 1, distance3dM: 1, elevationGainM: 0, elevationLossM: 0, maxTerrainSlopeDeg: 1, estimatedDurationS: 1, walkbackOk: true },
+          metrics: {
+            horizontalDistanceM: 1,
+            distance3dM: 1,
+            elevationGainM: 0,
+            elevationLossM: 0,
+            maxTerrainSlopeDeg: 1,
+            estimatedDurationS: 1,
+            walkbackOk: true,
+          },
           explanation: [],
           geometry,
         },
@@ -55,24 +75,47 @@ describe('assistant contracts', () => {
     const base = {
       message: 'Why is this route longer?',
       history: [],
-      context: { locale: 'en', view: 'jezero', activeLayers: ['slope'], selectedPoiId: null, route: null, environment: null },
+      context: {
+        locale: 'en',
+        view: 'jezero',
+        activeLayers: ['slope'],
+        selectedPoiId: null,
+        route: null,
+        environment: null,
+      },
     };
     expect(AssistantRequest.parse(base).message).toBe('Why is this route longer?');
     expect(() => AssistantRequest.parse({ ...base, message: 'x'.repeat(601) })).toThrow();
-    expect(() => AssistantRequest.parse({ ...base, history: Array(5).fill({ role: 'user', text: 'hi' }) })).toThrow();
-    expect(() => AssistantRequest.parse({ ...base, context: { ...base.context, activeLayers: ['<script>'] } })).toThrow();
+    expect(() =>
+      AssistantRequest.parse({ ...base, history: Array(5).fill({ role: 'user', text: 'hi' }) }),
+    ).toThrow();
+    expect(() =>
+      AssistantRequest.parse({ ...base, context: { ...base.context, activeLayers: ['<script>'] } }),
+    ).toThrow();
   });
 
   it('only allows allowlisted action shapes', () => {
-    expect(AssistantAction.parse({ type: 'fly_to_poi', poiId: 'three-forks' }).type).toBe('fly_to_poi');
+    expect(AssistantAction.parse({ type: 'fly_to_poi', poiId: 'three-forks' }).type).toBe(
+      'fly_to_poi',
+    );
     expect(() => AssistantAction.parse({ type: 'delete_mission', id: 'x' })).toThrow();
-    expect(() => AssistantAction.parse({ type: 'fly_to_poi', poiId: 'https://evil.example' })).toThrow();
+    expect(() =>
+      AssistantAction.parse({ type: 'fly_to_poi', poiId: 'https://evil.example' }),
+    ).toThrow();
   });
 });
 
 describe('registration contract', () => {
   it('requires a strong-enough password and lowercases email', () => {
-    expect(Registration.parse({ email: 'Crew@Example.org', password: 'correct horse battery', captchaToken: 't' }).email).toBe('crew@example.org');
-    expect(() => Registration.parse({ email: 'crew@example.org', password: 'short', captchaToken: 't' })).toThrow();
+    expect(
+      Registration.parse({
+        email: 'Crew@Example.org',
+        password: 'correct horse battery',
+        captchaToken: 't',
+      }).email,
+    ).toBe('crew@example.org');
+    expect(() =>
+      Registration.parse({ email: 'crew@example.org', password: 'short', captchaToken: 't' }),
+    ).toThrow();
   });
 });

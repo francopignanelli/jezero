@@ -7,12 +7,15 @@ import { z } from 'zod';
 
 // ---------- primitives ----------
 
+/** C0/C1 control characters (stripped from user text). */
+// eslint-disable-next-line no-control-regex -- intentionally matches control characters
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
+
 /** Removes C0/C1 control characters and normalizes to NFC before length checks. */
 const cleanText = (max: number) =>
   z
     .string()
-    // eslint-disable-next-line no-control-regex -- intentionally strips control characters from user text
-    .transform((s) => s.normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f]/g, '').trim())
+    .transform((s) => s.normalize('NFC').replace(CONTROL_CHARS, '').trim())
     .pipe(z.string().min(1).max(max));
 
 export const MissionName = cleanText(80);
@@ -28,7 +31,10 @@ export const Waypoint = z.object({
   lat: Latitude,
   lon: LongitudeEast,
   label: cleanText(80).optional(),
-  poiId: z.string().regex(/^[a-z0-9-]{1,64}$/).optional(),
+  poiId: z
+    .string()
+    .regex(/^[a-z0-9-]{1,64}$/)
+    .optional(),
   /** Minutes spent at this stop (timeline). */
   dwellMin: z.number().int().min(0).max(240).optional(),
 });
@@ -50,10 +56,20 @@ export const RouteMetricsSummary = z.object({
 
 export const ExplanationFact = z
   .object({ code: z.string().regex(/^[A-Z_]{3,40}$/) })
-  .catchall(z.union([z.number().finite(), z.string().max(120), z.boolean(), z.object({ lat: Latitude, lon: LongitudeEast })]));
+  .catchall(
+    z.union([
+      z.number().finite(),
+      z.string().max(120),
+      z.boolean(),
+      z.object({ lat: Latitude, lon: LongitudeEast }),
+    ]),
+  );
 
 /** Route geometry as [lat, lon, elevationM] triples; bounded to keep items well under 400 KB. */
-export const RouteGeometry = z.array(z.tuple([Latitude, LongitudeEast, z.number().finite()])).min(2).max(5000);
+export const RouteGeometry = z
+  .array(z.tuple([Latitude, LongitudeEast, z.number().finite()]))
+  .min(2)
+  .max(5000);
 
 export const StoredRoute = z.object({
   metrics: RouteMetricsSummary,
@@ -75,7 +91,10 @@ export const MissionInput = z.object({
 });
 export type MissionInput = z.infer<typeof MissionInput>;
 
-export const MissionPatch = MissionInput.partial().refine((p) => Object.keys(p).length > 0, 'empty patch');
+export const MissionPatch = MissionInput.partial().refine(
+  (p) => Object.keys(p).length > 0,
+  'empty patch',
+);
 export type MissionPatch = z.infer<typeof MissionPatch>;
 
 export const Mission = MissionInput.extend({
@@ -103,7 +122,10 @@ export type MissionSummary = z.infer<typeof MissionSummary>;
 
 export const ProfilePatch = z.object({
   locale: z.enum(['en', 'es']).optional(),
-  favoritePoiIds: z.array(z.string().regex(/^[a-z0-9-]{1,64}$/)).max(200).optional(),
+  favoritePoiIds: z
+    .array(z.string().regex(/^[a-z0-9-]{1,64}$/))
+    .max(200)
+    .optional(),
   preferences: z.object({ reducedMotion: z.boolean().optional() }).optional(),
   /** Explicit self-attestation required by the Gemini API terms before AI use. */
   aiAttested18: z.literal(true).optional(),
@@ -124,7 +146,10 @@ export type Profile = z.infer<typeof Profile>;
 // ---------- registration ----------
 
 export const Registration = z.object({
-  email: z.email().max(254).transform((e) => e.toLowerCase()),
+  email: z
+    .email()
+    .max(254)
+    .transform((e) => e.toLowerCase()),
   password: z.string().min(12).max(128),
   captchaToken: z.string().min(1).max(4096),
   inviteCode: z.string().max(64).optional(),
@@ -138,7 +163,10 @@ export const AssistantContext = z.object({
   locale: z.enum(['en', 'es']),
   view: z.enum(['orbit', 'jezero']),
   activeLayers: z.array(z.string().regex(/^[a-zA-Z]{2,32}$/)).max(16),
-  selectedPoiId: z.string().regex(/^[a-z0-9-]{1,64}$/).nullable(),
+  selectedPoiId: z
+    .string()
+    .regex(/^[a-z0-9-]{1,64}$/)
+    .nullable(),
   route: z
     .object({
       profile: z.enum(['lower-risk', 'shortest']),
@@ -171,7 +199,11 @@ export type AssistantRequest = z.infer<typeof AssistantRequest>;
 /** Actions the assistant may PROPOSE; the client validates IDs and the user confirms saves. */
 export const AssistantAction = z.discriminatedUnion('type', [
   z.object({ type: z.literal('fly_to_poi'), poiId: z.string().regex(/^[a-z0-9-]{1,64}$/) }),
-  z.object({ type: z.literal('toggle_layer'), layerId: z.string().regex(/^[a-zA-Z]{2,32}$/), visible: z.boolean() }),
+  z.object({
+    type: z.literal('toggle_layer'),
+    layerId: z.string().regex(/^[a-zA-Z]{2,32}$/),
+    visible: z.boolean(),
+  }),
   z.object({ type: z.literal('show_alternative'), profile: z.enum(['lower-risk', 'shortest']) }),
   z.object({ type: z.literal('propose_save_mission'), name: MissionName }),
 ]);

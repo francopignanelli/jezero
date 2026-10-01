@@ -14,6 +14,8 @@ and dated environmental context.
 - Research evidence and sources: [docs/research/](docs/research/)
 - Data provenance and validation: [docs/datasets.md](docs/datasets.md)
 - Decisions log: [docs/decisions.md](docs/decisions.md)
+- Update plan v2 (current work order): [docs/UPDATE_PLAN.md](docs/UPDATE_PLAN.md)
+- Performance measurements: [docs/performance.md](docs/performance.md)
 
 ## NASA missions used
 
@@ -53,6 +55,13 @@ Run the app:
 npm run dev             # http://localhost:5180
 ```
 
+Browser tests use the installed Chrome (no browser download) and the built data:
+
+```bash
+npm run test:e2e        # guided flow, keyboard-only route, Spanish, share links, WCAG 2.2 AA (axe)
+npm run test:perf       # reveal time, frame cost, route compute (writes a PERF line)
+```
+
 ## Repository layout
 
 | Path | Contents |
@@ -63,19 +72,36 @@ npm run dev             # http://localhost:5180
 | `scripts/data` | Rover, MEDA and validation scripts (Node) |
 | `data/catalog` | Dataset provenance and curated points of interest (tracked) |
 | `tests` | Cross-cutting tests, including the network guard that blocks live AI calls in tests |
+| `e2e` | Playwright end-to-end, accessibility and performance probes |
 | `docs` | Plan, research, datasets, decisions |
 
 ## Status
 
 Implemented:
-- Scientific core with 90+ tests: Mars24 worked examples, PDS PLACES frame fixtures, analytic slope
-  planes, nodata and slope barriers, no corner-cutting, property tests.
+- Scientific core with tests: Mars24 worked examples, PDS PLACES frame fixtures, analytic slope
+  planes, nodata and slope barriers, no corner-cutting, property tests, timeline and detour pricing.
 - Data pipeline for terrain, imagery, the routing grid, the rover and MEDA.
-- Globe → Jezero experience with a route planner, alternatives, explanations, itinerary,
-  walk-back and daylight checks, science stops, measured MEDA environment, a
-  scientifically positioned star/planet/Milky Way background, and English/Spanish.
+- Globe → Jezero experience. It includes:
+  - A route planner with lower-risk and shortest alternatives, explanations and an itinerary.
+  - An interactive elevation profile linked to the 3D route.
+  - An EVA timeline with time at each stop, the calculated Sun elevation and a daylight check, plus
+    a walk-back check.
+  - A point inspector showing the planner's own grid values.
+  - Science stops near the route, each priced as a detour.
+  - Measured MEDA environment data.
+  - A scientifically positioned star/planet/Milky Way background.
+  - English and Spanish.
+- Missions without an account: saved in the browser, share links that recompute the route
+  deterministically, and GeoJSON/CSV exports with a printable briefing.
+- Quality: Playwright end-to-end tests, an automated WCAG 2.2 AA audit (axe), CI, and measured
+  performance.
 
-Not yet implemented: accounts and saved missions (AWS), and the assistant (Gemini).
+Not yet done (see `docs/UPDATE_PLAN.md`):
+- Public deployment.
+- A reachability overlay.
+- The CRISM mineralogy layer.
+- The demo video.
+- The optional assistant (Gemini).
 
 ## License
 

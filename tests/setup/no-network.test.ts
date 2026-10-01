@@ -5,9 +5,12 @@ import { describe, expect, it } from 'vitest';
 describe('test network guard', () => {
   it('blocks fetch to the Gemini API', async () => {
     await expect(
-      fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent', {
-        method: 'POST',
-      }),
+      fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent',
+        {
+          method: 'POST',
+        },
+      ),
     ).rejects.toThrow(/Network access is blocked/);
   });
 
