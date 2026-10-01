@@ -5,6 +5,8 @@
 Impact, Creativity, Feasibility (scientifically sound, usable), NASA Data Integration, and Communication/Storytelling.
 Submission needs a 30 s video (English subtitles) **or** ≤ 7 slides, plus a project link.
 
+**Progress (2026-10-01):** steps 0–6, 8, 9a and 10a (fly-through, demo script, acceptance doc) are done, committed locally, not pushed. Waiting on the owner: step 7 (deploy), step 9b (CRISM data download), and step 11. Waiting on dates: G1 on 2026-10-28. Step 9c (pin the GDAL image) needs Docker running.
+
 **Rules for every step**
 - `npm run verify` stays green, and new logic gets unit tests.
 - EN and ES strings are updated together.
