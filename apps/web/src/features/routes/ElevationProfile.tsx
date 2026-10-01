@@ -46,7 +46,14 @@ export function ElevationProfile({ profile }: { profile: Profile }) {
         role="img"
         aria-label={`${t('route.profileChart')}: ${formatElevation(model.lo, i18n.language)} – ${formatElevation(model.hi, i18n.language)}, ${formatDistance(model.total, i18n.language)}`}
       >
-        <rect x={PAD.l} y={PAD.t} width={W - PAD.l - PAD.r} height={H - PAD.t - PAD.b} fill="#0b0e13" stroke="#2b3441" />
+        <rect
+          x={PAD.l}
+          y={PAD.t}
+          width={W - PAD.l - PAD.r}
+          height={H - PAD.t - PAD.b}
+          fill="#0b0e13"
+          stroke="#2b3441"
+        />
         {model.segments.map((s, i) => (
           <path key={i} d={s.d} stroke={s.colour} strokeWidth={2.2} fill="none" />
         ))}

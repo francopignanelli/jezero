@@ -17,7 +17,10 @@ export function explanationText(e: ExplanationCode, t: TFunction, locale: string
     case 'SAME_AS_SHORTEST':
       return t('explain.SAME_AS_SHORTEST');
     case 'MAX_SLOPE':
-      return t('explain.MAX_SLOPE', { slope: formatDegrees(e.slopeDeg, locale), limit: formatDegrees(e.limitDeg, locale) });
+      return t('explain.MAX_SLOPE', {
+        slope: formatDegrees(e.slopeDeg, locale),
+        limit: formatDegrees(e.limitDeg, locale),
+      });
     case 'ROUGH_TERRAIN':
       return t('explain.ROUGH_TERRAIN', { distance: d(e.distanceM) });
     case 'LOW_THERMAL_INERTIA':
@@ -31,13 +34,26 @@ export function explanationText(e: ExplanationCode, t: TFunction, locale: string
     case 'OUTSIDE_COVERAGE':
       return t('explain.OUTSIDE_COVERAGE', { n: e.waypointIndex + 1 });
     case 'WAYPOINT_NOT_TRAVERSABLE':
-      return t('explain.WAYPOINT_NOT_TRAVERSABLE', { n: e.waypointIndex + 1, reason: t(`explain.reason.${e.reason}`) });
+      return t('explain.WAYPOINT_NOT_TRAVERSABLE', {
+        n: e.waypointIndex + 1,
+        reason: t(`explain.reason.${e.reason}`),
+      });
     case 'DISCONNECTED':
-      return t('explain.DISCONNECTED', { leg: e.legIndex + 1, barrier: t(`explain.barrier.${e.barrier}`), gap: d(e.gapM) });
+      return t('explain.DISCONNECTED', {
+        leg: e.legIndex + 1,
+        barrier: t(`explain.barrier.${e.barrier}`),
+        gap: d(e.gapM),
+      });
   }
 }
 
 /** Codes that indicate a warning (rendered with a warning style). */
 export function isWarning(e: ExplanationCode): boolean {
-  return ['WALKBACK_EXCEEDED', 'EVA_NOMINAL_EXCEEDED', 'WALK_RADIUS_EXCEEDED', 'ROUGH_TERRAIN', 'LOW_THERMAL_INERTIA'].includes(e.code);
+  return [
+    'WALKBACK_EXCEEDED',
+    'EVA_NOMINAL_EXCEEDED',
+    'WALK_RADIUS_EXCEEDED',
+    'ROUGH_TERRAIN',
+    'LOW_THERMAL_INERTIA',
+  ].includes(e.code);
 }

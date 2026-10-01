@@ -39,7 +39,12 @@ export function LoadingScreen() {
   const done = STEPS.filter((k) => stepStatus(k, loading[k]) !== 'pending').length;
 
   return (
-    <div className={`loading-screen${ready ? ' is-leaving' : ''}`} role="status" aria-live="polite" aria-busy={!ready}>
+    <div
+      className={`loading-screen${ready ? ' is-leaving' : ''}`}
+      role="status"
+      aria-live="polite"
+      aria-busy={!ready}
+    >
       <div className="loading-stars" aria-hidden="true" />
       <div className="loading-card">
         <div className="loading-orbit" aria-hidden="true">
@@ -56,7 +61,10 @@ export function LoadingScreen() {
         <ul className="loading-steps">
           {STEPS.map((k) => {
             const status = stepStatus(k, loading[k]);
-            const extra = k === 'sky' && (loading.sky === 'hd' || loading.sky === 'sd') ? ` · ${t(`loading.${loading.sky}`)}` : '';
+            const extra =
+              k === 'sky' && (loading.sky === 'hd' || loading.sky === 'sd')
+                ? ` · ${t(`loading.${loading.sky}`)}`
+                : '';
             return (
               <li key={k} data-status={status}>
                 <span className="loading-dot" aria-hidden="true" />

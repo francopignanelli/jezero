@@ -63,6 +63,7 @@ export function ExplorePanel() {
           <li key={m}>{m}</li>
         ))}
       </ul>
+      <p className="meta">{t('app.prototypeNotice')}</p>
     </section>
   );
 }

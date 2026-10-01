@@ -47,7 +47,11 @@ export function renderOverlay(t: PreparedTerrain, kind: OverlayKind): Overlay {
   const rgba = new Uint8ClampedArray(cols * rows * 4);
   let range: [number, number] | null = null;
   const source =
-    kind === 'elevation' ? t.layers.elevation : kind === 'thermalInertia' ? t.layers.thermalInertia : undefined;
+    kind === 'elevation'
+      ? t.layers.elevation
+      : kind === 'thermalInertia'
+        ? t.layers.thermalInertia
+        : undefined;
   if (source) {
     let lo = Number.POSITIVE_INFINITY;
     let hi = Number.NEGATIVE_INFINITY;

@@ -61,13 +61,18 @@ export function MedaCard() {
           {t('environment.medaLatest', { sol: latest.sol })}
           <span className="tag tag-observed">{t('environment.kinds.observed')}</span>
         </div>
-        <p className="meta">{formatUtc(Date.parse(latest.solStartUtc), locale)} · {data.release.name} ({data.release.published})</p>
+        <p className="meta">
+          {formatUtc(Date.parse(latest.solStartUtc), locale)} · {data.release.name} (
+          {data.release.published})
+        </p>
         <dl className="metrics">
           <div className="metric">
             <dt>{t('environment.airTemp')}</dt>
             <dd>
               {c(latest.airTempK!.min)} … {c(latest.airTempK!.max)} °C
-              <small>{latest.airTempK!.min} … {latest.airTempK!.max} K</small>
+              <small>
+                {latest.airTempK!.min} … {latest.airTempK!.max} K
+              </small>
             </dd>
           </div>
           <div className="metric">
@@ -93,7 +98,10 @@ export function MedaCard() {
 
       <div className="card">
         <div className="card-title">
-          {t('environment.medaSummary', { first: data.release.firstSol, last: data.release.lastSol })}
+          {t('environment.medaSummary', {
+            first: data.release.firstSol,
+            last: data.release.lastSol,
+          })}
           <span className="tag">{t('environment.kinds.historical_summary')}</span>
         </div>
         <p style={{ fontSize: 'var(--fs-sm)' }}>
@@ -109,7 +117,12 @@ export function MedaCard() {
         </p>
         <p className="meta">
           Ls {withTemp[0]!.lsDeg?.toFixed(0)}° → {latest.lsDeg?.toFixed(0)}° ·{' '}
-          <a href={data.landingPage} target="_blank" rel="noreferrer noopener" style={{ color: 'var(--info)' }}>
+          <a
+            href={data.landingPage}
+            target="_blank"
+            rel="noreferrer noopener"
+            style={{ color: 'var(--info)' }}
+          >
             NASA PDS Atmospheres Node
           </a>
         </p>

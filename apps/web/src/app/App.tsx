@@ -7,13 +7,27 @@ import { LayersPanel } from '../features/layers/LayersPanel';
 import { MissionsPanel } from '../features/missions/MissionsPanel';
 import { RoutePanel } from '../features/routes/RoutePanel';
 import { SciencePanel } from '../features/science/SciencePanel';
+import { FEATURES } from '../config';
 import { MarsCanvas } from '../render/MarsCanvas';
-import { IconFolder, IconGlobe, IconLayers, IconRoute, IconScience, IconSun } from '../ui/icons';
+import {
+  IconFolder,
+  IconGlobe,
+  IconLayers,
+  IconRoute,
+  IconScience,
+  IconSun,
+  IconX,
+} from '../ui/icons';
 import { LoadingScreen } from './LoadingScreen';
+import { PrototypeNotice } from './PrototypeNotice';
 import { TopBar } from './TopBar';
 import { useApp, type Tab } from './store';
 
-const TABS: Array<{ id: Tab; icon: ComponentType<SVGProps<SVGSVGElement>>; panel: ComponentType }> = [
+const ALL_TABS: Array<{
+  id: Tab;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  panel: ComponentType;
+}> = [
   { id: 'explore', icon: IconGlobe, panel: ExplorePanel },
   { id: 'layers', icon: IconLayers, panel: LayersPanel },
   { id: 'route', icon: IconRoute, panel: RoutePanel },
@@ -21,16 +35,19 @@ const TABS: Array<{ id: Tab; icon: ComponentType<SVGProps<SVGSVGElement>>; panel
   { id: 'environment', icon: IconSun, panel: EnvironmentPanel },
   { id: 'missions', icon: IconFolder, panel: MissionsPanel },
 ];
+const TABS = ALL_TABS.filter((x) => x.id !== 'missions' || FEATURES.missions);
 
 export function App() {
   const { t } = useTranslation();
   const tab = useApp((s) => s.tab);
   const setTab = useApp((s) => s.setTab);
+  const panelOpen = useApp((s) => s.panelOpen);
+  const setPanelOpen = useApp((s) => s.setPanelOpen);
   const picking = useApp((s) => s.picking);
-  const Panel = TABS.find((x) => x.id === tab)!.panel;
+  const Panel = (TABS.find((x) => x.id === tab) ?? TABS[0]!).panel;
 
   return (
-    <div className="app">
+    <div className="app" data-panel={panelOpen ? 'open' : 'closed'}>
       <a className="skip-link" href="#panel">
         {t('app.skipToMain')}
       </a>
@@ -45,7 +62,9 @@ export function App() {
               id={`tab-${id}`}
               aria-selected={tab === id}
               aria-controls="panel"
-              onClick={() => setTab(id)}
+              title={tab === id && panelOpen ? t('nav.hidePanel') : undefined}
+              // Selecting the open tab again hides the panel and gives the map the full width.
+              onClick={() => (tab === id && panelOpen ? setPanelOpen(false) : setTab(id))}
             >
               <Icon />
               {t(`nav.${id}`)}
@@ -53,7 +72,21 @@ export function App() {
           ))}
         </div>
       </nav>
-      <main id="panel" className="panel" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={-1}>
+      <main
+        id="panel"
+        className="panel"
+        role="tabpanel"
+        aria-labelledby={`tab-${tab}`}
+        tabIndex={-1}
+      >
+        <button
+          type="button"
+          className="panel-close"
+          aria-label={t('nav.hidePanel')}
+          onClick={() => setPanelOpen(false)}
+        >
+          <IconX />
+        </button>
         <Panel />
       </main>
       <div className="canvas-area">
@@ -63,8 +96,8 @@ export function App() {
             {t('route.picking')}
           </div>
         )}
-        <p className="notice">{t('app.prototypeNotice')}</p>
-        <AssistantDock />
+        <PrototypeNotice />
+        {FEATURES.assistant && <AssistantDock />}
       </div>
       <LoadingScreen />
     </div>

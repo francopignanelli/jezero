@@ -33,7 +33,13 @@ import {
   type TerrainProvider,
 } from 'cesium';
 import 'cesium/Build/Cesium/Widgets/CesiumWidget/CesiumWidget.css';
-import { MARS_SPHERE_RADIUS_M, normalizeLon180, normalizeLon360, sunDirectionBodyFixed, type Mat3 } from '@copernico/domain';
+import {
+  MARS_SPHERE_RADIUS_M,
+  normalizeLon180,
+  normalizeLon360,
+  sunDirectionBodyFixed,
+  type Mat3,
+} from '@copernico/domain';
 import { AnnotationLayer, type Annotation } from './annotations';
 import { installCameraConstraints } from './cameraConstraints';
 import { SkyRenderer, type SkyQuality } from './sky';
@@ -44,7 +50,11 @@ import { SkyRenderer, type SkyQuality } from './sky';
  * planetographic (≈12 km north–south error at Jezero). Heights are metres above the MOLA areoid;
  * the areoid's departure from the sphere is not rendered (visual simplification only).
  */
-export const MARS_SPHERE = new Ellipsoid(MARS_SPHERE_RADIUS_M, MARS_SPHERE_RADIUS_M, MARS_SPHERE_RADIUS_M);
+export const MARS_SPHERE = new Ellipsoid(
+  MARS_SPHERE_RADIUS_M,
+  MARS_SPHERE_RADIUS_M,
+  MARS_SPHERE_RADIUS_M,
+);
 Ellipsoid.default = MARS_SPHERE;
 
 /**
@@ -121,33 +131,67 @@ const COLOURS = {
   outline: Color.fromCssColorString('#0b0e13'),
 };
 
-function lineMaterials(style: LineStyle): { width: number; material: MaterialProperty; depthFail: MaterialProperty } {
+function lineMaterials(style: LineStyle): {
+  width: number;
+  material: MaterialProperty;
+  depthFail: MaterialProperty;
+} {
   switch (style) {
     case 'route-primary':
       return {
         width: 14,
-        material: new PolylineGlowMaterialProperty({ color: COLOURS.route, glowPower: 0.22, taperPower: 1 }),
+        material: new PolylineGlowMaterialProperty({
+          color: COLOURS.route,
+          glowPower: 0.22,
+          taperPower: 1,
+        }),
         // Coarser terrain LODs can sit above the route (heights come from the 1 m model): keep it
         // clearly visible through terrain instead of breaking into fragments.
-        depthFail: new PolylineGlowMaterialProperty({ color: COLOURS.route.withAlpha(0.75), glowPower: 0.22, taperPower: 1 }),
+        depthFail: new PolylineGlowMaterialProperty({
+          color: COLOURS.route.withAlpha(0.75),
+          glowPower: 0.22,
+          taperPower: 1,
+        }),
       };
     case 'route-alternative':
       return {
         width: 3,
-        material: new PolylineDashMaterialProperty({ color: COLOURS.alternative.withAlpha(0.9), dashLength: 18 }),
-        depthFail: new PolylineDashMaterialProperty({ color: COLOURS.alternative.withAlpha(0.6), dashLength: 18 }),
+        material: new PolylineDashMaterialProperty({
+          color: COLOURS.alternative.withAlpha(0.9),
+          dashLength: 18,
+        }),
+        depthFail: new PolylineDashMaterialProperty({
+          color: COLOURS.alternative.withAlpha(0.6),
+          dashLength: 18,
+        }),
       };
     case 'traverse':
       return {
         width: 3,
-        material: new PolylineOutlineMaterialProperty({ color: COLOURS.traverse.withAlpha(0.9), outlineColor: COLOURS.outline.withAlpha(0.7), outlineWidth: 1 }),
-        depthFail: new PolylineOutlineMaterialProperty({ color: COLOURS.traverse.withAlpha(0.55), outlineColor: COLOURS.outline.withAlpha(0.4), outlineWidth: 1 }),
+        material: new PolylineOutlineMaterialProperty({
+          color: COLOURS.traverse.withAlpha(0.9),
+          outlineColor: COLOURS.outline.withAlpha(0.7),
+          outlineWidth: 1,
+        }),
+        depthFail: new PolylineOutlineMaterialProperty({
+          color: COLOURS.traverse.withAlpha(0.55),
+          outlineColor: COLOURS.outline.withAlpha(0.4),
+          outlineWidth: 1,
+        }),
       };
     case 'boundary':
       return {
         width: 7,
-        material: new PolylineGlowMaterialProperty({ color: COLOURS.boundary, glowPower: 0.3, taperPower: 1 }),
-        depthFail: new PolylineGlowMaterialProperty({ color: COLOURS.boundary.withAlpha(0.55), glowPower: 0.3, taperPower: 1 }),
+        material: new PolylineGlowMaterialProperty({
+          color: COLOURS.boundary,
+          glowPower: 0.3,
+          taperPower: 1,
+        }),
+        depthFail: new PolylineGlowMaterialProperty({
+          color: COLOURS.boundary.withAlpha(0.55),
+          glowPower: 0.3,
+          taperPower: 1,
+        }),
       };
   }
 }
@@ -202,7 +246,10 @@ export class MarsScene {
     scene.backgroundColor = new Color(0, 0, 0, 0);
 
     scene.renderError.addEventListener((_scene: unknown, error: unknown) => {
-      console.error('[Copernico] Cesium render error', error instanceof Error ? error.stack : error);
+      console.error(
+        '[Copernico] Cesium render error',
+        error instanceof Error ? error.stack : error,
+      );
     });
     this.handler = new ScreenSpaceEventHandler(scene.canvas);
     try {
@@ -214,6 +261,7 @@ export class MarsScene {
     this.annotations = new AnnotationLayer(container, scene);
     scene.postRender.addEventListener(() => {
       this.renderSky();
+      if (this.sky?.animating) window.requestAnimationFrame(() => this.requestRender());
       this.annotations.update();
     });
     this.constraints = installCameraConstraints(scene);
@@ -226,10 +274,13 @@ export class MarsScene {
   /** Loads the quantized-mesh terrain; on failure keeps the smooth sphere and reports it. */
   async loadTerrain(url: string, version: string): Promise<boolean> {
     try {
-      this.terrain = await CesiumTerrainProvider.fromUrl(new Resource({ url, queryParameters: { v: version } }), {
-        ellipsoid: MARS_SPHERE,
-        requestVertexNormals: true,
-      });
+      this.terrain = await CesiumTerrainProvider.fromUrl(
+        new Resource({ url, queryParameters: { v: version } }),
+        {
+          ellipsoid: MARS_SPHERE,
+          requestVertexNormals: true,
+        },
+      );
       if (this.isDestroyed()) return false;
       this.widget.scene.terrainProvider = this.terrain;
       this.requestRender();
@@ -239,10 +290,20 @@ export class MarsScene {
     }
   }
 
-  /** Loads the star catalog and the best Milky Way texture the device supports (HD 8K or 4K). */
-  async loadSky(starsUrl: string, milkyWay: { hd: string; sd: string }): Promise<{ stars: boolean; quality: SkyQuality }> {
+  /**
+   * Loads the star catalog and the 4K Milky Way (resolves then), and upgrades to 8K in the
+   * background when the GPU supports it (`onQuality` reports the upgrade).
+   */
+  async loadSky(
+    starsUrl: string,
+    milkyWay: { hd: string; sd: string },
+    onQuality?: (quality: SkyQuality) => void,
+  ): Promise<{ stars: boolean; quality: SkyQuality }> {
     if (!this.sky) return { stars: false, quality: 'none' };
-    const result = await this.sky.load(starsUrl, milkyWay);
+    const result = await this.sky.load(starsUrl, milkyWay, (q) => {
+      onQuality?.(q);
+      this.requestRender(); // starts the cross-fade; postRender keeps it going
+    });
     this.requestRender();
     return result;
   }
@@ -296,7 +357,10 @@ export class MarsScene {
   setSunTime(utcMs: number): void {
     this.sky?.setTime(utcMs);
     const [x, y, z] = sunDirectionBodyFixed(utcMs);
-    this.widget.scene.light = new DirectionalLight({ direction: new Cartesian3(-x, -y, -z), intensity: 2.2 });
+    this.widget.scene.light = new DirectionalLight({
+      direction: new Cartesian3(-x, -y, -z),
+      intensity: 2.2,
+    });
     this.requestRender();
   }
 
@@ -308,7 +372,12 @@ export class MarsScene {
       tilingScheme: this.tilingScheme,
       minimumLevel: 0,
       maximumLevel: spec.maxLevel,
-      rectangle: Rectangle.fromDegrees(spec.rectangle.west, spec.rectangle.south, spec.rectangle.east, spec.rectangle.north),
+      rectangle: Rectangle.fromDegrees(
+        spec.rectangle.west,
+        spec.rectangle.south,
+        spec.rectangle.east,
+        spec.rectangle.north,
+      ),
       credit: spec.credit,
       tileWidth: 256,
       tileHeight: 256,
@@ -437,7 +506,10 @@ export class MarsScene {
   // ---------- terrain queries ----------
 
   /** Adds rendered-terrain heights (+ lift) to items, in one batched request. */
-  async withTerrainHeights<T extends { lat: number; lon: number }>(items: T[], liftM: number): Promise<Array<T & { heightM: number }>> {
+  async withTerrainHeights<T extends { lat: number; lon: number }>(
+    items: T[],
+    liftM: number,
+  ): Promise<Array<T & { heightM: number }>> {
     const h = await this.sampleTerrain(items);
     return items.map((it, i) => ({ ...it, heightM: (Number.isFinite(h[i]!) ? h[i]! : 0) + liftM }));
   }
@@ -463,14 +535,21 @@ export class MarsScene {
       const cart = position ?? scene.camera.pickEllipsoid(e.position, MARS_SPHERE);
       if (!cart) return;
       const c = Cartographic.fromCartesian(cart, MARS_SPHERE);
-      callback(CesiumMath.toDegrees(c.latitude), normalizeLon360(CesiumMath.toDegrees(c.longitude)));
+      callback(
+        CesiumMath.toDegrees(c.latitude),
+        normalizeLon360(CesiumMath.toDegrees(c.longitude)),
+      );
     }, ScreenSpaceEventType.LEFT_CLICK);
   }
 
   setView(lat: number, lon: number, heightM: number, headingDeg: number, pitchDeg: number): void {
     this.widget.camera.setView({
       destination: toCartesian(lat, lon, heightM),
-      orientation: { heading: CesiumMath.toRadians(headingDeg), pitch: CesiumMath.toRadians(pitchDeg), roll: 0 },
+      orientation: {
+        heading: CesiumMath.toRadians(headingDeg),
+        pitch: CesiumMath.toRadians(pitchDeg),
+        roll: 0,
+      },
     });
     this.requestRender();
   }
@@ -486,11 +565,22 @@ export class MarsScene {
     });
   }
 
-  flyTo(lat: number, lon: number, heightM: number, headingDeg: number, pitchDeg: number, seconds: number): Promise<void> {
+  flyTo(
+    lat: number,
+    lon: number,
+    heightM: number,
+    headingDeg: number,
+    pitchDeg: number,
+    seconds: number,
+  ): Promise<void> {
     return this.flight((done) =>
       this.widget.camera.flyTo({
         destination: toCartesian(lat, lon, heightM),
-        orientation: { heading: CesiumMath.toRadians(headingDeg), pitch: CesiumMath.toRadians(pitchDeg), roll: 0 },
+        orientation: {
+          heading: CesiumMath.toRadians(headingDeg),
+          pitch: CesiumMath.toRadians(pitchDeg),
+          roll: 0,
+        },
         duration: this.reducedMotion ? 0 : seconds,
         easingFunction: EasingFunction.QUADRATIC_IN_OUT,
         maximumHeight: 6_000_000,
@@ -501,16 +591,31 @@ export class MarsScene {
   }
 
   /** Flies to look at a target point from a heading/pitch/range offset (orbit-to-surface transition). */
-  flyToTarget(lat: number, lon: number, heightM: number, rangeM: number, headingDeg: number, pitchDeg: number, seconds: number): Promise<void> {
+  flyToTarget(
+    lat: number,
+    lon: number,
+    heightM: number,
+    rangeM: number,
+    headingDeg: number,
+    pitchDeg: number,
+    seconds: number,
+  ): Promise<void> {
     return this.flight((done) =>
-      this.widget.camera.flyToBoundingSphere(new BoundingSphere(toCartesian(lat, lon, heightM), 1), {
-        offset: new HeadingPitchRange(CesiumMath.toRadians(headingDeg), CesiumMath.toRadians(pitchDeg), rangeM),
-        duration: this.reducedMotion ? 0 : seconds,
-        easingFunction: EasingFunction.QUADRATIC_IN_OUT,
-        maximumHeight: 6_000_000,
-        complete: done,
-        cancel: done,
-      }),
+      this.widget.camera.flyToBoundingSphere(
+        new BoundingSphere(toCartesian(lat, lon, heightM), 1),
+        {
+          offset: new HeadingPitchRange(
+            CesiumMath.toRadians(headingDeg),
+            CesiumMath.toRadians(pitchDeg),
+            rangeM,
+          ),
+          duration: this.reducedMotion ? 0 : seconds,
+          easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+          maximumHeight: 6_000_000,
+          complete: done,
+          cancel: done,
+        },
+      ),
     );
   }
 

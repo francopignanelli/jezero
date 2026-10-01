@@ -38,7 +38,10 @@ class RoutingClient {
     return this.ready;
   }
 
-  async plan(waypoints: Waypoint[], returnToStart: boolean): Promise<{ comparison: RouteComparison; elapsedMs: number }> {
+  async plan(
+    waypoints: Waypoint[],
+    returnToStart: boolean,
+  ): Promise<{ comparison: RouteComparison; elapsedMs: number }> {
     const msg = await this.request({ type: 'plan', id: 0, waypoints, returnToStart });
     if (msg.type !== 'plan') throw new Error('unexpected worker response');
     return { comparison: msg.comparison, elapsedMs: msg.elapsedMs };

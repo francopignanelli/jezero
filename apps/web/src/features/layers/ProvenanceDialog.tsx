@@ -4,7 +4,13 @@ import { datasetById } from '../../data/catalog';
 import type { LayerDef } from '../../data/layers';
 
 /** Source, date, resolution, units, CRS, datum, uncertainty and license for a layer's datasets. */
-export function ProvenanceDialog({ layer, onClose }: { layer: LayerDef | null; onClose: () => void }) {
+export function ProvenanceDialog({
+  layer,
+  onClose,
+}: {
+  layer: LayerDef | null;
+  onClose: () => void;
+}) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -64,7 +70,12 @@ export function ProvenanceDialog({ layer, onClose }: { layer: LayerDef | null; o
                 <dd>{d.citation}</dd>
                 <dt>{t('provenance.source')}</dt>
                 <dd>
-                  <a href={d.landingPage} target="_blank" rel="noreferrer noopener" style={{ color: 'var(--info)' }}>
+                  <a
+                    href={d.landingPage}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    style={{ color: 'var(--info)' }}
+                  >
                     {d.publisher}
                   </a>
                 </dd>

@@ -22,7 +22,10 @@ import { densify, simplify, type LatLonPoint } from './pathGeometry';
 const IMAGERY: Array<{ id: LayerId; credit: string }> = [
   { id: 'viking', credit: 'NASA/USGS Viking Orbiter colorized mosaic' },
   { id: 'ctx', credit: 'NASA/JPL/MSSS/USGS CTX (Mars 2020 science investigation mosaic)' },
-  { id: 'hirise', credit: 'NASA/JPL/University of Arizona/USGS HiRISE (Mars 2020 TRN orthomosaic)' },
+  {
+    id: 'hirise',
+    credit: 'NASA/JPL/University of Arizona/USGS HiRISE (Mars 2020 TRN orthomosaic)',
+  },
 ];
 const OVERLAYS: OverlayKind[] = ['slope', 'elevation', 'thermalInertia'];
 /** Crater-scale rectangle used to dim terrain outside route-planning coverage. */
@@ -74,11 +77,22 @@ export function MarsCanvas() {
     });
 
     const sky = scene
-      .loadSky(dataUrl(`sky/stars.json?v=${DATA_VERSION}`), {
-        hd: dataUrl(`sky/milkyway_8k.webp?v=${DATA_VERSION}`),
-        sd: dataUrl(`sky/milkyway_4k.webp?v=${DATA_VERSION}`),
-      })
-      .then((r) => setLoading({ stars: r.stars ? 'done' : 'failed', sky: r.quality === 'none' ? 'failed' : r.quality }));
+      .loadSky(
+        dataUrl(`sky/stars.json?v=${DATA_VERSION}`),
+        {
+          hd: dataUrl(`sky/milkyway_8k.webp?v=${DATA_VERSION}`),
+          sd: dataUrl(`sky/milkyway_4k.webp?v=${DATA_VERSION}`),
+        },
+        (quality) => {
+          if (quality === 'hd') setLoading({ sky: 'hd' });
+        },
+      )
+      .then((r) =>
+        setLoading({
+          stars: r.stars ? 'done' : 'failed',
+          sky: r.quality === 'none' ? 'failed' : r.quality,
+        }),
+      );
 
     const globe = (async () => {
       const terrainOk = await scene.loadTerrain(dataUrl('tiles/terrain'), DATA_VERSION);
@@ -243,7 +257,8 @@ export function MarsCanvas() {
 
   useEffect(() => {
     // Jezero surface is ~2.5 km below the reference sphere; look at the site from 1.8 km away.
-    if (flyRequest) void sceneRef.current?.flyToTarget(flyRequest.lat, flyRequest.lon, -2500, 1800, 0, -40, 3);
+    if (flyRequest)
+      void sceneRef.current?.flyToTarget(flyRequest.lat, flyRequest.lon, -2500, 1800, 0, -40, 3);
   }, [flyRequest]);
 
   if (failed) {
@@ -266,7 +281,10 @@ export function MarsCanvas() {
 /** Rendered-terrain heights for a polyline, lifted slightly so it never z-fights the surface. */
 async function drape(scene: MarsScene, points: LatLonPoint[], liftM: number) {
   const heights = await scene.sampleTerrain(points);
-  return points.map((p, i) => ({ ...p, heightM: (Number.isFinite(heights[i]!) ? heights[i]! : 0) + liftM }));
+  return points.map((p, i) => ({
+    ...p,
+    heightM: (Number.isFinite(heights[i]!) ? heights[i]! : 0) + liftM,
+  }));
 }
 
 /** Semi-transparent mask over the crater with a clear window for the route-planning coverage. */
@@ -310,9 +328,15 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
   ]);
 
   if (coverage) {
-    const rings = coverage.features.flatMap((f) => f.geometry.coordinates.map((ring) => ring.map(([lon, lat]) => ({ lat, lon }))));
+    const rings = coverage.features.flatMap((f) =>
+      f.geometry.coordinates.map((ring) => ring.map(([lon, lat]) => ({ lat, lon }))),
+    );
     const lines = await Promise.all(
-      rings.map(async (ring, i) => ({ id: `ring${i}`, style: 'boundary' as const, points: await drape(scene, densify(ring, 40), 6) })),
+      rings.map(async (ring, i) => ({
+        id: `ring${i}`,
+        style: 'boundary' as const,
+        points: await drape(scene, densify(ring, 40), 6),
+      })),
     );
     scene.setLines('coverage', lines);
   }
@@ -322,11 +346,16 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
     const drives = [...traverse.features].sort((a, b) => a.properties.sol - b.properties.sol);
     const path = drives.flatMap((f) => f.geometry.coordinates.map(([lon, lat]) => ({ lat, lon })));
     const clean = simplify(path, 2.5);
-    scene.setLines('rover', [{ id: 'traverse', style: 'traverse', points: await drape(scene, densify(clean, 20), 1.5) }]);
+    scene.setLines('rover', [
+      { id: 'traverse', style: 'traverse', points: await drape(scene, densify(clean, 20), 1.5) },
+    ]);
   }
 
   if (rover) {
-    const [latest] = await scene.withTerrainHeights([{ id: 'latest', lat: rover.latest.lat, lon: rover.latest.lon, color: '#f2b84b', size: 12 }], 2);
+    const [latest] = await scene.withTerrainHeights(
+      [{ id: 'latest', lat: rover.latest.lat, lon: rover.latest.lon, color: '#f2b84b', size: 12 }],
+      2,
+    );
     scene.setMarkers('roverLatest', [latest!]);
     scene.setAnnotations('rover', [
       {
@@ -345,11 +374,23 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
   if (samples) {
     scene.setMarkers(
       'samples',
-      await scene.withTerrainHeights(samples.samples.map((s) => ({ id: s.sampleNumber, lat: s.lat, lon: s.lon, color: '#ff9ad5', size: 7 })), 2),
+      await scene.withTerrainHeights(
+        samples.samples.map((s) => ({
+          id: s.sampleNumber,
+          lat: s.lat,
+          lon: s.lon,
+          color: '#ff9ad5',
+          size: 7,
+        })),
+        2,
+      ),
     );
   }
 
-  const pois = await scene.withTerrainHeights(POIS.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, color: '#b69cff', size: 9 })), 2);
+  const pois = await scene.withTerrainHeights(
+    POIS.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, color: '#b69cff', size: 9 })),
+    2,
+  );
   scene.setMarkers('pois', pois);
   scene.setAnnotations(
     'pois',
@@ -369,7 +410,16 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
   if (ingenuity) {
     scene.setMarkers(
       'ingenuity',
-      await scene.withTerrainHeights(ingenuity.flights.map((f) => ({ id: String(f.flight), lat: f.lat, lon: f.lon, color: '#9fe3ff', size: 5 })), 2),
+      await scene.withTerrainHeights(
+        ingenuity.flights.map((f) => ({
+          id: String(f.flight),
+          lat: f.lat,
+          lon: f.lon,
+          color: '#9fe3ff',
+          size: 5,
+        })),
+        2,
+      ),
     );
   }
 }

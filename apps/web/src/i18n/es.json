@@ -3,7 +3,9 @@
     "name": "Copernico",
     "tagline": "Planificación de caminatas marcianas con datos de misiones de la NASA",
     "skipToMain": "Saltar al contenido principal",
-    "prototypeNotice": "Prototipo de investigación y educación. Las rutas muestran menor riesgo estimado, nunca seguridad garantizada."
+    "prototypeNotice": "Prototipo de investigación y educación. Las rutas muestran menor riesgo estimado, nunca seguridad garantizada.",
+    "prototypeShort": "Prototipo · las rutas muestran menor riesgo estimado, no seguridad garantizada",
+    "dismissNotice": "Cerrar aviso"
   },
   "breadcrumb": {
     "mars": "Marte",
@@ -13,9 +15,12 @@
   "status": {
     "sol": "Sol {{sol}}",
     "ls": "Ls {{ls}}°",
-    "ltst": "LTST {{time}} en Jezero",
     "calculated": "Calculado con el algoritmo Mars24 (NASA GISS). Numeración de soles: reloj de la misión Mars 2020.",
-    "marsYear": "Año marciano {{my}}"
+    "marsYear": "Año marciano {{my}}",
+    "plannedEva": "EVA planificada",
+    "plannedEvaHint": "Hora de la caminata planificada en Jezero; define la iluminación y el cielo. Cambiala en Ambiente.",
+    "ltstShort": "{{time}} LTST",
+    "plannedEvaShort": "EVA"
   },
   "nav": {
     "explore": "Explorar",
@@ -24,7 +29,8 @@
     "science": "Ciencia",
     "environment": "Ambiente",
     "missions": "Misiones",
-    "label": "Paneles principales"
+    "label": "Paneles principales",
+    "hidePanel": "Ocultar panel"
   },
   "explore": {
     "title": "Explorar Marte",
@@ -160,7 +166,9 @@
     "walkbackOk": "sobran {{margin}}",
     "walkbackFail": "excedido por {{margin}}",
     "bands": "Distancia por clase de pendiente",
-    "farthest": "Máxima distancia al inicio"
+    "farthest": "Máxima distancia al inicio",
+    "walkbackBasis": "límite EVA {{cap}} · ingreso {{ingress}}",
+    "walkbackRule": "Menor margen a lo largo de la ruta: límite de EVA − (tiempo transcurrido + tiempo para volver al inicio + ingreso al hábitat). Regla derivada de EVAs lunares, marcada como supuesto para Marte."
   },
   "explain": {
     "DETOUR_AVOIDS_STEEP_TERRAIN": "La ruta de menor riesgo es {{extra}} más larga que la más corta factible y evita {{steep}} de pendientes de 15–20° y {{moderate}} de 10–15°. Su terreno más empinado es de {{lrMax}}, frente a {{shMax}} en la ruta más corta (pendiente del modelo de elevación HiRISE de 1 m, base de 10 m).",
@@ -207,7 +215,6 @@
   "environment": {
     "title": "Ambiente y tiempo",
     "intro": "Qué se calcula, qué se midió y cuándo. No hay clima en vivo para Jezero.",
-    "now": "Ahora en Jezero (calculado)",
     "evaStart": "Inicio planificado de la EVA (UTC)",
     "sunElevation": "Elevación del Sol",
     "sunAzimuth": "Acimut del Sol",
@@ -237,7 +244,8 @@
     "medaWhere": "Medido en la posición del rover ese sol: elevación {{elevation}} m, a {{distance}} del sitio de aterrizaje en Jezero. La presión varía con la elevación.",
     "medaCaveat": "Mediana de los sensores de temperatura del aire 1–3 de MEDA en el mástil; valores locales que pueden incluir influencia térmica del rover. No es clima en vivo.",
     "medaSummary": "Resumen de los soles {{first}}–{{last}}",
-    "medaRange": "En {{n}} soles con datos: mínimas nocturnas de {{lowMin}} a {{lowMax}} °C, máximas diurnas de {{highMin}} a {{highMax}} °C, presión media de {{pMin}}–{{pMax}} Pa."
+    "medaRange": "En {{n}} soles con datos: mínimas nocturnas de {{lowMin}} a {{lowMax}} °C, máximas diurnas de {{highMin}} a {{highMax}} °C, presión media de {{pMin}}–{{pMax}} Pa.",
+    "nowLine": "Ahora mismo en Jezero (calculado): sol {{sol}}, {{time}} LTST."
   },
   "missions": {
     "title": "Mis misiones",
@@ -272,8 +280,8 @@
       "tiles": "Renderizando la primera vista",
       "surface": "Datos de Perseverance y ciencia"
     },
-    "hd": "HD 8K",
-    "sd": "estándar 4K",
+    "hd": "8K",
+    "sd": "4K",
     "status": {
       "pending": "cargando",
       "done": "listo",

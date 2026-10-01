@@ -25,7 +25,8 @@ export function formatDuration(seconds: number): string {
   const totalMin = Math.round(Math.abs(seconds) / 300) * 5;
   const h = Math.floor(totalMin / 60);
   const min = totalMin % 60;
-  return h > 0 ? `${h} h ${String(min).padStart(2, '0')} min` : `${min} min`;
+  if (h === 0) return `${min} min`;
+  return min === 0 ? `${h} h` : `${h} h ${String(min).padStart(2, '0')} min`;
 }
 
 export function formatHours(h: number): string {

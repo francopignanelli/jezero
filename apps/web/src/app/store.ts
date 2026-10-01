@@ -45,6 +45,8 @@ export interface LoadingState {
 interface AppState {
   mode: Mode;
   tab: Tab;
+  /** Side panel (desktop) / bottom sheet (mobile) visibility. */
+  panelOpen: boolean;
   layers: Record<LayerId, boolean>;
   waypoints: WaypointEntry[];
   picking: boolean;
@@ -62,6 +64,7 @@ interface AppState {
   setSceneReady(v: boolean): void;
   setMode(mode: Mode): void;
   setTab(tab: Tab): void;
+  setPanelOpen(open: boolean): void;
   setLayer(id: LayerId, visible: boolean): void;
   addWaypoint(w: Omit<WaypointEntry, 'id'>): void;
   removeWaypoint(id: string): void;
@@ -85,6 +88,7 @@ const withId = (w: Omit<WaypointEntry, 'id'>): WaypointEntry => ({ ...w, id: `wp
 export const useApp = create<AppState>((set) => ({
   mode: 'orbit',
   tab: 'explore',
+  panelOpen: true,
   layers: {
     viking: true,
     ctx: true,
@@ -110,15 +114,24 @@ export const useApp = create<AppState>((set) => ({
   // Default planned EVA start: next 10:00 local true solar time at Jezero (calculated, editable).
   evaStartUtcMs: nextLocalTrueSolarTime(Date.now(), JEZERO, 10),
   flyRequest: null,
-  loading: { stars: 'pending', sky: 'pending', terrain: 'pending', imagery: 'pending', tiles: 'pending', surface: 'pending' },
+  loading: {
+    stars: 'pending',
+    sky: 'pending',
+    terrain: 'pending',
+    imagery: 'pending',
+    tiles: 'pending',
+    surface: 'pending',
+  },
   sceneReady: false,
   setLoading: (p) => set((s) => ({ loading: { ...s.loading, ...p } })),
   setSceneReady: (sceneReady) => set({ sceneReady }),
   setMode: (mode) => set({ mode }),
-  setTab: (tab) => set({ tab }),
+  setTab: (tab) => set({ tab, panelOpen: true }),
+  setPanelOpen: (panelOpen) => set({ panelOpen }),
   setLayer: (id, visible) => set((s) => ({ layers: { ...s.layers, [id]: visible } })),
   addWaypoint: (w) => set((s) => ({ waypoints: [...s.waypoints, withId(w)], result: null })),
-  removeWaypoint: (id) => set((s) => ({ waypoints: s.waypoints.filter((w) => w.id !== id), result: null })),
+  removeWaypoint: (id) =>
+    set((s) => ({ waypoints: s.waypoints.filter((w) => w.id !== id), result: null })),
   moveWaypoint: (id, delta) =>
     set((s) => {
       const i = s.waypoints.findIndex((w) => w.id === id);

@@ -4,7 +4,13 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useApp, type WaypointEntry } from '../../app/store';
 import { explanationText, isWarning } from '../../lib/explain';
-import { formatCoordinate, formatDegrees, formatDistance, formatDuration, formatElevation } from '../../lib/format';
+import {
+  formatCoordinate,
+  formatDegrees,
+  formatDistance,
+  formatDuration,
+  formatElevation,
+} from '../../lib/format';
 import { IconPin, IconUp, IconX } from '../../ui/icons';
 import { ElevationProfile } from './ElevationProfile';
 import { ensureGrid } from './ensureGrid';
@@ -66,7 +72,11 @@ export function RoutePanel() {
     setLon('');
   };
 
-  const primary: RouteResult | null = s.result ? (s.profile === 'lower-risk' ? s.result.lowerRisk : s.result.shortest) : null;
+  const primary: RouteResult | null = s.result
+    ? s.profile === 'lower-risk'
+      ? s.result.lowerRisk
+      : s.result.shortest
+    : null;
   const gridBlocked = s.gridStatus === 'unavailable';
 
   return (
@@ -75,7 +85,11 @@ export function RoutePanel() {
       <p className="lede">{t('route.intro')}</p>
 
       {gridBlocked && <p className="alert alert-danger">{t('route.gridUnavailable')}</p>}
-      {s.gridStatus === 'loading' && <p className="alert alert-info" role="status">{t('route.loadingGrid')}</p>}
+      {s.gridStatus === 'loading' && (
+        <p className="alert alert-info" role="status">
+          {t('route.loadingGrid')}
+        </p>
+      )}
 
       <h3>{t('route.waypoints')}</h3>
       {s.waypoints.length === 0 ? (
@@ -94,10 +108,21 @@ export function RoutePanel() {
                   <span className="waypoint-coords">{formatCoordinate(w.lat, w.lon, locale)}</span>
                 </span>
                 <span>
-                  <button type="button" className="btn btn-ghost btn-icon" onClick={() => s.moveWaypoint(w.id, -1)} disabled={i === 0} aria-label={t('route.moveUp', { name })}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-icon"
+                    onClick={() => s.moveWaypoint(w.id, -1)}
+                    disabled={i === 0}
+                    aria-label={t('route.moveUp', { name })}
+                  >
                     <IconUp width={16} height={16} />
                   </button>
-                  <button type="button" className="btn btn-ghost btn-icon" onClick={() => s.removeWaypoint(w.id)} aria-label={t('route.remove', { name })}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-icon"
+                    onClick={() => s.removeWaypoint(w.id)}
+                    aria-label={t('route.remove', { name })}
+                  >
                     <IconX width={16} height={16} />
                   </button>
                 </span>
@@ -108,45 +133,85 @@ export function RoutePanel() {
       )}
 
       <div className="btn-row">
-        <button type="button" className="btn" aria-pressed={s.picking} onClick={() => { if (s.mode !== 'jezero') s.setMode('jezero'); s.setPicking(!s.picking); }}>
+        <button
+          type="button"
+          className="btn"
+          aria-pressed={s.picking}
+          onClick={() => {
+            if (s.mode !== 'jezero') s.setMode('jezero');
+            s.setPicking(!s.picking);
+          }}
+        >
           <IconPin width={16} height={16} /> {t('route.pickOnMap')}
         </button>
-        <button type="button" className="btn btn-ghost" onClick={s.clearWaypoints} disabled={s.waypoints.length === 0}>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={s.clearWaypoints}
+          disabled={s.waypoints.length === 0}
+        >
           {t('route.clear')}
         </button>
       </div>
 
       <details>
-        <summary className="meta" style={{ cursor: 'pointer' }}>{t('route.addCoordinates')}</summary>
+        <summary className="meta" style={{ cursor: 'pointer' }}>
+          {t('route.addCoordinates')}
+        </summary>
         <form className="field-row" onSubmit={addCoordinates} style={{ marginTop: 8 }}>
           <label className="field">
             {t('route.latitude')}
-            <input inputMode="decimal" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="18.4446" required />
+            <input
+              inputMode="decimal"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+              placeholder="18.4446"
+              required
+            />
           </label>
           <label className="field">
             {t('route.longitude')}
-            <input inputMode="decimal" value={lon} onChange={(e) => setLon(e.target.value)} placeholder="77.4509" required />
+            <input
+              inputMode="decimal"
+              value={lon}
+              onChange={(e) => setLon(e.target.value)}
+              placeholder="77.4509"
+              required
+            />
           </label>
-          <button type="submit" className="btn">{t('route.add')}</button>
+          <button type="submit" className="btn">
+            {t('route.add')}
+          </button>
         </form>
       </details>
 
       <label className="check">
-        <input type="checkbox" checked={s.returnToStart} onChange={(e) => s.setReturnToStart(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={s.returnToStart}
+          onChange={(e) => s.setReturnToStart(e.target.checked)}
+        />
         {t('route.returnToStart')}
       </label>
 
       <div className="btn-row">
-        <button type="button" className="btn btn-primary" onClick={() => void compute()} disabled={s.computing || gridBlocked || s.waypoints.length < 2}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => void compute()}
+          disabled={s.computing || gridBlocked || s.waypoints.length < 2}
+        >
           {s.computing ? t('route.computing') : t('route.compute')}
         </button>
       </div>
-      {error && <p className="alert alert-danger" role="alert">{error}</p>}
+      {error && (
+        <p className="alert alert-danger" role="alert">
+          {error}
+        </p>
+      )}
 
       <div aria-live="polite">
-        {s.result && primary && (
-          <RouteResults primary={primary} elapsedMs={elapsedMs} />
-        )}
+        {s.result && primary && <RouteResults primary={primary} elapsedMs={elapsedMs} />}
       </div>
     </section>
   );
@@ -164,7 +229,12 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
       <h3>{t('route.results')}</h3>
       <div className="segmented" role="group" aria-label={t('route.profile')}>
         {(['lower-risk', 'shortest'] as const).map((p) => (
-          <button key={p} type="button" aria-pressed={s.profile === p} onClick={() => s.setProfile(p)}>
+          <button
+            key={p}
+            type="button"
+            aria-pressed={s.profile === p}
+            onClick={() => s.setProfile(p)}
+          >
             {t(`route.profiles.${p}`)}
           </button>
         ))}
@@ -216,13 +286,21 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
                 {m.walkback.ok
                   ? t('metrics.walkbackOk', { margin: formatDuration(m.walkback.worstMarginS) })
                   : t('metrics.walkbackFail', { margin: formatDuration(-m.walkback.worstMarginS) })}
+                <small title={t('metrics.walkbackRule')}>
+                  {t('metrics.walkbackBasis', {
+                    cap: formatDuration(DEFAULT_EVA_PARAMS.evaCapHours * 3600),
+                    ingress: formatDuration(DEFAULT_EVA_PARAMS.ingressHours * 3600),
+                  })}
+                </small>
               </dd>
             </div>
           </dl>
 
           <h3>{t('route.why')}</h3>
           <ul className="explain">
-            {s.profile === 'lower-risk' && result.comparison && <li>{explanationText(result.comparison, t, locale)}</li>}
+            {s.profile === 'lower-risk' && result.comparison && (
+              <li>{explanationText(result.comparison, t, locale)}</li>
+            )}
             {primary.explanation.map((e, i) => (
               <li key={i} style={isWarning(e) ? { color: 'var(--warn)' } : undefined}>
                 {explanationText(e, t, locale)}
@@ -249,17 +327,26 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
             <thead>
               <tr>
                 <th scope="col">#</th>
-                <th scope="col" className="num">{t('metrics.distance')}</th>
-                <th scope="col" className="num">+/−</th>
-                <th scope="col" className="num">{t('metrics.maxSlope')}</th>
-                <th scope="col" className="num">{t('metrics.duration')}</th>
+                <th scope="col" className="num">
+                  {t('metrics.distance')}
+                </th>
+                <th scope="col" className="num">
+                  +/−
+                </th>
+                <th scope="col" className="num">
+                  {t('metrics.maxSlope')}
+                </th>
+                <th scope="col" className="num">
+                  {t('metrics.duration')}
+                </th>
               </tr>
             </thead>
             <tbody>
               {primary.legs.map((leg) => (
                 <tr key={leg.fromWaypoint}>
                   <td>
-                    {leg.fromWaypoint + 1}→{leg.toWaypoint >= s.waypoints.length ? 1 : leg.toWaypoint + 1}
+                    {leg.fromWaypoint + 1}→
+                    {leg.toWaypoint >= s.waypoints.length ? 1 : leg.toWaypoint + 1}
                   </td>
                   <td className="num">{formatDistance(leg.horizontalDistanceM, locale)}</td>
                   <td className="num">
@@ -276,9 +363,12 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
 
       <h3>{t('route.unresolved')}</h3>
       <p className="lede">{t('route.unresolvedList')}</p>
+      <p className="meta">{t('app.prototypeNotice')}</p>
 
       <details>
-        <summary className="meta" style={{ cursor: 'pointer' }}>{t('route.assumptions')}</summary>
+        <summary className="meta" style={{ cursor: 'pointer' }}>
+          {t('route.assumptions')}
+        </summary>
         <p className="meta">{t('route.assumptionsNote')}</p>
         <table className="data">
           <tbody>
@@ -295,7 +385,11 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
         </table>
       </details>
       <p className="meta" style={{ marginTop: 10 }}>
-        {t('route.algorithm', { algorithm: primary.algorithmVersion, params: primary.parameterSet, data: 'jezero-v1' })}
+        {t('route.algorithm', {
+          algorithm: primary.algorithmVersion,
+          params: primary.parameterSet,
+          data: 'jezero-v1',
+        })}
         {elapsedMs !== null && ` · ${Math.round(elapsedMs)} ms`}
       </p>
     </>

@@ -35,7 +35,15 @@ export function LayersPanel() {
                   aria-describedby={needsGrid ? `${id}-note` : undefined}
                 />
                 <label htmlFor={id}>
-                  <span className="swatch" style={{ background: l.swatch, display: 'inline-block', marginRight: 8, verticalAlign: 'middle' }} />
+                  <span
+                    className="swatch"
+                    style={{
+                      background: l.swatch,
+                      display: 'inline-block',
+                      marginRight: 8,
+                      verticalAlign: 'middle',
+                    }}
+                  />
                   {t(`layers.items.${l.id}`)}
                   {needsGrid && (
                     <span id={`${id}-note`} className="meta" style={{ display: 'block' }}>

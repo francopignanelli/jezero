@@ -41,7 +41,11 @@ function smoothstep(e0: number, e1: number, x: number): number {
 }
 
 /** Lowest allowed camera altitude (m above the reference sphere) at a ground distance from the zone. */
-export function altitudeFloor(zone: ExplorationZone, groundDistanceM: number, terrainHeightM: number): number {
+export function altitudeFloor(
+  zone: ExplorationZone,
+  groundDistanceM: number,
+  terrainHeightM: number,
+): number {
   const nearFloor = terrainHeightM + zone.minAboveTerrainM;
   const blend = smoothstep(zone.innerRadiusM, zone.outerRadiusM, groundDistanceM);
   return nearFloor + (zone.minAltitudeOutsideM - nearFloor) * blend;
@@ -68,7 +72,10 @@ export function installCameraConstraints(scene: Scene, zone: ExplorationZone = J
     if (!carto) return;
     const lat = CesiumMath.toDegrees(carto.latitude);
     const lon = CesiumMath.toDegrees(carto.longitude);
-    const distance = greatCircleDistance({ lat, lon }, { lat: zone.lat, lon: normalizeLon180(zone.lon) });
+    const distance = greatCircleDistance(
+      { lat, lon },
+      { lat: zone.lat, lon: normalizeLon180(zone.lon) },
+    );
     const terrain = distance < zone.outerRadiusM ? scene.globe.getHeight(carto) : undefined;
     const floor = altitudeFloor(zone, distance, terrain ?? UNKNOWN_TERRAIN_M);
     const target = Math.min(zone.maxAltitudeM, Math.max(floor, carto.height));
@@ -76,7 +83,12 @@ export function installCameraConstraints(scene: Scene, zone: ExplorationZone = J
     // Keep the view direction; only the altitude is limited (blocks the move instead of passing through).
     const { heading, pitch, roll } = camera;
     camera.setView({
-      destination: Cartesian3.fromRadians(carto.longitude, carto.latitude, target, scene.globe.ellipsoid),
+      destination: Cartesian3.fromRadians(
+        carto.longitude,
+        carto.latitude,
+        target,
+        scene.globe.ellipsoid,
+      ),
       orientation: { heading, pitch, roll },
     });
   };

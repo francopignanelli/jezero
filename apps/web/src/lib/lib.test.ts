@@ -18,6 +18,8 @@ describe('display precision (PLAN §6.6)', () => {
     expect(formatDuration(3.76 * 3600)).toBe('3 h 45 min');
     expect(formatDuration(149)).toBe('0 min');
     expect(formatDuration(151)).toBe('5 min');
+    expect(formatDuration(8 * 3600)).toBe('8 h');
+    expect(formatDuration(3600 + 300)).toBe('1 h 05 min');
     expect(formatDegrees(14.75, 'en')).toBe('15°');
     expect(formatHours(9.999)).toBe('10:00');
   });
@@ -25,7 +27,11 @@ describe('display precision (PLAN §6.6)', () => {
 
 describe('explanations are rendered only from structured facts', () => {
   beforeAll(async () => {
-    await i18n.init({ resources: { en: { translation: en }, es: { translation: es } }, lng: 'en', interpolation: { escapeValue: false } });
+    await i18n.init({
+      resources: { en: { translation: en }, es: { translation: es } },
+      lng: 'en',
+      interpolation: { escapeValue: false },
+    });
   });
 
   const detour: ExplanationCode = {
@@ -46,7 +52,9 @@ describe('explanations are rendered only from structured facts', () => {
 
   it('Spanish has the same keys as English', async () => {
     const keys = (o: object, p = ''): string[] =>
-      Object.entries(o).flatMap(([k, v]) => (typeof v === 'object' ? keys(v as object, `${p}${k}.`) : [`${p}${k}`]));
+      Object.entries(o).flatMap(([k, v]) =>
+        typeof v === 'object' ? keys(v as object, `${p}${k}.`) : [`${p}${k}`],
+      );
     expect(keys(es).sort()).toEqual(keys(en).sort());
     await i18n.changeLanguage('es');
     expect(explanationText(detour, i18n.t.bind(i18n), 'es')).toContain('evita');

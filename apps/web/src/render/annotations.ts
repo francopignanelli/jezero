@@ -45,7 +45,11 @@ const OFFSETS: ReadonlyArray<readonly [number, number, string]> = [
 const OCCLUDER_RADIUS_M = MARS_SPHERE_RADIUS_M - 12_000;
 
 /** True if the straight line from the camera to the point passes through the occluding sphere. */
-export function isBehindPlanet(camera: Cartesian3, point: Cartesian3, radius = OCCLUDER_RADIUS_M): boolean {
+export function isBehindPlanet(
+  camera: Cartesian3,
+  point: Cartesian3,
+  radius = OCCLUDER_RADIUS_M,
+): boolean {
   const dx = point.x - camera.x;
   const dy = point.y - camera.y;
   const dz = point.z - camera.z;
@@ -95,7 +99,12 @@ export class AnnotationLayer {
       return {
         el,
         a,
-        anchor: Cartesian3.fromDegrees(normalizeLon180(a.lon), a.lat, a.heightM, this.scene.globe.ellipsoid),
+        anchor: Cartesian3.fromDegrees(
+          normalizeLon180(a.lon),
+          a.lat,
+          a.heightM,
+          this.scene.globe.ellipsoid,
+        ),
         width: el.offsetWidth,
         height: el.offsetHeight,
       };
@@ -150,7 +159,8 @@ export class AnnotationLayer {
       for (const [dx, dy, side] of OFFSETS) {
         const left =
           side === 'left' ? c.x + dx - c.width : side === 'right' ? c.x + dx : c.x - c.width / 2;
-        const top = side === 'above' ? c.y + dy - c.height : side === 'below' ? c.y + dy : c.y - c.height / 2;
+        const top =
+          side === 'above' ? c.y + dy - c.height : side === 'below' ? c.y + dy : c.y - c.height / 2;
         const rect: [number, number, number, number] = [left, top, left + c.width, top + c.height];
         if (rect[0] < 0 || rect[1] < 0 || rect[2] > w || rect[3] > h || overlaps(rect)) continue;
         taken.push(rect);

@@ -30,7 +30,15 @@ export type WorkerResponse =
   | { type: 'ready'; summary: GridSummary }
   | { type: 'error'; id?: number; message: string }
   | { type: 'plan'; id: number; comparison: ReturnType<typeof planAlternatives>; elapsedMs: number }
-  | { type: 'overlay'; id: number; kind: OverlayKind; width: number; height: number; rgba: ArrayBuffer; range: [number, number] | null }
+  | {
+      type: 'overlay';
+      id: number;
+      kind: OverlayKind;
+      width: number;
+      height: number;
+      rgba: ArrayBuffer;
+      range: [number, number] | null;
+    }
   | { type: 'sample'; id: number; elevations: number[] };
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
@@ -63,26 +71,45 @@ scope.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     if (!terrain) throw new Error('terrain grid not loaded');
     if (msg.type === 'plan') {
       const t0 = performance.now();
-      const comparison = planAlternatives(terrain, { waypoints: msg.waypoints, returnToStart: msg.returnToStart });
+      const comparison = planAlternatives(terrain, {
+        waypoints: msg.waypoints,
+        returnToStart: msg.returnToStart,
+      });
       post({ type: 'plan', id: msg.id, comparison, elapsedMs: performance.now() - t0 });
     } else if (msg.type === 'overlay') {
       const o = renderOverlay(terrain, msg.kind);
       const buffer = o.rgba.buffer as ArrayBuffer;
       scope.postMessage(
-        { type: 'overlay', id: msg.id, kind: o.kind, width: o.width, height: o.height, rgba: buffer, range: o.range },
+        {
+          type: 'overlay',
+          id: msg.id,
+          kind: o.kind,
+          width: o.width,
+          height: o.height,
+          rgba: buffer,
+          range: o.range,
+        },
         [buffer],
       );
     } else if (msg.type === 'sample') {
       const t = terrain;
       const elevations = msg.points.map((p) =>
         locateCell(t.layers.spec, p.lat, p.lon)
-          ? sampleBilinear(t.layers.spec, t.layers.elevation, eqcForward(t.layers.spec.projection, p.lat, p.lon))
+          ? sampleBilinear(
+              t.layers.spec,
+              t.layers.elevation,
+              eqcForward(t.layers.spec.projection, p.lat, p.lon),
+            )
           : Number.NaN,
       );
       post({ type: 'sample', id: msg.id, elevations });
     }
   } catch (err) {
-    post({ type: 'error', id: 'id' in msg ? msg.id : undefined, message: err instanceof Error ? err.message : String(err) } as WorkerResponse);
+    post({
+      type: 'error',
+      id: 'id' in msg ? msg.id : undefined,
+      message: err instanceof Error ? err.message : String(err),
+    } as WorkerResponse);
   }
 };
 

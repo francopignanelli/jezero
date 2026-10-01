@@ -13,7 +13,8 @@ describe('route display geometry', () => {
   it('densify keeps every original vertex and bounds the step length', () => {
     const d = densify(route, 15);
     for (const v of route) expect(d.some((p) => p.lat === v.lat && p.lon === v.lon)).toBe(true);
-    for (let i = 1; i < d.length; i++) expect(greatCircleDistance(d[i - 1]!, d[i]!)).toBeLessThanOrEqual(15.01);
+    for (let i = 1; i < d.length; i++)
+      expect(greatCircleDistance(d[i - 1]!, d[i]!)).toBeLessThanOrEqual(15.01);
   });
 
   it('densified points stay on the original straight segments (no corner rounding)', () => {

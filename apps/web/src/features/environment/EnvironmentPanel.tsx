@@ -1,5 +1,13 @@
-import { daylightWindow, m2020Sol, m2020SolStartUtcMs, mars24, marsYear, solarPosition, SOL_SECONDS } from '@copernico/domain';
-import { useMemo } from 'react';
+import {
+  daylightWindow,
+  m2020Sol,
+  m2020SolStartUtcMs,
+  mars24,
+  marsYear,
+  solarPosition,
+  SOL_SECONDS,
+} from '@copernico/domain';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
 import { JEZERO } from '../../config';
@@ -13,6 +21,15 @@ function seasonKey(ls: number): string {
   return 'northWinter';
 }
 
+function useNow(intervalMs: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
+    return () => window.clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
 const toLocalInput = (ms: number) => new Date(ms).toISOString().slice(0, 16);
 
 export function EnvironmentPanel() {
@@ -21,12 +38,18 @@ export function EnvironmentPanel() {
   const evaStart = useApp((s) => s.evaStartUtcMs);
   const setEvaStart = useApp((s) => s.setEvaStart);
   const minElevation = 10;
+  const now = useNow(30_000);
 
   const model = useMemo(() => {
     const s = mars24(evaStart);
     const sun = solarPosition(evaStart, JEZERO);
     const sol = m2020Sol(evaStart);
-    const window = daylightWindow(m2020SolStartUtcMs(sol), SOL_SECONDS * 1000, JEZERO, minElevation);
+    const window = daylightWindow(
+      m2020SolStartUtcMs(sol),
+      SOL_SECONDS * 1000,
+      JEZERO,
+      minElevation,
+    );
     return { s, sun, sol, window, my: marsYear(s) };
   }, [evaStart]);
 
@@ -47,6 +70,12 @@ export function EnvironmentPanel() {
           }}
         />
       </label>
+      <p className="meta">
+        {t('environment.nowLine', {
+          sol: m2020Sol(now),
+          time: formatHours(solarPosition(now, JEZERO).ltstHours),
+        })}
+      </p>
 
       <div className="card">
         <div className="card-title">

@@ -9,14 +9,20 @@ const M_PER_DEG = MARS_SPHERE_RADIUS_M * DEG_TO_RAD;
 
 /** Local metric offsets (east, north) in metres; adequate for display over a few tens of km. */
 function toLocal(p: LatLonPoint, ref: LatLonPoint): [number, number] {
-  return [(p.lon - ref.lon) * M_PER_DEG * Math.cos(ref.lat * DEG_TO_RAD), (p.lat - ref.lat) * M_PER_DEG];
+  return [
+    (p.lon - ref.lon) * M_PER_DEG * Math.cos(ref.lat * DEG_TO_RAD),
+    (p.lat - ref.lat) * M_PER_DEG,
+  ];
 }
 
 /**
  * Inserts intermediate vertices so no segment is longer than `maxStepM`. Existing vertices are kept
  * exactly, so the geometry of a computed route is unchanged; only its terrain draping improves.
  */
-export function densify<T extends LatLonPoint>(points: readonly T[], maxStepM: number): LatLonPoint[] {
+export function densify<T extends LatLonPoint>(
+  points: readonly T[],
+  maxStepM: number,
+): LatLonPoint[] {
   if (points.length < 2) return points.map((p) => ({ lat: p.lat, lon: p.lon }));
   const out: LatLonPoint[] = [{ lat: points[0]!.lat, lon: points[0]!.lon }];
   for (let i = 1; i < points.length; i++) {
@@ -65,7 +71,12 @@ export function simplify<T extends LatLonPoint>(points: readonly T[], toleranceM
 }
 
 /** Closed outline of a lon/lat rectangle, counter-clockwise. */
-export function rectangleRing(r: { west: number; south: number; east: number; north: number }): LatLonPoint[] {
+export function rectangleRing(r: {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}): LatLonPoint[] {
   return [
     { lat: r.south, lon: r.west },
     { lat: r.south, lon: r.east },

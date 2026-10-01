@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
 import { POIS } from '../../data/catalog';
-import { loadRover, loadSamples, type RoverSnapshot, type SampleSite } from '../../data/surfaceData';
+import {
+  loadRover,
+  loadSamples,
+  type RoverSnapshot,
+  type SampleSite,
+} from '../../data/surfaceData';
 import { formatCoordinate } from '../../lib/format';
 
 /** Route-planning coverage of the operational region (see data/build/regions/jezero/grid.json). */
@@ -29,7 +34,9 @@ export function SciencePanel() {
     flyTo(lat, lon);
   };
 
-  const updated = rover?.sources[0]?.lastModified ? new Date(rover.sources[0].lastModified).toISOString().slice(0, 10) : '—';
+  const updated = rover?.sources[0]?.lastModified
+    ? new Date(rover.sources[0].lastModified).toISOString().slice(0, 10)
+    : '—';
 
   return (
     <section aria-labelledby="science-title">
@@ -40,14 +47,26 @@ export function SciencePanel() {
         <div className="card">
           <div className="card-title">
             {t('science.rover')}
-            <span className={`tag ${inCoverage(rover.latest.lat, rover.latest.lon) ? '' : 'tag-out'}`}>
-              {inCoverage(rover.latest.lat, rover.latest.lon) ? t('science.inCoverage') : t('science.roverOutside')}
+            <span
+              className={`tag ${inCoverage(rover.latest.lat, rover.latest.lon) ? '' : 'tag-out'}`}
+            >
+              {inCoverage(rover.latest.lat, rover.latest.lon)
+                ? t('science.inCoverage')
+                : t('science.roverOutside')}
             </span>
           </div>
-          <p className="lede">{t('science.roverLatest', { sol: rover.latest.sol, date: updated })}</p>
-          <p className="meta">{formatCoordinate(rover.latest.lat, rover.latest.lon, i18n.language)}</p>
+          <p className="lede">
+            {t('science.roverLatest', { sol: rover.latest.sol, date: updated })}
+          </p>
+          <p className="meta">
+            {formatCoordinate(rover.latest.lat, rover.latest.lon, i18n.language)}
+          </p>
           <p className="meta">{rover.provenance}</p>
-          <button type="button" className="btn" onClick={() => show(rover.latest.lat, rover.latest.lon)}>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => show(rover.latest.lat, rover.latest.lon)}
+          >
             {t('science.flyTo')}
           </button>
         </div>
@@ -60,7 +79,9 @@ export function SciencePanel() {
           <article key={p.id} className="card" aria-labelledby={`poi-${p.id}`}>
             <div className="card-title">
               <span id={`poi-${p.id}`}>{p.name}</span>
-              <span className={`tag ${inside ? '' : 'tag-out'}`}>{inside ? t('science.inCoverage') : t('science.outCoverage')}</span>
+              <span className={`tag ${inside ? '' : 'tag-out'}`}>
+                {inside ? t('science.inCoverage') : t('science.outCoverage')}
+              </span>
             </div>
             <p style={{ fontSize: 'var(--fs-sm)', margin: '6px 0' }}>
               <strong>{t('science.why')}:</strong> {p.why[lang]}
@@ -98,8 +119,15 @@ export function SciencePanel() {
             <tr key={s.sampleNumber}>
               <th scope="row">{s.name}</th>
               <td>
-                {t('science.sampleMeta', { n: s.sampleNumber, sol: s.sol, date: s.earthDate, rock: s.rockType })}
-                {s.positionCorrectedFromEastingNorthing && <div className="meta">{t('science.corrected')}</div>}
+                {t('science.sampleMeta', {
+                  n: s.sampleNumber,
+                  sol: s.sol,
+                  date: s.earthDate,
+                  rock: s.rockType,
+                })}
+                {s.positionCorrectedFromEastingNorthing && (
+                  <div className="meta">{t('science.corrected')}</div>
+                )}
               </td>
             </tr>
           ))}

@@ -9,7 +9,9 @@ import {
 export type GridHeader = GridFileHeader;
 
 /** Fetches the operational grid header and bands and decodes them (runs inside the worker). */
-export async function loadTerrainLayers(baseUrl: string): Promise<{ header: GridHeader; layers: TerrainLayers }> {
+export async function loadTerrainLayers(
+  baseUrl: string,
+): Promise<{ header: GridHeader; layers: TerrainLayers }> {
   const res = await fetch(`${baseUrl}/grid.json`);
   if (!res.ok) throw new Error(`grid.json: HTTP ${res.status}`);
   const header = (await res.json()) as GridHeader;

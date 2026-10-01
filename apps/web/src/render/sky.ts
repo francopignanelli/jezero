@@ -1,4 +1,12 @@
-import { apply, icrfToMarsFixed, mul, raDecToVector, solarSystemFromMars, type Mat3, type SkyBody } from '@copernico/domain';
+import {
+  apply,
+  icrfToMarsFixed,
+  mul,
+  raDecToVector,
+  solarSystemFromMars,
+  type Mat3,
+  type SkyBody,
+} from '@copernico/domain';
 
 /**
  * Scientifically positioned space background rendered BEHIND the (transparent) Cesium canvas, so the
@@ -40,17 +48,33 @@ uniform mat3 u_eyeToIcrf;
 uniform mat3 u_eyeToWorld;
 uniform vec2 u_tanHalf;
 uniform sampler2D u_milkyWay;
+uniform sampler2D u_milkyWayNext;
+uniform float u_mix;
 uniform float u_gain;
 uniform float u_day;
 uniform vec3 u_up;
 const float PI = 3.141592653589793;
+const float BLACK_POINT = 0.035;
 void main() {
   vec3 dEye = normalize(vec3(v_ndc.x * u_tanHalf.x, v_ndc.y * u_tanHalf.y, -1.0));
   vec3 d = normalize(u_eyeToIcrf * dEye);
   float ra = atan(d.y, d.x);
   float dec = asin(clamp(d.z, -1.0, 1.0));
   vec2 uv = vec2(fract(0.5 - ra / (2.0 * PI)), 0.5 - dec / PI);
-  vec3 mw = textureLod(u_milkyWay, uv, 0.0).rgb * u_gain;
+  // Screen-space gradients drive mip selection (no aliasing when the texture is minified). The RA
+  // coordinate wraps 1 → 0 at the seam; removing that jump keeps the seam pixels at the right LOD.
+  vec2 gx = dFdx(uv);
+  vec2 gy = dFdy(uv);
+  gx.x -= round(gx.x);
+  gy.x -= round(gy.x);
+  // Slight LOD bias (~0.5 mip level): the unresolved star field reads as a smooth band instead of
+  // per-pixel grain; bright stars are drawn separately as points from BSC5 and stay sharp.
+  gx *= 1.4;
+  gy *= 1.4;
+  vec3 mw = mix(textureGrad(u_milkyWay, uv, gx, gy).rgb, textureGrad(u_milkyWayNext, uv, gx, gy).rgb, u_mix) * u_gain;
+  // Display black point: hides the sub-threshold speckle of unresolved faint stars so the Milky Way
+  // reads as a band. Positions are unchanged; this is a tone choice like any exposure.
+  mw = max(mw - BLACK_POINT, 0.0) / (1.0 - BLACK_POINT);
   // Illustrative daytime Mars sky (dust-scattered light): brighter, warmer toward the horizon.
   vec3 w = u_eyeToWorld * dEye;
   float h = clamp(dot(normalize(w), u_up), -1.0, 1.0);
@@ -133,14 +157,16 @@ function compile(gl: WebGL2RenderingContext, vs: string, fs: string): WebGLProgr
     const s = gl.createShader(type)!;
     gl.shaderSource(s, src);
     gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) ?? 'shader');
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+      throw new Error(gl.getShaderInfoLog(s) ?? 'shader');
     return s;
   };
   const p = gl.createProgram()!;
   gl.attachShader(p, make(gl.VERTEX_SHADER, vs));
   gl.attachShader(p, make(gl.FRAGMENT_SHADER, fs));
   gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) ?? 'link');
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+    throw new Error(gl.getProgramInfoLog(p) ?? 'link');
   return p;
 }
 
@@ -158,6 +184,23 @@ const PLANET_COLOURS: Record<string, [number, number, number]> = {
   Neptune: [0.65, 0.75, 1.0],
 };
 
+const FADE_MS = 900;
+
+function loadImage(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      img.decode().then(
+        () => resolve(img),
+        () => resolve(img),
+      );
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
 export class SkyRenderer {
   readonly canvas: HTMLCanvasElement;
   readonly labels: HTMLCanvasElement;
@@ -171,6 +214,10 @@ export class SkyRenderer {
   private planetBuffer: WebGLBuffer;
   private starCount = 0;
   private texture: WebGLTexture | null = null;
+  /** HD texture fading in over the 4K one (progressive load). */
+  private nextTexture: WebGLTexture | null = null;
+  private fadeStartMs = 0;
+  private destroyed = false;
   private icrfToWorld: Mat3 = [1, 0, 0, 0, 1, 0, 0, 0, 1];
   private bodies: SkyBody[] = [];
   enabled = true;
@@ -185,7 +232,11 @@ export class SkyRenderer {
     // Stacking (bottom → top): sky, planet labels, then the transparent Cesium canvas.
     host.prepend(this.labels);
     host.prepend(this.canvas);
-    const gl = this.canvas.getContext('webgl2', { alpha: false, antialias: false, premultipliedAlpha: true });
+    const gl = this.canvas.getContext('webgl2', {
+      alpha: false,
+      antialias: false,
+      premultipliedAlpha: true,
+    });
     if (!gl) throw new Error('WebGL2 unavailable for sky');
     this.gl = gl;
     this.skyProgram = compile(gl, SKY_VS, SKY_FS);
@@ -206,42 +257,33 @@ export class SkyRenderer {
     gl.bindVertexArray(null);
   }
 
-  /**
-   * HD (8192 × 4096) whenever the GPU supports 8K textures; 4K only as a fallback (GPU limit or a
-   * failed upload). Resolves only after the texture is decoded and on the GPU, so the scene is never
-   * revealed with a low-resolution or missing sky.
-   */
+  /** HD (8192 × 4096) when the GPU supports 8K textures, otherwise 4K only. */
   chooseQuality(): Exclude<SkyQuality, 'none'> {
     const maxTexture = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE) as number;
     return maxTexture >= 8192 ? 'hd' : 'sd';
   }
 
-  async load(starsUrl: string, milkyWay: { hd: string; sd: string }): Promise<{ stars: boolean; quality: SkyQuality }> {
-    const gl = this.gl;
-    const loadImage = (url: string) =>
-      new Promise<HTMLImageElement | null>((resolve) => {
-        const img = new Image();
-        img.decoding = 'async';
-        img.onload = () => {
-          img.decode().then(
-            () => resolve(img),
-            () => resolve(img),
-          );
-        };
-        img.onerror = () => resolve(null);
-        img.src = url;
-      });
-    let quality: SkyQuality = this.chooseQuality();
-    const [starFile, first] = await Promise.all([
+  /** True while the HD texture is fading in (the caller keeps rendering until it ends). */
+  get animating(): boolean {
+    return this.nextTexture !== null;
+  }
+
+  /**
+   * Progressive load: resolves once the star catalog and the 4K Milky Way (2.7 MB) are on the GPU,
+   * so the scene can be revealed quickly. If the GPU supports 8K, the HD texture then loads in the
+   * background and cross-fades in; `onQuality('hd')` reports the upgrade. Positions are identical
+   * in both textures; only the detail changes.
+   */
+  async load(
+    starsUrl: string,
+    milkyWay: { hd: string; sd: string },
+    onQuality?: (quality: SkyQuality) => void,
+  ): Promise<{ stars: boolean; quality: SkyQuality }> {
+    const target = this.chooseQuality();
+    const [starFile, sd] = await Promise.all([
       fetch(starsUrl).then((r) => (r.ok ? (r.json() as Promise<StarFile>) : null)),
-      loadImage(quality === 'hd' ? milkyWay.hd : milkyWay.sd),
+      loadImage(milkyWay.sd),
     ]);
-    let image = first;
-    if (!image && quality === 'hd') {
-      quality = 'sd';
-      image = await loadImage(milkyWay.sd);
-    }
-    if (!image) quality = 'none';
     if (starFile) {
       const data = new Float32Array(starFile.stars.length * 7);
       starFile.stars.forEach(([ra, dec, mag, cls], i) => {
@@ -249,31 +291,67 @@ export class SkyRenderer {
         const c = starFile.classColours[cls] ?? [255, 244, 234];
         data.set([d[0], d[1], d[2], mag, c[0] / 255, c[1] / 255, c[2] / 255], i * 7);
       });
-      this.stars = this.pointVao(data, gl.STATIC_DRAW);
+      this.stars = this.pointVao(data, this.gl.STATIC_DRAW);
       this.starCount = starFile.stars.length;
     }
-    if (image) {
-      this.texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, this.texture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
-      if (gl.getError() !== gl.NO_ERROR && quality === 'hd') {
-        // Out of GPU memory for 8K: fall back to 4K rather than showing no sky.
-        const sd = await loadImage(milkyWay.sd);
-        if (sd) {
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, sd);
-          quality = 'sd';
-        }
-      }
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.finish(); // make sure the upload is complete before the scene is revealed
+    let quality: SkyQuality = 'none';
+    if (sd) {
+      this.texture = this.upload(sd);
+      if (this.texture) quality = 'sd';
     }
+    if (target === 'hd') {
+      if (quality === 'none') {
+        // 4K failed: wait for HD rather than revealing an empty sky.
+        const hd = await loadImage(milkyWay.hd);
+        this.texture = hd ? this.upload(hd) : null;
+        if (this.texture) quality = 'hd';
+      } else {
+        void this.upgrade(milkyWay.hd, onQuality);
+      }
+    }
+    this.gl.finish(); // the first texture is on the GPU before the scene is revealed
     return { stars: starFile !== null, quality };
   }
 
-  private pointVao(data: Float32Array, usage: number, buffer?: WebGLBuffer, vao?: WebGLVertexArrayObject): WebGLVertexArrayObject {
+  private async upgrade(url: string, onQuality?: (quality: SkyQuality) => void): Promise<void> {
+    const image = await loadImage(url);
+    if (!image || this.destroyed) return;
+    const texture = this.upload(image);
+    if (!texture) return; // out of GPU memory for 8K: keep 4K
+    this.nextTexture = texture;
+    this.fadeStartMs = performance.now();
+    onQuality?.('hd');
+  }
+
+  /** Uploads an equirectangular image with a full mip chain; null if the GPU rejects it. */
+  private upload(image: HTMLImageElement): WebGLTexture | null {
+    const gl = this.gl;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+    if (gl.getError() !== gl.NO_ERROR) {
+      gl.deleteTexture(texture);
+      return null;
+    }
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
+    if (aniso) {
+      const max = gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number;
+      gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, max));
+    }
+    return texture;
+  }
+
+  private pointVao(
+    data: Float32Array,
+    usage: number,
+    buffer?: WebGLBuffer,
+    vao?: WebGLVertexArrayObject,
+  ): WebGLVertexArrayObject {
     const gl = this.gl;
     const v = vao ?? gl.createVertexArray()!;
     gl.bindVertexArray(v);
@@ -296,6 +374,7 @@ export class SkyRenderer {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.gl.getExtension('WEBGL_lose_context')?.loseContext();
     this.canvas.remove();
     this.labels.remove();
@@ -350,13 +429,36 @@ export class SkyRenderer {
     const lowAltitude = 1 - smoothstep(20_000, 80_000, view.heightM);
     const day = smoothstep(-0.1, 0.15, sunUp) * lowAltitude;
 
+    let fade = 0;
+    if (this.nextTexture) {
+      fade = Math.min(1, (performance.now() - this.fadeStartMs) / FADE_MS);
+      if (fade >= 1) {
+        gl.deleteTexture(this.texture);
+        this.texture = this.nextTexture;
+        this.nextTexture = null;
+        fade = 0;
+      }
+    }
     if (this.texture) {
       gl.useProgram(this.skyProgram);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.nextTexture ?? this.texture);
       gl.uniform1i(gl.getUniformLocation(this.skyProgram, 'u_milkyWay'), 0);
-      gl.uniformMatrix3fv(gl.getUniformLocation(this.skyProgram, 'u_eyeToIcrf'), false, glMat(eyeToIcrf));
-      gl.uniformMatrix3fv(gl.getUniformLocation(this.skyProgram, 'u_eyeToWorld'), false, glMat(eyeToWorld));
+      gl.uniform1i(gl.getUniformLocation(this.skyProgram, 'u_milkyWayNext'), 1);
+      gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_mix'), fade);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.uniformMatrix3fv(
+        gl.getUniformLocation(this.skyProgram, 'u_eyeToIcrf'),
+        false,
+        glMat(eyeToIcrf),
+      );
+      gl.uniformMatrix3fv(
+        gl.getUniformLocation(this.skyProgram, 'u_eyeToWorld'),
+        false,
+        glMat(eyeToWorld),
+      );
       gl.uniform2f(gl.getUniformLocation(this.skyProgram, 'u_tanHalf'), tanHalf[0], tanHalf[1]);
       gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_gain'), 0.7);
       gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_day'), day * 0.85);
@@ -367,7 +469,12 @@ export class SkyRenderer {
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    const drawPoints = (program: WebGLProgram, vao: WebGLVertexArrayObject, count: number, visibility: number) => {
+    const drawPoints = (
+      program: WebGLProgram,
+      vao: WebGLVertexArrayObject,
+      count: number,
+      visibility: number,
+    ) => {
       gl.useProgram(program);
       gl.uniformMatrix3fv(gl.getUniformLocation(program, 'u_icrfToEye'), false, glMat(icrfToEye));
       gl.uniform2f(gl.getUniformLocation(program, 'u_tanHalf'), tanHalf[0], tanHalf[1]);
@@ -386,16 +493,28 @@ export class SkyRenderer {
     if (ctx2d && day < 0.6) this.drawLabels(ctx2d, icrfToEye, tanHalf, w, h, dpr, 1 - day);
   }
 
-  private drawSun(icrfToEye: Mat3, tanHalf: readonly [number, number], heightPx: number, dpr: number): void {
+  private drawSun(
+    icrfToEye: Mat3,
+    tanHalf: readonly [number, number],
+    heightPx: number,
+    dpr: number,
+  ): void {
     const sun = this.bodies.find((b) => b.id === 'Sun');
     if (!sun) return;
     const gl = this.gl;
     // True angular size: disc radius (px) = tan(θ/2) / tan(fovy/2) · height/2. The sprite is larger
     // only to hold the (illustrative) glare halo around the true-size disc.
-    const discPx = Math.max(1.5 * dpr, (Math.tan((sun.angularDiameterDeg * Math.PI) / 360) / tanHalf[1]) * (heightPx / 2));
+    const discPx = Math.max(
+      1.5 * dpr,
+      (Math.tan((sun.angularDiameterDeg * Math.PI) / 360) / tanHalf[1]) * (heightPx / 2),
+    );
     const spritePx = Math.max(16 * dpr, discPx * 6);
     gl.useProgram(this.sunProgram);
-    gl.uniformMatrix3fv(gl.getUniformLocation(this.sunProgram, 'u_icrfToEye'), false, glMat(icrfToEye));
+    gl.uniformMatrix3fv(
+      gl.getUniformLocation(this.sunProgram, 'u_icrfToEye'),
+      false,
+      glMat(icrfToEye),
+    );
     gl.uniform2f(gl.getUniformLocation(this.sunProgram, 'u_tanHalf'), tanHalf[0], tanHalf[1]);
     gl.uniform1f(gl.getUniformLocation(this.sunProgram, 'u_size'), spritePx);
     gl.uniform1f(gl.getUniformLocation(this.sunProgram, 'u_discFraction'), discPx / (spritePx / 2));

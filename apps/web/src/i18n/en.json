@@ -3,7 +3,9 @@
     "name": "Copernico",
     "tagline": "Marswalk planning with NASA mission data",
     "skipToMain": "Skip to main content",
-    "prototypeNotice": "Research and education prototype. Routes show lower estimated risk, never guaranteed safety."
+    "prototypeNotice": "Research and education prototype. Routes show lower estimated risk, never guaranteed safety.",
+    "prototypeShort": "Prototype · routes show lower estimated risk, not guaranteed safety",
+    "dismissNotice": "Dismiss notice"
   },
   "breadcrumb": {
     "mars": "Mars",
@@ -13,9 +15,12 @@
   "status": {
     "sol": "Sol {{sol}}",
     "ls": "Ls {{ls}}°",
-    "ltst": "LTST {{time}} at Jezero",
     "calculated": "Calculated with the Mars24 algorithm (NASA GISS). Sol numbering: Mars 2020 mission clock.",
-    "marsYear": "Mars Year {{my}}"
+    "marsYear": "Mars Year {{my}}",
+    "plannedEva": "Planned EVA",
+    "plannedEvaHint": "Time of the planned Marswalk at Jezero; it sets the scene lighting and sky. Change it in Environment.",
+    "ltstShort": "{{time}} LTST",
+    "plannedEvaShort": "EVA"
   },
   "nav": {
     "explore": "Explore",
@@ -24,7 +29,8 @@
     "science": "Science",
     "environment": "Environment",
     "missions": "Missions",
-    "label": "Main panels"
+    "label": "Main panels",
+    "hidePanel": "Hide panel"
   },
   "explore": {
     "title": "Explore Mars",
@@ -160,7 +166,9 @@
     "walkbackOk": "{{margin}} to spare",
     "walkbackFail": "exceeded by {{margin}}",
     "bands": "Distance by slope band",
-    "farthest": "Farthest from start"
+    "farthest": "Farthest from start",
+    "walkbackBasis": "{{cap}} EVA limit · {{ingress}} ingress",
+    "walkbackRule": "Smallest margin along the route: EVA limit − (time elapsed + time to walk back to the start + suit ingress). Lunar-derived rule, labelled as an assumption for Mars."
   },
   "explain": {
     "DETOUR_AVOIDS_STEEP_TERRAIN": "The lower-risk route is {{extra}} longer than the shortest feasible route and avoids {{steep}} of 15–20° slopes and {{moderate}} of 10–15° slopes. Its steepest terrain is {{lrMax}}, versus {{shMax}} on the shortest route (slope from the HiRISE-derived 1 m elevation model, 10 m baseline).",
@@ -207,7 +215,6 @@
   "environment": {
     "title": "Environment and time",
     "intro": "What is calculated, what was measured, and when. There is no live weather for Jezero.",
-    "now": "Now at Jezero (calculated)",
     "evaStart": "Planned EVA start (UTC)",
     "sunElevation": "Sun elevation",
     "sunAzimuth": "Sun azimuth",
@@ -237,7 +244,8 @@
     "medaWhere": "Measured at the rover position on that sol: elevation {{elevation}} m, {{distance}} from the Jezero landing site. Pressure changes with elevation.",
     "medaCaveat": "Median of MEDA air temperature sensors 1–3 on the mast; local values that may include rover thermal influence. Not live weather.",
     "medaSummary": "Sols {{first}}–{{last}} summary",
-    "medaRange": "Across {{n}} sols with data: nightly lows {{lowMin}} to {{lowMax}} °C, daily highs {{highMin}} to {{highMax}} °C, mean pressure {{pMin}}–{{pMax}} Pa."
+    "medaRange": "Across {{n}} sols with data: nightly lows {{lowMin}} to {{lowMax}} °C, daily highs {{highMin}} to {{highMax}} °C, mean pressure {{pMin}}–{{pMax}} Pa.",
+    "nowLine": "Right now at Jezero (calculated): sol {{sol}}, {{time}} LTST."
   },
   "missions": {
     "title": "My missions",
@@ -272,8 +280,8 @@
       "tiles": "Rendering the first view",
       "surface": "Perseverance and science data"
     },
-    "hd": "HD 8K",
-    "sd": "standard 4K",
+    "hd": "8K",
+    "sd": "4K",
     "status": {
       "pending": "loading",
       "done": "ready",

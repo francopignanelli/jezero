@@ -112,8 +112,14 @@ body {
 .topbar-spacer {
   flex: 1;
 }
+.show-sm {
+  display: none;
+}
 .time-chip {
   display: flex;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
   gap: 10px;
   align-items: center;
   padding: 4px 10px;
@@ -195,6 +201,9 @@ body {
   z-index: 3;
 }
 .app[data-panel='closed'] .panel {
+  display: none;
+}
+.panel-close {
   display: none;
 }
 .panel h2 {
@@ -282,13 +291,37 @@ body {
   position: absolute;
   bottom: 12px;
   left: 14px;
-  max-width: min(520px, calc(100% - 28px));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(440px, calc(100% - 28px));
+  margin: 0;
   font-size: var(--fs-xs);
   color: var(--text-muted);
-  background: rgb(11 14 19 / 0.8);
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+  background: rgb(11 14 19 / 0.82);
+  padding: 4px 4px 4px 10px;
+  border-radius: 999px;
   border: 1px solid var(--border);
+}
+.notice-close {
+  display: inline-flex;
+  flex: none;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.notice-close:hover,
+.notice-close:focus-visible {
+  color: var(--text);
+  background: var(--surface-2, rgb(255 255 255 / 0.06));
+}
+.notice-close svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* ---------- Controls ---------- */
@@ -672,7 +705,7 @@ dialog.provenance dd {
   }
   .app,
   .app[data-panel='closed'] {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: var(--topbar-h) 1fr auto;
     grid-template-areas:
       'top'
@@ -680,8 +713,21 @@ dialog.provenance dd {
       'rail';
   }
   .breadcrumb,
+  .brand-name,
   .time-chip .hide-sm {
     display: none;
+  }
+  .time-chip .show-sm {
+    display: inline;
+  }
+  .topbar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .time-chip {
+    min-width: 0;
+    gap: 8px;
+    overflow: hidden;
   }
   .rail {
     flex-direction: row;
@@ -701,8 +747,32 @@ dialog.provenance dd {
     max-height: 58vh;
     border-top: 1px solid var(--border-strong);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    /* Always leave part of the map visible above the sheet, also in short landscape windows. */
+    max-height: min(58dvh, calc(100dvh - var(--topbar-h) - 64px - 120px));
     padding-bottom: 32px;
     box-shadow: var(--shadow);
+  }
+  .panel-close {
+    position: sticky;
+    top: -8px;
+    float: right;
+    display: inline-flex;
+    margin: -8px -8px 0 8px;
+    padding: 8px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    z-index: 1;
+  }
+  .panel-close svg {
+    width: 16px;
+    height: 16px;
+  }
+  .notice {
+    top: 10px;
+    bottom: auto;
   }
   .assistant {
     bottom: 76px;
@@ -807,8 +877,7 @@ dialog.provenance dd {
   place-items: center;
   background:
     radial-gradient(ellipse at 70% 20%, rgb(60 70 110 / 0.18), transparent 55%),
-    radial-gradient(ellipse at 20% 80%, rgb(140 60 30 / 0.14), transparent 50%),
-    var(--space-0);
+    radial-gradient(ellipse at 20% 80%, rgb(140 60 30 / 0.14), transparent 50%), var(--space-0);
   transition: opacity 0.7s ease;
 }
 .loading-screen.is-leaving {
@@ -859,8 +928,13 @@ dialog.provenance dd {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 32% 30%, #f3a06d 0%, #c8653a 38%, #7a3a1f 72%, #2a120a 100%);
+  background: radial-gradient(
+    circle at 32% 30%,
+    #f3a06d 0%,
+    #c8653a 38%,
+    #7a3a1f 72%,
+    #2a120a 100%
+  );
   box-shadow:
     inset -14px -10px 24px rgb(0 0 0 / 0.55),
     0 0 40px rgb(224 120 74 / 0.25);
