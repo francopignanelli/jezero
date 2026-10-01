@@ -91,15 +91,28 @@ describe('hard constraints', () => {
   it('returns a no-route result naming a nodata barrier', () => {
     const spec = syntheticSpec(40, 40);
     const elevation = elevationFrom(spec, (_e, _n, c) => (c >= 18 && c <= 21 ? Number.NaN : -2570));
-    const r = plan({ spec, elevation }, { waypoints: [at(spec, 5, 20), at(spec, 35, 20)], profile: 'lower-risk' });
+    const r = plan(
+      { spec, elevation },
+      { waypoints: [at(spec, 5, 20), at(spec, 35, 20)], profile: 'lower-risk' },
+    );
     expect(r.status).toBe('no-route');
-    expect(r.explanation[0]).toMatchObject({ code: 'DISCONNECTED', barrier: 'nodata', legIndex: 0 });
+    expect(r.explanation[0]).toMatchObject({
+      code: 'DISCONNECTED',
+      barrier: 'nodata',
+      legIndex: 0,
+    });
   });
 
   it('returns a no-route result naming a slope barrier', () => {
     const spec = syntheticSpec(40, 40);
-    const elevation = elevationFrom(spec, (_e, _n, c) => Math.min(Math.max(c - 18, 0), 4) * 5 * Math.tan(35 * d));
-    const r = plan({ spec, elevation }, { waypoints: [at(spec, 5, 20), at(spec, 35, 20)], profile: 'shortest' });
+    const elevation = elevationFrom(
+      spec,
+      (_e, _n, c) => Math.min(Math.max(c - 18, 0), 4) * 5 * Math.tan(35 * d),
+    );
+    const r = plan(
+      { spec, elevation },
+      { waypoints: [at(spec, 5, 20), at(spec, 35, 20)], profile: 'shortest' },
+    );
     expect(r.status).toBe('no-route');
     expect(r.explanation[0]).toMatchObject({ code: 'DISCONNECTED', barrier: 'slope' });
   });
@@ -125,7 +138,10 @@ describe('hard constraints', () => {
     const start = 2 * 30 + 2;
     const goal = 27 * 30 + 27;
     expect(findPath(t, 'shortest', start, goal).path).toBeNull();
-    const r = planRoute(t, { waypoints: [at(layers.spec, 2, 2), at(layers.spec, 27, 27)], profile: 'shortest' });
+    const r = planRoute(t, {
+      waypoints: [at(layers.spec, 2, 2), at(layers.spec, 27, 27)],
+      profile: 'shortest',
+    });
     expect(r.status).toBe('no-route');
   });
 
@@ -133,12 +149,15 @@ describe('hard constraints', () => {
     const layers = withExcluded(flatLayers(20, 20), [[10, 10]]);
     const inside = at(layers.spec, 2, 2);
     const outside = { lat: 0, lon: 0 };
-    expect(plan(layers, { waypoints: [inside, outside], profile: 'shortest' }).explanation[0]).toMatchObject({
+    expect(
+      plan(layers, { waypoints: [inside, outside], profile: 'shortest' }).explanation[0],
+    ).toMatchObject({
       code: 'OUTSIDE_COVERAGE',
       waypointIndex: 1,
     });
     expect(
-      plan(layers, { waypoints: [inside, at(layers.spec, 10, 10)], profile: 'shortest' }).explanation[0],
+      plan(layers, { waypoints: [inside, at(layers.spec, 10, 10)], profile: 'shortest' })
+        .explanation[0],
     ).toMatchObject({ code: 'WAYPOINT_NOT_TRAVERSABLE', reason: 'excluded' });
   });
 
@@ -148,7 +167,10 @@ describe('hard constraints', () => {
     for (let r = 5; r < 40; r++) wall.push([20, r]);
     const blocked = withExcluded(layers, wall);
     const t = prepareTerrain(blocked, DEFAULT_EVA_PARAMS);
-    const r = planRoute(t, { waypoints: [at(layers.spec, 5, 35), at(layers.spec, 35, 35)], profile: 'shortest' });
+    const r = planRoute(t, {
+      waypoints: [at(layers.spec, 5, 35), at(layers.spec, 35, 35)],
+      profile: 'shortest',
+    });
     expect(r.status).toBe('ok');
     const spec = layers.spec;
     const xy = r.points.map((p) => {
@@ -158,7 +180,8 @@ describe('hard constraints', () => {
       cell.y = (spec.projection.radiusM * p.lat * Math.PI) / 180;
       return cell;
     });
-    for (let i = 1; i < xy.length; i++) expect(segmentIsTraversable(t, xy[i - 1]!, xy[i]!)).toBe(true);
+    for (let i = 1; i < xy.length; i++)
+      expect(segmentIsTraversable(t, xy[i - 1]!, xy[i]!)).toBe(true);
     expect(t.block[20 * 40 + 20]).toBe(BLOCK.excluded);
   });
 });
@@ -166,7 +189,10 @@ describe('hard constraints', () => {
 describe('profiles, explanations and EVA checks', () => {
   // A 14° cone (moderate band) sits on the straight line between the waypoints.
   const spec = syntheticSpec(80, 60);
-  const elevation = elevationFrom(spec, (e, n) => Math.max(0, 60 - Math.hypot(e, n)) * Math.tan(14 * d));
+  const elevation = elevationFrom(
+    spec,
+    (e, n) => Math.max(0, 60 - Math.hypot(e, n)) * Math.tan(14 * d),
+  );
   const t = prepareTerrain({ spec, elevation }, DEFAULT_EVA_PARAMS);
   const req = { waypoints: [at(spec, 8, 30), at(spec, 71, 30)] };
 
@@ -196,8 +222,15 @@ describe('profiles, explanations and EVA checks', () => {
     // (the old behaviour) would need twice the loop time and fail.
     const loop = planRoute(t, { ...req, profile: 'shortest', returnToStart: true });
     const loopH = loop.metrics!.estimatedDurationS / 3600;
-    const params = { ...DEFAULT_EVA_PARAMS, evaCapHours: loopH + DEFAULT_EVA_PARAMS.ingressHours + 0.01 };
-    const r = planRoute(prepareTerrain({ spec, elevation }, params), { ...req, profile: 'shortest', returnToStart: true });
+    const params = {
+      ...DEFAULT_EVA_PARAMS,
+      evaCapHours: loopH + DEFAULT_EVA_PARAMS.ingressHours + 0.01,
+    };
+    const r = planRoute(prepareTerrain({ spec, elevation }, params), {
+      ...req,
+      profile: 'shortest',
+      returnToStart: true,
+    });
     expect(r.metrics!.walkback.ok).toBe(true);
     expect(r.metrics!.walkback.worstMarginS).toBeGreaterThanOrEqual(0);
   });

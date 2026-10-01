@@ -145,7 +145,6 @@
     "results": "Resultados",
     "noRoute": "Ninguna ruta cumple las restricciones",
     "summary": "Resumen",
-    "profileChart": "Perfil de elevación",
     "itinerary": "Itinerario",
     "compare": "Comparar alternativas",
     "why": "Por qué esta ruta",
@@ -153,7 +152,10 @@
     "unresolvedList": "Rocas menores a ~1,5 m, relieve menor a ~0,5 m, artefactos del modelo de elevación, huecos sueltos o cubiertos de polvo, resistencia del suelo y límites del traje en la gravedad marciana.",
     "assumptions": "Supuestos",
     "assumptionsNote": "El límite de pendiente, las velocidades y los límites de EVA provienen de fuentes lunares (Apolo/Artemis) y son supuestos para Marte. S = con fuente, A = supuesto.",
-    "algorithm": "Calculado con {{algorithm}} · parámetros {{params}} · datos {{data}}"
+    "algorithm": "Calculado con {{algorithm}} · parámetros {{params}} · datos {{data}}",
+    "profileCursor": "Perfil de elevación: posición a lo largo de la ruta",
+    "profileReadout": "{{distance}} · {{elevation}} · pendiente {{slope}} · {{elapsed}} caminando",
+    "profileHint": "Perfil de elevación (m). Pasá el cursor o usá las flechas para seguir la ruta en el mapa."
   },
   "metrics": {
     "distance": "Distancia",

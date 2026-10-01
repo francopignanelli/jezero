@@ -23,7 +23,11 @@ export type ExplanationCode =
   | { code: 'EVA_NOMINAL_EXCEEDED'; durationS: number; nominalS: number }
   | { code: 'WALK_RADIUS_EXCEEDED'; maxDistanceM: number; limitM: number }
   | { code: 'OUTSIDE_COVERAGE'; waypointIndex: number }
-  | { code: 'WAYPOINT_NOT_TRAVERSABLE'; waypointIndex: number; reason: 'slope' | 'nodata' | 'excluded' }
+  | {
+      code: 'WAYPOINT_NOT_TRAVERSABLE';
+      waypointIndex: number;
+      reason: 'slope' | 'nodata' | 'excluded';
+    }
   | {
       code: 'DISCONNECTED';
       legIndex: number;
@@ -53,7 +57,11 @@ export function explainMetrics(m: RouteMetrics, p: EvaParams): ExplanationCode[]
     codes.push({ code: 'EVA_NOMINAL_EXCEEDED', durationS: m.estimatedDurationS, nominalS });
   }
   if (m.maxDistanceFromStartM > p.walkRadiusWarningM) {
-    codes.push({ code: 'WALK_RADIUS_EXCEEDED', maxDistanceM: m.maxDistanceFromStartM, limitM: p.walkRadiusWarningM });
+    codes.push({
+      code: 'WALK_RADIUS_EXCEEDED',
+      maxDistanceM: m.maxDistanceFromStartM,
+      limitM: p.walkRadiusWarningM,
+    });
   }
   return codes;
 }
@@ -65,12 +73,22 @@ const MIN_REPORTED_AVOIDANCE_M = 10;
  * Why the lower-risk route differs from the shortest feasible one. A difference is reported when the
  * lower-risk route avoids a meaningful length of steep or moderate slopes, even if it is barely longer.
  */
-export function explainComparison(lowerRisk: RouteMetrics, shortest: RouteMetrics): ExplanationCode {
+export function explainComparison(
+  lowerRisk: RouteMetrics,
+  shortest: RouteMetrics,
+): ExplanationCode {
   const extra = lowerRisk.horizontalDistanceM - shortest.horizontalDistanceM;
   const steepAvoidedM = Math.max(0, shortest.bandDistanceM.steep - lowerRisk.bandDistanceM.steep);
-  const moderateAvoidedM = Math.max(0, shortest.bandDistanceM.moderate - lowerRisk.bandDistanceM.moderate);
+  const moderateAvoidedM = Math.max(
+    0,
+    shortest.bandDistanceM.moderate - lowerRisk.bandDistanceM.moderate,
+  );
   const longer = extra > Math.max(10, 0.01 * shortest.horizontalDistanceM);
-  if (!longer && steepAvoidedM < MIN_REPORTED_AVOIDANCE_M && moderateAvoidedM < MIN_REPORTED_AVOIDANCE_M) {
+  if (
+    !longer &&
+    steepAvoidedM < MIN_REPORTED_AVOIDANCE_M &&
+    moderateAvoidedM < MIN_REPORTED_AVOIDANCE_M
+  ) {
     return { code: 'SAME_AS_SHORTEST' };
   }
   return {

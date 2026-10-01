@@ -145,7 +145,6 @@
     "results": "Results",
     "noRoute": "No route satisfies the constraints",
     "summary": "Summary",
-    "profileChart": "Elevation profile",
     "itinerary": "Itinerary",
     "compare": "Compare alternatives",
     "why": "Why this route",
@@ -153,7 +152,10 @@
     "unresolvedList": "Rocks smaller than ~1.5 m, relief below ~0.5 m, DTM artifacts, loose or dust-covered voids, soil strength, and suit limits at Mars gravity.",
     "assumptions": "Assumptions",
     "assumptionsNote": "Slope limit, speeds and EVA limits come from lunar (Apollo/Artemis) sources and are assumptions for Mars. S = sourced, A = assumption.",
-    "algorithm": "Computed with {{algorithm}} · parameters {{params}} · data {{data}}"
+    "algorithm": "Computed with {{algorithm}} · parameters {{params}} · data {{data}}",
+    "profileCursor": "Elevation profile: position along the route",
+    "profileReadout": "{{distance}} · {{elevation}} · slope {{slope}} · {{elapsed}} walking",
+    "profileHint": "Elevation profile (m). Hover or use the arrow keys to follow the route on the map."
   },
   "metrics": {
     "distance": "Distance",

@@ -47,7 +47,11 @@ export function gridSpecFromHeader(h: GridFileHeader): GridSpec {
 }
 
 /** Decodes one band to physical units; nodata becomes NaN. */
-export function decodeGridBand(buffer: ArrayBuffer, band: GridBand, cellCount: number): Float32Array {
+export function decodeGridBand(
+  buffer: ArrayBuffer,
+  band: GridBand,
+  cellCount: number,
+): Float32Array {
   const bytes = band.dtype === 'int16' ? 2 : 1;
   if (buffer.byteLength !== cellCount * bytes) {
     throw new Error(`${band.file}: ${buffer.byteLength} bytes, expected ${cellCount * bytes}`);
@@ -66,7 +70,8 @@ export function terrainLayersFromBands(
   header: GridFileHeader,
   bands: Partial<Record<GridBandName, Float32Array>>,
 ): TerrainLayers {
-  if (header.schemaVersion !== 1) throw new Error(`unsupported grid schema ${String(header.schemaVersion)}`);
+  if (header.schemaVersion !== 1)
+    throw new Error(`unsupported grid schema ${String(header.schemaVersion)}`);
   if (!bands.elevation) throw new Error('grid has no elevation band');
   const layers: TerrainLayers = { spec: gridSpecFromHeader(header), elevation: bands.elevation };
   if (bands.fine_slope_median) layers.fineSlopeMedianDeg = bands.fine_slope_median;

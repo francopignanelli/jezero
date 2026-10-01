@@ -92,7 +92,11 @@ export interface SampledStep {
  * Splits a polyline into steps no longer than `maxStepCells` cells, reporting ground displacement
  * (with the per-row east-west scale correction) and bilinear elevations at both ends.
  */
-export function sampleSteps(t: PreparedTerrain, points: readonly XY[], maxStepCells: number): SampledStep[] {
+export function sampleSteps(
+  t: PreparedTerrain,
+  points: readonly XY[],
+  maxStepCells: number,
+): SampledStep[] {
   const spec = t.layers.spec;
   const steps: SampledStep[] = [];
   for (let i = 1; i < points.length; i++) {
@@ -132,13 +136,25 @@ export function sampleSteps(t: PreparedTerrain, points: readonly XY[], maxStepCe
 }
 
 /** Cost of a continuous polyline under a profile; +∞ if any part touches a blocked cell. */
-export function polylineCost(t: PreparedTerrain, profile: RouteProfile, points: readonly XY[]): number {
+export function polylineCost(
+  t: PreparedTerrain,
+  profile: RouteProfile,
+  points: readonly XY[],
+): number {
   for (let i = 1; i < points.length; i++) {
     if (!segmentIsTraversable(t, points[i - 1]!, points[i]!)) return Number.POSITIVE_INFINITY;
   }
   let total = 0;
   for (const s of sampleSteps(t, points, 0.5)) {
-    total += evaluateStep(t, profile, s.cellFrom, s.cellTo, s.dEastM, s.dNorthM, s.zTo - s.zFrom).cost;
+    total += evaluateStep(
+      t,
+      profile,
+      s.cellFrom,
+      s.cellTo,
+      s.dEastM,
+      s.dNorthM,
+      s.zTo - s.zFrom,
+    ).cost;
   }
   return total;
 }

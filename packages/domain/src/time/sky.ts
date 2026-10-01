@@ -16,8 +16,28 @@ export function icrfToMarsFixed(utcMs: number): Mat3 {
   const a = (axis.ra * 15 + 90) * DEG_TO_RAD;
   const b = (90 - axis.dec) * DEG_TO_RAD;
   const w = axis.spin * DEG_TO_RAD;
-  const rz = (t: number): Mat3 => [Math.cos(t), Math.sin(t), 0, -Math.sin(t), Math.cos(t), 0, 0, 0, 1];
-  const rx = (t: number): Mat3 => [1, 0, 0, 0, Math.cos(t), Math.sin(t), 0, -Math.sin(t), Math.cos(t)];
+  const rz = (t: number): Mat3 => [
+    Math.cos(t),
+    Math.sin(t),
+    0,
+    -Math.sin(t),
+    Math.cos(t),
+    0,
+    0,
+    0,
+    1,
+  ];
+  const rx = (t: number): Mat3 => [
+    1,
+    0,
+    0,
+    0,
+    Math.cos(t),
+    Math.sin(t),
+    0,
+    -Math.sin(t),
+    Math.cos(t),
+  ];
   return mul(rz(w), mul(rx(b), rz(a)));
 }
 
@@ -44,7 +64,8 @@ export function raDecToVector(raRad: number, decRad: number): Vec3 {
   return [Math.cos(decRad) * Math.cos(raRad), Math.cos(decRad) * Math.sin(raRad), Math.sin(decRad)];
 }
 
-export type SkyBodyId = 'Sun' | 'Mercury' | 'Venus' | 'Earth' | 'Jupiter' | 'Saturn' | 'Uranus' | 'Neptune';
+export type SkyBodyId =
+  'Sun' | 'Mercury' | 'Venus' | 'Earth' | 'Jupiter' | 'Saturn' | 'Uranus' | 'Neptune';
 
 export interface SkyBody {
   id: SkyBodyId;
@@ -61,7 +82,10 @@ export interface SkyBody {
 }
 
 /** Absolute magnitudes H (V, 1 AU from Sun and observer) and mean radii (km). */
-const PLANETS: Record<Exclude<SkyBodyId, 'Sun'>, { body: Astronomy.Body; h: number; radiusKm: number }> = {
+const PLANETS: Record<
+  Exclude<SkyBodyId, 'Sun'>,
+  { body: Astronomy.Body; h: number; radiusKm: number }
+> = {
   Mercury: { body: Astronomy.Body.Mercury, h: -0.6, radiusKm: 2439.4 },
   Venus: { body: Astronomy.Body.Venus, h: -4.47, radiusKm: 6051.8 },
   Earth: { body: Astronomy.Body.Earth, h: -3.99, radiusKm: 6371.0 },
@@ -90,7 +114,9 @@ export function solarSystemFromMars(utcMs: number): SkyBody[] {
     angularDiameterDeg: 2 * Math.atan(SUN_RADIUS_KM / (rMars * AU_KM)) * RAD_TO_DEG,
     magnitude: -26.74 + 5 * Math.log10(rMars),
   });
-  for (const [id, p] of Object.entries(PLANETS) as Array<[Exclude<SkyBodyId, 'Sun'>, (typeof PLANETS)[keyof typeof PLANETS]]>) {
+  for (const [id, p] of Object.entries(PLANETS) as Array<
+    [Exclude<SkyBodyId, 'Sun'>, (typeof PLANETS)[keyof typeof PLANETS]]
+  >) {
     const v = Astronomy.HelioVector(p.body, time);
     const r = Math.hypot(v.x, v.y, v.z);
     const rel: Vec3 = [v.x - mars.x, v.y - mars.y, v.z - mars.z];

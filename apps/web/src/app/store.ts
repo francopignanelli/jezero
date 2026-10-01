@@ -63,6 +63,9 @@ interface AppState {
   sceneReady: boolean;
   /** Value ranges of the computed overlays (for their map legends). */
   overlayRanges: Partial<Record<OverlayKind, [number, number]>>;
+  /** Distance (m) along the selected route under the profile cursor, or null. */
+  routeCursorM: number | null;
+  setRouteCursor(d: number | null): void;
   setOverlayRange(kind: OverlayKind, range: [number, number]): void;
   setLoading(p: Partial<LoadingState>): void;
   setSceneReady(v: boolean): void;
@@ -128,6 +131,8 @@ export const useApp = create<AppState>((set) => ({
   },
   sceneReady: false,
   overlayRanges: {},
+  routeCursorM: null,
+  setRouteCursor: (routeCursorM) => set({ routeCursorM }),
   setOverlayRange: (kind, range) =>
     set((s) => ({ overlayRanges: { ...s.overlayRanges, [kind]: range } })),
   setLoading: (p) => set((s) => ({ loading: { ...s.loading, ...p } })),

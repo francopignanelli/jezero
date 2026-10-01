@@ -23,7 +23,11 @@ describe('sky: ICRF → Mars-fixed rotation and solar-system bodies', () => {
     const dot = (a: number[], b: number[]) => a[0]! * b[0]! + a[1]! * b[1]! + a[2]! * b[2]!;
     expect(dot(x, y)).toBeCloseTo(0, 12);
     expect(dot(x, x)).toBeCloseTo(1, 12);
-    const cross = [x[1]! * y[2]! - x[2]! * y[1]!, x[2]! * y[0]! - x[0]! * y[2]!, x[0]! * y[1]! - x[1]! * y[0]!];
+    const cross = [
+      x[1]! * y[2]! - x[2]! * y[1]!,
+      x[2]! * y[0]! - x[0]! * y[2]!,
+      x[0]! * y[1]! - x[1]! * y[0]!,
+    ];
     expect(angleDeg(cross, z)).toBeLessThan(1e-6);
   });
 

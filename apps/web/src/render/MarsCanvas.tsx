@@ -15,6 +15,7 @@ import {
 import { ensureGrid } from '../features/routes/ensureGrid';
 import { routingClient } from '../features/routes/routingClient';
 import type { OverlayKind } from '../features/routes/overlays';
+import { arrowsAlong, buildTrack, pointAt, type Track } from '../lib/routeTrack';
 import type { Annotation } from './annotations';
 import { MarsScene, type LineSpec, type LonLatRect } from './marsScene';
 import { densify, simplify, type LatLonPoint } from './pathGeometry';
@@ -40,6 +41,9 @@ export function MarsCanvas() {
   const [failed, setFailed] = useState(false);
   const [gridRect, setGridRect] = useState<LonLatRect | null>(null);
   const overlaysBuilt = useRef(new Set<OverlayKind>());
+  /** Drawn primary route (for the profile cursor) and the result the camera last framed. */
+  const trackRef = useRef<{ track: Track; profileTotalM: number } | null>(null);
+  const framedRef = useRef<unknown>(null);
 
   const mode = useApp((s) => s.mode);
   const layers = useApp((s) => s.layers);
@@ -50,6 +54,7 @@ export function MarsCanvas() {
   const evaStart = useApp((s) => s.evaStartUtcMs);
   const flyRequest = useApp((s) => s.flyRequest);
   const sceneReady = useApp((s) => s.sceneReady);
+  const routeCursorM = useApp((s) => s.routeCursorM);
 
   // Create the scene once and load everything the first view needs before revealing it.
   useEffect(() => {
@@ -208,7 +213,7 @@ export function MarsCanvas() {
     if (!scene) return;
     void scene
       .withTerrainHeights(
-        waypoints.map((w) => ({ id: w.id, lat: w.lat, lon: w.lon, color: '#5fd4c4', size: 11 })),
+        waypoints.map((w) => ({ id: w.id, lat: w.lat, lon: w.lon, color: '#3ff0c0', size: 11 })),
         2,
       )
       .then((markers) => {
@@ -234,7 +239,8 @@ export function MarsCanvas() {
       });
   }, [waypoints]);
 
-  // Routes: the exact computed geometry, densified and draped on the rendered terrain.
+  // Routes: the exact computed geometry, densified and draped on the rendered terrain. The selected
+  // route becomes the focus: direction chevrons, camera framing on a new result, muted context.
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
@@ -243,14 +249,61 @@ export function MarsCanvas() {
     const lines: Array<{ route: RouteResult; style: LineSpec['style'] }> = [];
     if (other?.status === 'ok') lines.push({ route: other, style: 'route-alternative' });
     if (selected?.status === 'ok') lines.push({ route: selected, style: 'route-primary' });
-    void Promise.all(
-      lines.map(async ({ route, style }) => ({
-        id: style,
-        style,
-        points: await drape(scene, densify(route.points, 12), style === 'route-primary' ? 2.5 : 3),
-      })),
-    ).then((specs) => scene.setLines('route', specs));
+    let cancelled = false;
+    void (async () => {
+      const specs = await Promise.all(
+        lines.map(async ({ route, style }) => ({
+          id: style,
+          style,
+          points: await drape(
+            scene,
+            densify(route.points, 12),
+            style === 'route-primary' ? 2.5 : 3,
+          ),
+        })),
+      );
+      if (cancelled || scene.isDestroyed()) return;
+      scene.setLines('route', specs);
+      const primary = specs.find((l) => l.style === 'route-primary');
+      if (primary && selected?.metrics) {
+        const track = buildTrack(primary.points);
+        const profileTotal = selected.metrics.profile.distanceM.at(-1) ?? track.totalM;
+        trackRef.current = { track, profileTotalM: profileTotal };
+        scene.setArrows('routeArrows', arrowsAlong(track, 250));
+        if (framedRef.current !== result) {
+          framedRef.current = result;
+          void scene.flyToPath(primary.points);
+        }
+      } else {
+        trackRef.current = null;
+        scene.clearGroup('routeArrows');
+        scene.clearGroup('cursor');
+      }
+      const focus = primary !== undefined;
+      scene.restyleLines('rover', (st) =>
+        st === 'traverse' || st === 'traverse-muted' ? (focus ? 'traverse-muted' : 'traverse') : st,
+      );
+      for (const group of ['pois', 'rover']) scene.setAnnotationsMuted(group, focus);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [result, profile]);
+
+  // Profile ↔ map: the distance under the profile cursor, shown as a marker on the 3D route.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    const tr = trackRef.current;
+    if (!scene) return;
+    if (routeCursorM === null || !tr) {
+      scene.clearGroup('cursor');
+      return;
+    }
+    const p = pointAt(tr.track, (routeCursorM * tr.track.totalM) / Math.max(1, tr.profileTotalM));
+    scene.setMarkers('cursor', [
+      { id: 'cursor', lat: p.lat, lon: p.lon, heightM: p.heightM + 1, color: '#ffffff', size: 14 },
+    ]);
+  }, [routeCursorM]);
 
   useEffect(() => {
     sceneRef.current?.setSunTime(evaStart);

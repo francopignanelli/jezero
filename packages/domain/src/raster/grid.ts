@@ -1,4 +1,10 @@
-import { eqcEastWestScale, eqcInverse, eqcForward, type EqcParams, type XY } from '../geo/equirectangular';
+import {
+  eqcEastWestScale,
+  eqcInverse,
+  eqcForward,
+  type EqcParams,
+  type XY,
+} from '../geo/equirectangular';
 
 /**
  * A north-up raster on an equirectangular projection. Row 0 is the northernmost row; cells are

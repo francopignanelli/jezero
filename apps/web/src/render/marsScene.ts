@@ -112,7 +112,8 @@ export interface MarkerSpec {
   size?: number;
 }
 
-export type LineStyle = 'route-primary' | 'route-alternative' | 'traverse' | 'boundary';
+export type LineStyle =
+  'route-primary' | 'route-alternative' | 'traverse' | 'traverse-muted' | 'boundary';
 
 export interface LineSpec {
   id: string;
@@ -123,77 +124,136 @@ export interface LineSpec {
 const toCartesian = (lat: number, lon: number, h: number): Cartesian3 =>
   Cartesian3.fromDegrees(normalizeLon180(lon), lat, h, MARS_SPHERE);
 
-const COLOURS = {
-  route: Color.fromCssColorString('#5fd4c4'),
+export const COLOURS = {
+  route: Color.fromCssColorString('#3ff0c0'),
   alternative: Color.fromCssColorString('#e8e2d6'),
   traverse: Color.fromCssColorString('#f2b84b'),
-  boundary: Color.fromCssColorString('#6cc6e6'),
+  boundary: Color.fromCssColorString('#8fb4d6'),
   outline: Color.fromCssColorString('#0b0e13'),
 };
 
-function lineMaterials(style: LineStyle): {
+interface LineLayer {
   width: number;
   material: MaterialProperty;
-  depthFail: MaterialProperty;
-} {
+  /** Drawn where terrain hides the line; undefined hides it there. */
+  depthFail?: MaterialProperty;
+}
+
+/**
+ * Each style is one or more stacked polylines. The planned route is the hero: a soft halo, a dark
+ * casing and a bright core keep it readable on grey HiRISE imagery and over every other line.
+ */
+function lineMaterials(style: LineStyle): LineLayer[] {
   switch (style) {
     case 'route-primary':
-      return {
-        width: 14,
-        material: new PolylineGlowMaterialProperty({
-          color: COLOURS.route,
-          glowPower: 0.22,
-          taperPower: 1,
-        }),
-        // Coarser terrain LODs can sit above the route (heights come from the 1 m model): keep it
-        // clearly visible through terrain instead of breaking into fragments.
-        depthFail: new PolylineGlowMaterialProperty({
-          color: COLOURS.route.withAlpha(0.75),
-          glowPower: 0.22,
-          taperPower: 1,
-        }),
-      };
+      return [
+        {
+          width: 26,
+          material: new PolylineGlowMaterialProperty({
+            color: COLOURS.route.withAlpha(0.45),
+            glowPower: 0.12,
+            taperPower: 1,
+          }),
+        },
+        {
+          width: 9,
+          material: new PolylineOutlineMaterialProperty({
+            color: COLOURS.route,
+            outlineColor: COLOURS.outline.withAlpha(0.85),
+            outlineWidth: 2.5,
+          }),
+          // Coarser terrain LODs can sit above the route (heights come from the 1 m model): keep it
+          // visible through terrain instead of breaking into fragments.
+          depthFail: new PolylineOutlineMaterialProperty({
+            color: COLOURS.route.withAlpha(0.7),
+            outlineColor: COLOURS.outline.withAlpha(0.5),
+            outlineWidth: 2.5,
+          }),
+        },
+      ];
     case 'route-alternative':
-      return {
-        width: 3,
-        material: new PolylineDashMaterialProperty({
-          color: COLOURS.alternative.withAlpha(0.9),
-          dashLength: 18,
-        }),
-        depthFail: new PolylineDashMaterialProperty({
-          color: COLOURS.alternative.withAlpha(0.6),
-          dashLength: 18,
-        }),
-      };
+      return [
+        {
+          width: 3.5,
+          material: new PolylineDashMaterialProperty({
+            color: COLOURS.alternative.withAlpha(0.85),
+            gapColor: COLOURS.outline.withAlpha(0.35),
+            dashLength: 16,
+          }),
+          depthFail: new PolylineDashMaterialProperty({
+            color: COLOURS.alternative.withAlpha(0.45),
+            dashLength: 16,
+          }),
+        },
+      ];
     case 'traverse':
-      return {
-        width: 3,
-        material: new PolylineOutlineMaterialProperty({
-          color: COLOURS.traverse.withAlpha(0.9),
-          outlineColor: COLOURS.outline.withAlpha(0.7),
-          outlineWidth: 1,
-        }),
-        depthFail: new PolylineOutlineMaterialProperty({
-          color: COLOURS.traverse.withAlpha(0.55),
-          outlineColor: COLOURS.outline.withAlpha(0.4),
-          outlineWidth: 1,
-        }),
-      };
+    case 'traverse-muted': {
+      const a = style === 'traverse' ? 1 : 0.35;
+      return [
+        {
+          width: style === 'traverse' ? 3 : 2,
+          material: new PolylineOutlineMaterialProperty({
+            color: COLOURS.traverse.withAlpha(0.9 * a),
+            outlineColor: COLOURS.outline.withAlpha(0.7 * a),
+            outlineWidth: 1,
+          }),
+          depthFail: new PolylineOutlineMaterialProperty({
+            color: COLOURS.traverse.withAlpha(0.55 * a),
+            outlineColor: COLOURS.outline.withAlpha(0.4 * a),
+            outlineWidth: 1,
+          }),
+        },
+      ];
+    }
     case 'boundary':
-      return {
-        width: 7,
-        material: new PolylineGlowMaterialProperty({
-          color: COLOURS.boundary,
-          glowPower: 0.3,
-          taperPower: 1,
-        }),
-        depthFail: new PolylineGlowMaterialProperty({
-          color: COLOURS.boundary.withAlpha(0.55),
-          glowPower: 0.3,
-          taperPower: 1,
-        }),
-      };
+      return [
+        {
+          width: 5,
+          material: new PolylineGlowMaterialProperty({
+            color: COLOURS.boundary.withAlpha(0.9),
+            glowPower: 0.3,
+            taperPower: 1,
+          }),
+          depthFail: new PolylineGlowMaterialProperty({
+            color: COLOURS.boundary.withAlpha(0.45),
+            glowPower: 0.3,
+            taperPower: 1,
+          }),
+        },
+      ];
   }
+}
+
+let chevron: HTMLCanvasElement | null = null;
+/** White chevron pointing "up" with a dark edge (drawn once, shared by every arrow billboard). */
+function chevronImage(): HTMLCanvasElement {
+  if (chevron) return chevron;
+  const c = document.createElement('canvas');
+  c.width = 32;
+  c.height = 32;
+  const ctx = c.getContext('2d')!;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(7, 22);
+  ctx.lineTo(16, 10);
+  ctx.lineTo(25, 22);
+  ctx.strokeStyle = 'rgba(11,14,19,0.9)';
+  ctx.lineWidth = 9;
+  ctx.stroke();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4.5;
+  ctx.stroke();
+  chevron = c;
+  return c;
+}
+
+export interface ArrowSpec {
+  lat: number;
+  lon: number;
+  heightM: number;
+  /** A point a little further along the path (gives the direction). */
+  next: { lat: number; lon: number; heightM: number };
 }
 
 export class MarsScene {
@@ -203,6 +263,7 @@ export class MarsScene {
   private readonly rasters = new Map<string, ImageryLayer>();
   private readonly groups = new Map<string, Entity[]>();
   private readonly hiddenGroups = new Set<string>();
+  private readonly lineSpecs = new Map<string, LineSpec[]>();
   private handler: ScreenSpaceEventHandler;
   private sky: SkyRenderer | null = null;
   private terrain: TerrainProvider = new EllipsoidTerrainProvider({ ellipsoid: MARS_SPHERE });
@@ -468,31 +529,116 @@ export class MarsScene {
     this.clearGroup(groupId);
     const g = this.group(groupId);
     const show = !this.hiddenGroups.has(groupId);
+    this.lineSpecs.set(groupId, lines);
     for (const line of lines) {
       if (line.points.length < 2) continue;
-      const { width, material, depthFail } = lineMaterials(line.style);
+      const positions = line.points.map((p) => toCartesian(p.lat, p.lon, p.heightM));
+      lineMaterials(line.style).forEach(({ width, material, depthFail }, k) => {
+        const entity = new Entity({
+          id: `${groupId}:${line.id}:${k}`,
+          show,
+          polyline: {
+            positions,
+            width,
+            arcType: ArcType.NONE, // vertices are already dense and draped on the rendered terrain
+            distanceDisplayCondition: new DistanceDisplayCondition(0, 300_000),
+            material,
+            ...(depthFail ? { depthFailMaterial: depthFail } : {}),
+          },
+        });
+        g.push(entity);
+        this.widget.entities.add(entity);
+      });
+    }
+    this.requestRender();
+  }
+
+  /** Re-applies a group's lines with another style (e.g. mute the traverse while a route is shown). */
+  restyleLines(groupId: string, style: (current: LineStyle) => LineStyle): void {
+    const specs = this.lineSpecs.get(groupId);
+    if (!specs) return;
+    const next = specs.map((l) => ({ ...l, style: style(l.style) }));
+    if (next.every((l, i) => l.style === specs[i]!.style)) return;
+    this.setLines(groupId, next);
+  }
+
+  /**
+   * Direction chevrons along a path: billboards whose up axis follows the local path direction,
+   * so they point along the route from any camera angle at a constant screen size.
+   */
+  setArrows(groupId: string, arrows: ArrowSpec[]): void {
+    if (this.isDestroyed()) return;
+    this.clearGroup(groupId);
+    const g = this.group(groupId);
+    const show = !this.hiddenGroups.has(groupId);
+    const image = chevronImage();
+    arrows.forEach((a, i) => {
+      const p = toCartesian(a.lat, a.lon, a.heightM);
+      const q = toCartesian(a.next.lat, a.next.lon, a.next.heightM);
+      const axis = Cartesian3.normalize(
+        Cartesian3.subtract(q, p, new Cartesian3()),
+        new Cartesian3(),
+      );
       const entity = new Entity({
-        id: `${groupId}:${line.id}`,
+        id: `${groupId}:${i}`,
         show,
-        polyline: {
-          positions: line.points.map((p) => toCartesian(p.lat, p.lon, p.heightM)),
-          width,
-          arcType: ArcType.NONE, // vertices are already dense and draped on the rendered terrain
-          distanceDisplayCondition: new DistanceDisplayCondition(0, 300_000),
-          material,
-          depthFailMaterial: depthFail,
+        position: p,
+        billboard: {
+          image,
+          width: 14,
+          height: 14,
+          alignedAxis: axis,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          distanceDisplayCondition: new DistanceDisplayCondition(0, 40_000),
         },
       });
       g.push(entity);
       this.widget.entities.add(entity);
-    }
+    });
     this.requestRender();
+  }
+
+  /** Frames a path: the whole route in view, seen obliquely from behind its start. */
+  flyToPath(
+    points: Array<{ lat: number; lon: number; heightM: number }>,
+    seconds = 2.5,
+  ): Promise<void> {
+    if (points.length === 0) return Promise.resolve();
+    const sphere = BoundingSphere.fromPoints(
+      points.map((p) => toCartesian(p.lat, p.lon, p.heightM)),
+    );
+    const start = points[0]!;
+    const centre = Cartographic.fromCartesian(sphere.center, MARS_SPHERE);
+    // Heading from the start towards the route centre (a flat bearing is fine over a few km).
+    const dLon =
+      (CesiumMath.toDegrees(centre.longitude) - normalizeLon180(start.lon)) *
+      Math.cos(CesiumMath.toRadians(start.lat));
+    const dLat = CesiumMath.toDegrees(centre.latitude) - start.lat;
+    const heading = Math.atan2(dLon, dLat);
+    // Fit the sphere inside the narrower field of view (short, wide canvases have a small vertical FOV).
+    const frustum = this.widget.camera.frustum as { fovy?: number; aspectRatio?: number };
+    const fovy = frustum.fovy ?? Math.PI / 3;
+    const fovx = 2 * Math.atan(Math.tan(fovy / 2) * (frustum.aspectRatio ?? 1));
+    const range = Math.max(1_400, (1.15 * sphere.radius) / Math.sin(Math.min(fovx, fovy) / 2));
+    return this.flight((done) =>
+      this.widget.camera.flyToBoundingSphere(sphere, {
+        offset: new HeadingPitchRange(heading, CesiumMath.toRadians(-52), range),
+        duration: this.reducedMotion ? 0 : seconds,
+        easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+        complete: done,
+        cancel: done,
+      }),
+    );
   }
 
   setAnnotations(groupId: string, items: Annotation[]): void {
     if (this.isDestroyed()) return;
     this.annotations.set(groupId, items);
     this.annotations.setGroupVisible(groupId, !this.hiddenGroups.has(groupId));
+  }
+
+  setAnnotationsMuted(groupId: string, muted: boolean): void {
+    if (!this.isDestroyed()) this.annotations.setGroupMuted(groupId, muted);
   }
 
   clearGroup(groupId: string): void {

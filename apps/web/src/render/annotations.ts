@@ -68,6 +68,7 @@ export class AnnotationLayer {
   readonly root: HTMLDivElement;
   private groups = new Map<string, Placed[]>();
   private hidden = new Set<string>();
+  private muted = new Set<string>();
   private scratch = new Cartesian2();
 
   constructor(
@@ -119,13 +120,20 @@ export class AnnotationLayer {
     this.scene.requestRender();
   }
 
+  /** Muted groups yield to every other label and render dimmed (context, not focus). */
+  setGroupMuted(group: string, muted: boolean): void {
+    if (muted) this.muted.add(group);
+    else this.muted.delete(group);
+    this.scene.requestRender();
+  }
+
   /** Call after each render (scene.postRender). */
   update(): void {
     const scene = this.scene;
     const camera = scene.camera.positionWC;
     const w = scene.canvas.clientWidth;
     const h = scene.canvas.clientHeight;
-    const candidates: Array<Placed & { x: number; y: number; d: number }> = [];
+    const candidates: Array<Placed & { x: number; y: number; d: number; rank: number }> = [];
 
     for (const [group, items] of this.groups) {
       for (const p of items) {
@@ -141,11 +149,19 @@ export class AnnotationLayer {
           p.width = p.el.offsetWidth;
           p.height = p.el.offsetHeight;
         }
-        candidates.push({ ...p, x: s.x, y: s.y, d });
+        const isMuted = this.muted.has(group);
+        p.el.classList.toggle('annotation-muted', isMuted);
+        candidates.push({
+          ...p,
+          x: s.x,
+          y: s.y,
+          d,
+          rank: isMuted ? p.a.priority - 1000 : p.a.priority,
+        });
       }
     }
 
-    candidates.sort((a, b) => b.a.priority - a.a.priority || a.d - b.d);
+    candidates.sort((a, b) => b.rank - a.rank || a.d - b.d);
     const taken: Array<[number, number, number, number]> = [];
     const shownKeys = new Set<string>();
     const overlaps = (r: [number, number, number, number]) =>

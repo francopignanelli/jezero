@@ -48,7 +48,11 @@ export function solarPosition(utcMs: number, site: LatLon): SolarPosition {
  * `targetHours`. Scans at 60 s, then bisects to 1 s. LTST advances ~24 h per sol, so a match always
  * exists within one sol (+ margin).
  */
-export function nextLocalTrueSolarTime(fromUtcMs: number, site: LatLon, targetHours: number): number {
+export function nextLocalTrueSolarTime(
+  fromUtcMs: number,
+  site: LatLon,
+  targetHours: number,
+): number {
   const offset = (t: number): number => {
     const d = solarPosition(t, site).ltstHours - targetHours;
     return ((d % 24) + 24) % 24; // hours until LTST would pass the target, in [0, 24)

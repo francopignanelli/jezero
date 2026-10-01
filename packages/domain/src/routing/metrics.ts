@@ -11,6 +11,8 @@ export interface ElevationProfile {
   elevationM: Float32Array;
   /** Constraint slope of the terrain cell under each sample (deg). */
   terrainSlopeDeg: Float32Array;
+  /** Elapsed walking time at each sample (s, default speed model; excludes stops). */
+  elapsedS: Float32Array;
 }
 
 export interface WalkbackCheck {
@@ -103,14 +105,18 @@ export function computeMetrics(t: PreparedTerrain, points: readonly XY[]): Route
   // forward around the loop, whichever is quicker; otherwise it must backtrack.
   const capS = p.evaCapHours * 3600;
   const ingressS = p.ingressHours * 3600;
-  const isLoop = points.length > 2 && groundDistance(t, start, points[points.length - 1]!) <= t.layers.spec.cellSize;
+  const isLoop =
+    points.length > 2 &&
+    groundDistance(t, start, points[points.length - 1]!) <= t.layers.spec.cellSize;
   const totalForwardS = forwardTimeS[n - 1]!;
   let worstMarginS = Number.POSITIVE_INFINITY;
   let firstViolationAtM: number | null = null;
   const backtrackS = new Float64Array(n);
   for (let i = 1; i < n; i++) backtrackS[i] = backtrackS[i - 1]! + backStepTimeS[i]!;
   for (let i = 0; i < n; i++) {
-    const returnS = isLoop ? Math.min(backtrackS[i]!, totalForwardS - forwardTimeS[i]!) : backtrackS[i]!;
+    const returnS = isLoop
+      ? Math.min(backtrackS[i]!, totalForwardS - forwardTimeS[i]!)
+      : backtrackS[i]!;
     const margin = capS - (forwardTimeS[i]! + returnS + ingressS);
     if (margin < worstMarginS) worstMarginS = margin;
     if (margin < 0 && firstViolationAtM === null) firstViolationAtM = distanceM[i]!;
@@ -130,7 +136,7 @@ export function computeMetrics(t: PreparedTerrain, points: readonly XY[]): Route
     durationByModelS,
     maxDistanceFromStartM: maxFromStart,
     walkback: { ok: firstViolationAtM === null, worstMarginS, firstViolationAtM },
-    profile: { distanceM, elevationM, terrainSlopeDeg },
+    profile: { distanceM, elevationM, terrainSlopeDeg, elapsedS: Float32Array.from(forwardTimeS) },
   };
 }
 
@@ -138,7 +144,10 @@ export function computeMetrics(t: PreparedTerrain, points: readonly XY[]): Route
  * Cumulative gain and loss with a hysteresis threshold that suppresses DTM noise. The final residual
  * is added so that gain − loss equals the net elevation change exactly.
  */
-export function gainLoss(elevations: ArrayLike<number>, hysteresisM: number): { gain: number; loss: number } {
+export function gainLoss(
+  elevations: ArrayLike<number>,
+  hysteresisM: number,
+): { gain: number; loss: number } {
   let gain = 0;
   let loss = 0;
   let ref = Number.NaN;

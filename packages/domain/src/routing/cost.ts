@@ -42,9 +42,7 @@ export function evaluateStep(
     crossTan = Math.abs(gE * (dNorth / lengthH) - gN * (dEast / lengthH));
   }
   const risk =
-    1 +
-    Math.max(t.staticPenalty[a]!, t.staticPenalty[b]!) +
-    t.params.crossSlopeWeight * crossTan;
+    1 + Math.max(t.staticPenalty[a]!, t.staticPenalty[b]!) + t.params.crossSlopeWeight * crossTan;
   return { cost: timeS * risk, length3dM, gradeDeg, timeS };
 }
 

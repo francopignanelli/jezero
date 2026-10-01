@@ -1164,3 +1164,25 @@ dialog.provenance dd {
     width: min(220px, calc(100% - 20px));
   }
 }
+
+/* ---------- Interactive elevation profile ---------- */
+.profile {
+  margin: 8px 0;
+}
+.profile-slider {
+  max-width: 460px;
+  border-radius: var(--radius-sm);
+  cursor: crosshair;
+  touch-action: none;
+}
+.profile-slider:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+.profile-readout {
+  min-height: 1.4em;
+  font-family: var(--font-mono);
+}
+.annotation-muted {
+  opacity: 0.55;
+}

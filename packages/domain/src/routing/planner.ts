@@ -103,16 +103,32 @@ export function planRoute(t: PreparedTerrain, request: RouteRequest): RouteResul
     expanded += search.expandedNodes;
     if (!search.path) {
       const d = diagnoseDisconnection(t, from, to);
-      const near = cellLatLon(spec, d.nearestReachable % spec.cols, (d.nearestReachable / spec.cols) | 0);
+      const near = cellLatLon(
+        spec,
+        d.nearestReachable % spec.cols,
+        (d.nearestReachable / spec.cols) | 0,
+      );
       return failure(
-        [{ code: 'DISCONNECTED', legIndex: leg, barrier: d.barrier, nearestReachable: near, gapM: d.gapM }],
+        [
+          {
+            code: 'DISCONNECTED',
+            legIndex: leg,
+            barrier: d.barrier,
+            nearestReachable: near,
+            gapM: d.gapM,
+          },
+        ],
         expanded,
       );
     }
     const raw = pathToPoints(spec, search.path);
     // Use the exact waypoint positions; they lie inside the first/last traversable cells.
     raw[0] = eqcForward(spec.projection, waypoints[leg]!.lat, waypoints[leg]!.lon);
-    raw[raw.length - 1] = eqcForward(spec.projection, waypoints[leg + 1]!.lat, waypoints[leg + 1]!.lon);
+    raw[raw.length - 1] = eqcForward(
+      spec.projection,
+      waypoints[leg + 1]!.lat,
+      waypoints[leg + 1]!.lon,
+    );
     const smooth = smoothPath(t, request.profile, raw);
     legStarts.push(points.length === 0 ? 0 : points.length - 1);
     points.push(...(points.length === 0 ? smooth : smooth.slice(1)));
@@ -159,6 +175,8 @@ export function planAlternatives(
   const lowerRisk = planRoute(t, { ...request, profile: 'lower-risk' });
   const shortest = planRoute(t, { ...request, profile: 'shortest' });
   const comparison =
-    lowerRisk.metrics && shortest.metrics ? explainComparison(lowerRisk.metrics, shortest.metrics) : null;
+    lowerRisk.metrics && shortest.metrics
+      ? explainComparison(lowerRisk.metrics, shortest.metrics)
+      : null;
   return { lowerRisk, shortest, comparison };
 }

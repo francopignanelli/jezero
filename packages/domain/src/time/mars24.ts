@@ -69,7 +69,10 @@ export function mars24(utcMs: number): Mars24State {
   const lsDeg = mod(alphaFmsDeg + equationOfCenterDeg, 360); // B-5
 
   const eotDeg = // C-1
-    2.861 * sinD(2 * lsDeg) - 0.071 * sinD(4 * lsDeg) + 0.002 * sinD(6 * lsDeg) - equationOfCenterDeg;
+    2.861 * sinD(2 * lsDeg) -
+    0.071 * sinD(4 * lsDeg) +
+    0.002 * sinD(6 * lsDeg) -
+    equationOfCenterDeg;
   const msd = (jdTT - 2451549.5) / 1.0274912517 + 44796.0 - 0.0009626; // C-2
   const mstHours = mod(24 * msd, 24);
   const subsolarLonWestDeg = mod(mstHours * 15 + eotDeg + 180, 360); // C-5
@@ -78,8 +81,13 @@ export function mars24(utcMs: number): Mars24State {
     Math.asin(0.42565 * sinD(lsDeg)) * RAD_TO_DEG + 0.25 * sinD(lsDeg);
   const heliocentricDistanceAU = // D-2
     1.52367934 *
-    (1.00436 - 0.09309 * cosD(m) - 0.004336 * cosD(2 * m) - 0.00031 * cosD(3 * m) - 0.00003 * cosD(4 * m));
-  const heliocentricLongitudeDeg = mod( // D-3
+    (1.00436 -
+      0.09309 * cosD(m) -
+      0.004336 * cosD(2 * m) -
+      0.00031 * cosD(3 * m) -
+      0.00003 * cosD(4 * m));
+  const heliocentricLongitudeDeg = mod(
+    // D-3
     lsDeg + 85.061 - 0.015 * sinD(71 + 2 * lsDeg) - 5.5e-6 * dt,
     360,
   );

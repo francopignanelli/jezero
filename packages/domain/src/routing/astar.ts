@@ -57,7 +57,11 @@ export function findPath(
   const goalCol = goal % cols;
   const goalRow = (goal / cols) | 0;
   const heuristic = (idx: number): number =>
-    costLowerBound(t, profile, octileLengthM(t, (idx % cols) - goalCol, ((idx / cols) | 0) - goalRow));
+    costLowerBound(
+      t,
+      profile,
+      octileLengthM(t, (idx % cols) - goalCol, ((idx / cols) | 0) - goalRow),
+    );
 
   g[start] = 0;
   heap.push(heuristic(start), start);

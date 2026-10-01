@@ -12,9 +12,27 @@ import { greatCircleDistance } from './sphere';
 
 /** PDS PLACES best_tactical.csv (Release 16) localizations: [lat °N, lon °E, northing m, easting m]. */
 const PLACES_FIXTURES = [
-  { label: 'landing site (SITE 1)', lat: 18.444571297, lon: 77.450910771, northing: 1093296.385, easting: 4354495.494 },
-  { label: 'ROVER site 40 drive 992', lat: 18.482509077, lon: 77.366696969, northing: 1095545.135, easting: 4349760.771 },
-  { label: 'ROVER site 80 drive 2790', lat: 18.442042907, lon: 77.260053679, northing: 1093146.515, easting: 4343765.002 },
+  {
+    label: 'landing site (SITE 1)',
+    lat: 18.444571297,
+    lon: 77.450910771,
+    northing: 1093296.385,
+    easting: 4354495.494,
+  },
+  {
+    label: 'ROVER site 40 drive 992',
+    lat: 18.482509077,
+    lon: 77.366696969,
+    northing: 1095545.135,
+    easting: 4349760.771,
+  },
+  {
+    label: 'ROVER site 80 drive 2790',
+    lat: 18.442042907,
+    lon: 77.260053679,
+    northing: 1093146.515,
+    easting: 4343765.002,
+  },
 ];
 
 describe('longitude conventions', () => {
@@ -44,7 +62,10 @@ describe('planetographic latitude', () => {
 
   it('round-trips and preserves the equator and poles', () => {
     for (const lat of [-89, -45, -14.64, 0, 18.4446, 60, 89.9]) {
-      expect(planetographicToPlanetocentric(planetocentricToPlanetographic(lat))).toBeCloseTo(lat, 10);
+      expect(planetographicToPlanetocentric(planetocentricToPlanetographic(lat))).toBeCloseTo(
+        lat,
+        10,
+      );
     }
     expect(planetocentricToPlanetographic(0)).toBe(0);
     expect(planetocentricToPlanetographic(90)).toBe(90);
@@ -68,8 +89,16 @@ describe('Mars 2020 local frame (eqc, lat_ts 18.4663°, R 3 396 190 m)', () => {
   });
 
   it('agrees with great-circle distances to < 0.01 % once the row scale is applied', () => {
-    const [a, b, c] = PLACES_FIXTURES as [typeof PLACES_FIXTURES[0], typeof PLACES_FIXTURES[0], typeof PLACES_FIXTURES[0]];
-    for (const [p, q] of [[a, b], [a, c], [b, c]] as const) {
+    const [a, b, c] = PLACES_FIXTURES as [
+      (typeof PLACES_FIXTURES)[0],
+      (typeof PLACES_FIXTURES)[0],
+      (typeof PLACES_FIXTURES)[0],
+    ];
+    for (const [p, q] of [
+      [a, b],
+      [a, c],
+      [b, c],
+    ] as const) {
       const midLat = (p.lat + q.lat) / 2;
       const dx = (q.easting - p.easting) * eqcEastWestScale(M2020_EQC, midLat);
       const dy = q.northing - p.northing;
@@ -83,10 +112,10 @@ describe('Mars 2020 local frame (eqc, lat_ts 18.4663°, R 3 396 190 m)', () => {
 describe('regression: USGS TRN lat_ts = 0 projection', () => {
   it('overstates east-west ground distance at Jezero by ~5.4 % if its metres are used naively', () => {
     const lat = 18.4446;
-    const p0 = eqcForward(IAU2015_49910_EQC, lat, 77.40);
+    const p0 = eqcForward(IAU2015_49910_EQC, lat, 77.4);
     const p1 = eqcForward(IAU2015_49910_EQC, lat, 77.45);
     const naive = p1.x - p0.x;
-    const truth = greatCircleDistance({ lat, lon: 77.40 }, { lat, lon: 77.45 });
+    const truth = greatCircleDistance({ lat, lon: 77.4 }, { lat, lon: 77.45 });
     expect(naive / truth).toBeCloseTo(1 / Math.cos((lat * Math.PI) / 180), 4);
     expect(naive / truth - 1).toBeGreaterThan(0.05);
     // The correction used throughout the domain package removes the error.

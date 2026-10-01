@@ -2,9 +2,20 @@ import * as Astronomy from 'astronomy-engine';
 import { describe, expect, it } from 'vitest';
 import { eastToWestLon } from '../geo/angles';
 import { ttMinusUtcSeconds } from './leapSeconds';
-import { localMeanSolarTime, localTrueSolarTime, mars24, marsYear, solarZenithAzimuth } from './mars24';
+import {
+  localMeanSolarTime,
+  localTrueSolarTime,
+  mars24,
+  marsYear,
+  solarZenithAzimuth,
+} from './mars24';
 import { M2020_LMST_LON_EAST_DEG, m2020Sol, m2020SolStartUtcMs } from './m2020';
-import { daylightWindow, nextLocalTrueSolarTime, solarPosition, sunDirectionBodyFixed } from './sun';
+import {
+  daylightWindow,
+  nextLocalTrueSolarTime,
+  solarPosition,
+  sunDirectionBodyFixed,
+} from './sun';
 
 /**
  * Worked examples from the NASA GISS Mars24 "Algorithm and Worked Examples" page (2025-01-07).
@@ -67,7 +78,9 @@ describe('Mars24 worked example 2: MER-A Spirit, 184.702°W −14.640°N', () =>
   });
 
   it('declination (D-1)', () => {
-    expect(Math.abs(s.solarDeclinationDeg - -13.42065)).toBeLessThan(PUBLISHED_D_STEP_TOLERANCE_DEG);
+    expect(Math.abs(s.solarDeclinationDeg - -13.42065)).toBeLessThan(
+      PUBLISHED_D_STEP_TOLERANCE_DEG,
+    );
   });
 
   it('local midnight: LTST ≈ 0 and azimuth ≈ 180°', () => {
@@ -131,8 +144,16 @@ describe('Sun direction and daylight', () => {
     const α = axis.ra * 15 * (Math.PI / 180);
     const δ = axis.dec * (Math.PI / 180);
     const W = axis.spin * (Math.PI / 180);
-    const rz = (θ: number, [x, y, z]: number[]) => [Math.cos(θ) * x! + Math.sin(θ) * y!, -Math.sin(θ) * x! + Math.cos(θ) * y!, z!];
-    const rx = (θ: number, [x, y, z]: number[]) => [x!, Math.cos(θ) * y! + Math.sin(θ) * z!, -Math.sin(θ) * y! + Math.cos(θ) * z!];
+    const rz = (θ: number, [x, y, z]: number[]) => [
+      Math.cos(θ) * x! + Math.sin(θ) * y!,
+      -Math.sin(θ) * x! + Math.cos(θ) * y!,
+      z!,
+    ];
+    const rx = (θ: number, [x, y, z]: number[]) => [
+      x!,
+      Math.cos(θ) * y! + Math.sin(θ) * z!,
+      -Math.sin(θ) * y! + Math.cos(θ) * z!,
+    ];
     const b = rz(W, rx(Math.PI / 2 - δ, rz(Math.PI / 2 + α, v)));
     const n = Math.hypot(b[0]!, b[1]!, b[2]!);
     return [b[0]! / n, b[1]! / n, b[2]! / n];

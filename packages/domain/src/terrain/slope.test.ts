@@ -8,7 +8,12 @@ describe('Horn slope', () => {
   const spec = syntheticSpec(21, 21, 5);
 
   it('is 0° on flat terrain', () => {
-    const slope = slopeDegrees(hornGradient(spec, elevationFrom(spec, () => -2570)));
+    const slope = slopeDegrees(
+      hornGradient(
+        spec,
+        elevationFrom(spec, () => -2570),
+      ),
+    );
     const center = slope[10 * 21 + 10]!;
     expect(center).toBe(0);
   });

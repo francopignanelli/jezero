@@ -54,7 +54,11 @@ export interface Disconnection {
  * Explains why `goal` cannot be reached from `start`: the closest reachable cell, and the dominant
  * kind of the first blocked cells met on the straight line from that cell toward the goal.
  */
-export function diagnoseDisconnection(t: PreparedTerrain, start: number, goal: number): Disconnection {
+export function diagnoseDisconnection(
+  t: PreparedTerrain,
+  start: number,
+  goal: number,
+): Disconnection {
   const spec = t.layers.spec;
   const { cols } = spec;
   const seen = reachableFrom(t, start);
