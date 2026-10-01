@@ -323,6 +323,8 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
             </div>
           </dl>
 
+          <PlayButton />
+
           <MissionActions
             route={primary}
             timeline={timeline}
@@ -456,5 +458,37 @@ function NearbyStopsHint({ route }: { route: RouteResult }) {
         {t('stops.see')}
       </button>
     </p>
+  );
+}
+
+/** Starts or stops the route fly-through (disabled with reduced motion). */
+function PlayButton() {
+  const { t } = useTranslation();
+  const playing = useApp((s) => s.playing);
+  const setPlay = useApp((s) => s.setPlay);
+  const setPanelOpen = useApp((s) => s.setPanelOpen);
+  const reduced =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return (
+    <div className="play-row">
+      <button
+        type="button"
+        className="btn btn-sm"
+        disabled={reduced}
+        title={reduced ? t('route.playReduced') : undefined}
+        aria-pressed={playing}
+        onClick={() => {
+          if (playing) setPlay(null, false);
+          else {
+            // On small screens the sheet would cover the fly-through.
+            if (window.matchMedia('(max-width: 820px)').matches) setPanelOpen(false);
+            setPlay(Date.now(), true);
+          }
+        }}
+      >
+        {playing ? t('route.stopPlay') : t('route.play')}
+      </button>
+      <span className="meta">{t('route.playHint')}</span>
+    </div>
   );
 }

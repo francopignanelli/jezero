@@ -163,7 +163,11 @@
     "profileReadout": "{{distance}} · {{elevation}} · slope {{slope}} · {{elapsed}} walking",
     "profileHint": "Elevation profile (m). Hover or use the arrow keys to follow the route on the map.",
     "dwellUnit": "min at stop",
-    "dwellAria": "Minutes spent at {{name}}"
+    "dwellAria": "Minutes spent at {{name}}",
+    "play": "▶ Play mission",
+    "stopPlay": "■ Stop",
+    "playHint": "30 s fly-along of the selected route; touch the map to stop.",
+    "playReduced": "Disabled because reduced motion is on."
   },
   "metrics": {
     "distance": "Distance",

@@ -81,3 +81,27 @@ test('an invalid share link loads nothing and says so', async ({ page }) => {
   await expect(page.locator('.toast')).toContainText('not a valid Copernico mission');
   await expect(page.locator('.waypoint')).toHaveCount(0);
 });
+
+test('Play mission flies along the route and returns control', async ({ page }) => {
+  await openApp(page);
+  await computeGuided(page);
+  await page.getByRole('button', { name: '▶ Play mission' }).click();
+  await page.waitForTimeout(6000);
+  const mid = await page.evaluate(() => {
+    const w = window as unknown as {
+      __copernicoStore: { getState(): { playing: boolean; routeCursorM: number | null } };
+      __copernico: { widget: { camera: { positionCartographic: { height: number } } } };
+    };
+    return {
+      playing: w.__copernicoStore.getState().playing,
+      cursor: w.__copernicoStore.getState().routeCursorM,
+      height: w.__copernico.widget.camera.positionCartographic.height,
+    };
+  });
+  expect(mid.playing).toBe(true);
+  expect(mid.cursor).toBeGreaterThan(0);
+  // Follow-cam a few hundred metres above the crater floor (~2.5 km below the reference sphere).
+  expect(mid.height).toBeLessThan(-1500);
+  await page.getByRole('button', { name: '■ Stop' }).click();
+  await expect(page.getByRole('button', { name: '▶ Play mission' })).toBeVisible();
+});

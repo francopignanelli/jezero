@@ -163,7 +163,11 @@
     "profileReadout": "{{distance}} · {{elevation}} · pendiente {{slope}} · {{elapsed}} caminando",
     "profileHint": "Perfil de elevación (m). Pasá el cursor o usá las flechas para seguir la ruta en el mapa.",
     "dwellUnit": "min en la parada",
-    "dwellAria": "Minutos en {{name}}"
+    "dwellAria": "Minutos en {{name}}",
+    "play": "▶ Reproducir misión",
+    "stopPlay": "■ Detener",
+    "playHint": "Recorrido de 30 s por la ruta elegida; tocá el mapa para detenerlo.",
+    "playReduced": "Desactivado porque está activado el movimiento reducido."
   },
   "metrics": {
     "distance": "Distancia",

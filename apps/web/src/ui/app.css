@@ -1608,3 +1608,11 @@ details.samples > summary {
   width: auto;
   max-width: calc(100% - 24px);
 }
+
+.play-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+}

@@ -68,6 +68,10 @@ interface AppState {
   overlayRanges: Partial<Record<OverlayKind, [number, number]>>;
   /** Distance (m) along the selected route under the profile cursor, or null. */
   routeCursorM: number | null;
+  /** Route fly-through: a request nonce, and whether it is running. */
+  playRequest: number | null;
+  playing: boolean;
+  setPlay(request: number | null, playing: boolean): void;
   /** Round-trip reach overlay from the first waypoint (bands in hours, cumulative areas). */
   reach: { bandsH: number[]; areaKm2: number[]; elapsedMs: number } | null;
   setReach(r: { bandsH: number[]; areaKm2: number[]; elapsedMs: number } | null): void;
@@ -156,6 +160,9 @@ export const useApp = create<AppState>((set) => ({
   sceneReady: false,
   overlayRanges: {},
   routeCursorM: null,
+  playRequest: null,
+  playing: false,
+  setPlay: (playRequest, playing) => set({ playRequest, playing }),
   reach: null,
   setReach: (reach) => set({ reach }),
   setRouteCursor: (routeCursorM) => set({ routeCursorM }),

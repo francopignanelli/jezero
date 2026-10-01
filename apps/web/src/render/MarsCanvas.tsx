@@ -63,6 +63,7 @@ export function MarsCanvas() {
   const sceneReady = useApp((s) => s.sceneReady);
   const routeCursorM = useApp((s) => s.routeCursorM);
   const inspected = useApp((s) => s.inspected);
+  const playRequest = useApp((s) => s.playRequest);
 
   // Create the scene once and load everything the first view needs before revealing it.
   useEffect(() => {
@@ -339,6 +340,36 @@ export function MarsCanvas() {
       cancelled = true;
     };
   }, [layers.reach, start?.lat, start?.lon, start, gridRect]);
+
+  // Route fly-through ("Play mission"): ~30 s regardless of route length; the profile/timeline
+  // cursor follows. Stops on any map input or when the request is cleared.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    const tr = trackRef.current;
+    if (!scene || !tr || playRequest === null) return;
+    const { setPlay, setRouteCursor } = useApp.getState();
+    setPlay(playRequest, true);
+    let last = 0;
+    const run = scene.playPath(
+      (f) => ({
+        at: pointAt(tr.track, f * tr.track.totalM),
+        ahead: pointAt(tr.track, Math.min(tr.track.totalM, f * tr.track.totalM + 60)),
+      }),
+      30,
+      (f) => {
+        const now = performance.now();
+        if (now - last > 66) {
+          last = now;
+          setRouteCursor(f * tr.profileTotalM);
+        }
+      },
+    );
+    void run.done.then(() => {
+      setRouteCursor(null);
+      useApp.getState().setPlay(null, false);
+    });
+    return () => run.stop();
+  }, [playRequest]);
 
   // Inspected point marker.
   useEffect(() => {

@@ -17,6 +17,7 @@ import {
   HeadingPitchRange,
   ImageryLayer,
   Math as CesiumMath,
+  Matrix4,
   NearFarScalar,
   PolylineDashMaterialProperty,
   PolylineGlowMaterialProperty,
@@ -629,6 +630,61 @@ export class MarsScene {
         cancel: done,
       }),
     );
+  }
+
+  /**
+   * Follow-cam along a path for `seconds`: the camera trails the walker at a low oblique angle and
+   * turns smoothly with the route. `sample(f)` gives the position and a point ahead at fraction f.
+   * Any pointer or wheel input on the map stops it. Resolves when finished or stopped.
+   */
+  playPath(
+    sample: (f: number) => {
+      at: { lat: number; lon: number; heightM: number };
+      ahead: { lat: number; lon: number; heightM: number };
+    },
+    seconds: number,
+    onProgress: (f: number) => void,
+  ): { done: Promise<void>; stop: () => void } {
+    const camera = this.widget.camera;
+    const canvas = this.widget.canvas;
+    let stopped = false;
+    let heading: number | null = null;
+    const stop = () => {
+      stopped = true;
+    };
+    canvas.addEventListener('pointerdown', stop, { once: true });
+    canvas.addEventListener('wheel', stop, { once: true });
+    this.constraints.suspend(true);
+    const done = new Promise<void>((resolve) => {
+      const t0 = performance.now();
+      const frame = () => {
+        const f = Math.min(1, (performance.now() - t0) / (seconds * 1000));
+        if (stopped || this.isDestroyed()) return finish();
+        const { at, ahead } = sample(f);
+        const p = toCartesian(at.lat, at.lon, at.heightM);
+        const dLon =
+          (normalizeLon180(ahead.lon) - normalizeLon180(at.lon)) *
+          Math.cos(CesiumMath.toRadians(at.lat));
+        const target = Math.atan2(dLon, ahead.lat - at.lat);
+        // Low-pass the heading so the camera does not jerk at every route vertex.
+        if (heading === null) heading = target;
+        else heading += Math.atan2(Math.sin(target - heading), Math.cos(target - heading)) * 0.05;
+        camera.lookAt(p, new HeadingPitchRange(heading, CesiumMath.toRadians(-24), 520));
+        this.requestRender();
+        onProgress(f);
+        if (f >= 1) return finish();
+        window.requestAnimationFrame(frame);
+      };
+      const finish = () => {
+        canvas.removeEventListener('pointerdown', stop);
+        canvas.removeEventListener('wheel', stop);
+        if (!this.isDestroyed()) camera.lookAtTransform(Matrix4.IDENTITY);
+        this.constraints.suspend(false);
+        resolve();
+      };
+      window.requestAnimationFrame(frame);
+    });
+    return { done, stop };
   }
 
   setAnnotations(groupId: string, items: Annotation[]): void {
