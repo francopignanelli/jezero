@@ -18,16 +18,16 @@
     "calculated": "Calculated with the Mars24 algorithm (NASA GISS). Sol numbering: Mars 2020 mission clock.",
     "marsYear": "Mars Year {{my}}",
     "plannedEva": "Planned EVA",
-    "plannedEvaHint": "Time of the planned Marswalk at Jezero; it sets the scene lighting and sky. Change it in Environment.",
+    "plannedEvaHint": "Time of the planned Marswalk at Jezero; it sets the scene lighting and sky. Change it in Conditions.",
     "ltstShort": "{{time}} LTST",
     "plannedEvaShort": "EVA"
   },
   "nav": {
     "explore": "Explore",
     "layers": "Layers",
-    "route": "Route",
+    "route": "Plan",
     "science": "Science",
-    "environment": "Environment",
+    "environment": "Conditions",
     "missions": "Missions",
     "label": "Main panels",
     "hidePanel": "Hide panel"
@@ -47,7 +47,8 @@
       "two": "2 · Choose a start, stops and a destination",
       "three": "3 · Compare routes and read why they differ",
       "four": "4 · Check daylight, walk-back margin and science stops"
-    }
+    },
+    "missions": "NASA missions in this map"
   },
   "layers": {
     "title": "Data layers",
@@ -75,7 +76,8 @@
       "pois": "Science points of interest",
       "ingenuity": "Ingenuity flights",
       "sky": "Stars, planets & Milky Way"
-    }
+    },
+    "close": "Close layers"
   },
   "legend": {
     "slope": {
@@ -213,7 +215,7 @@
     "corrected": "Position corrected from published easting/northing"
   },
   "environment": {
-    "title": "Environment and time",
+    "title": "Conditions and time",
     "intro": "What is calculated, what was measured, and when. There is no live weather for Jezero.",
     "evaStart": "Planned EVA start (UTC)",
     "sunElevation": "Sun elevation",

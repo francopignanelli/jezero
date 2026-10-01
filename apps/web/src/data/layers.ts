@@ -39,7 +39,8 @@ export const LAYERS: LayerDef[] = [
     group: 'terrain',
     kind: 'overlay',
     datasets: ['hirise-dtm-trn'],
-    derivation: '5 m block mean of the 1 m HiRISE DTM, height above the MOLA areoid.',
+    derivation:
+      '5 m block mean of the 1 m HiRISE DTM, height above the MOLA areoid. Colours stretch over the 2nd–98th percentile of the area; values beyond clamp to the end colours.',
     swatch: '#21918c',
   },
   {
@@ -47,7 +48,8 @@ export const LAYERS: LayerDef[] = [
     group: 'science',
     kind: 'overlay',
     datasets: ['themis-ti-jezero'],
-    derivation: 'Nearest-neighbour resampling of the 100 m product to the 5 m grid (no added detail).',
+    derivation:
+      'Nearest-neighbour resampling of the 100 m product to the 5 m grid (no added detail). Colours stretch over the 2nd–98th percentile.',
     swatch: '#5ec962',
   },
   { id: 'coverage', group: 'terrain', kind: 'vector', datasets: ['hirise-dtm-trn'], swatch: '#6cc6e6' },

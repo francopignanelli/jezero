@@ -57,7 +57,7 @@ export function ExplorePanel() {
       <h3>{t('explore.coverage')}</h3>
       <p className="lede">{t('explore.coverageNote')}</p>
 
-      <h3>NASA</h3>
+      <h3>{t('explore.missions')}</h3>
       <ul className="lede">
         {MISSIONS.map((m) => (
           <li key={m}>{m}</li>

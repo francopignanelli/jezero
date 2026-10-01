@@ -11,13 +11,37 @@ export const SLOPE_COLOURS = {
 } as const;
 
 // Perceptually ordered ramp (viridis-like), 5 stops.
-const RAMP: ReadonlyArray<readonly [number, number, number]> = [
+export const RAMP: ReadonlyArray<readonly [number, number, number]> = [
   [68, 1, 84],
   [59, 82, 139],
   [33, 145, 140],
   [94, 201, 98],
   [253, 231, 37],
 ];
+
+/**
+ * 2nd–98th percentile of the finite values (sampled for speed). A min–max stretch lets a few
+ * extreme cells (the crater rim, ~800 m above the floor) flatten all contrast on the floor.
+ */
+export function robustRange(
+  values: ArrayLike<number>,
+  lowQ = 0.02,
+  highQ = 0.98,
+): [number, number] {
+  const stride = Math.max(1, Math.floor(values.length / 200_000));
+  const sample: number[] = [];
+  for (let i = 0; i < values.length; i += stride) {
+    const v = values[i]!;
+    if (Number.isFinite(v)) sample.push(v);
+  }
+  if (sample.length === 0) return [0, 1];
+  sample.sort((x, y) => x - y);
+  const at = (q: number) =>
+    sample[Math.min(sample.length - 1, Math.max(0, Math.round(q * (sample.length - 1))))]!;
+  const lo = at(lowQ);
+  const hi = at(highQ);
+  return hi > lo ? [lo, hi] : [sample[0]!, sample[sample.length - 1]! + 1e-6];
+}
 
 function ramp(t: number): readonly [number, number, number] {
   const x = Math.min(1, Math.max(0, t)) * (RAMP.length - 1);
@@ -33,7 +57,7 @@ export interface Overlay {
   width: number;
   height: number;
   rgba: Uint8ClampedArray;
-  /** Value range used for the legend (elevation, thermal inertia). */
+  /** Colour-stretch range used for the legend (2nd–98th percentile; values beyond it clamp). */
   range: [number, number] | null;
 }
 
@@ -52,17 +76,7 @@ export function renderOverlay(t: PreparedTerrain, kind: OverlayKind): Overlay {
       : kind === 'thermalInertia'
         ? t.layers.thermalInertia
         : undefined;
-  if (source) {
-    let lo = Number.POSITIVE_INFINITY;
-    let hi = Number.NEGATIVE_INFINITY;
-    for (const v of source) {
-      if (Number.isFinite(v)) {
-        lo = Math.min(lo, v);
-        hi = Math.max(hi, v);
-      }
-    }
-    range = [lo, hi];
-  }
+  if (source) range = robustRange(source);
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const k = r * cols + c;
@@ -90,7 +104,7 @@ export function renderOverlay(t: PreparedTerrain, kind: OverlayKind): Overlay {
         rgba[o] = cr;
         rgba[o + 1] = cg;
         rgba[o + 2] = cb;
-        rgba[o + 3] = 170;
+        rgba[o + 3] = 150; // lets the imagery texture read through the colour
       }
     }
   }

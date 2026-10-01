@@ -174,6 +174,7 @@ export function MarsCanvas() {
       if (visible && !overlaysBuilt.current.has(kind)) {
         overlaysBuilt.current.add(kind);
         void routingClient.overlay(kind).then((o) => {
+          if (o.range) useApp.getState().setOverlayRange(kind, o.range);
           const canvas = document.createElement('canvas');
           canvas.width = o.width;
           canvas.height = o.height;

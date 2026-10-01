@@ -3,21 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { AssistantDock } from '../features/assistant/AssistantDock';
 import { EnvironmentPanel } from '../features/environment/EnvironmentPanel';
 import { ExplorePanel } from '../features/exploration/ExplorePanel';
-import { LayersPanel } from '../features/layers/LayersPanel';
+import { LayersControl } from '../features/layers/LayersControl';
+import { MapLegend } from '../features/layers/Legends';
 import { MissionsPanel } from '../features/missions/MissionsPanel';
 import { RoutePanel } from '../features/routes/RoutePanel';
 import { SciencePanel } from '../features/science/SciencePanel';
 import { FEATURES } from '../config';
 import { MarsCanvas } from '../render/MarsCanvas';
-import {
-  IconFolder,
-  IconGlobe,
-  IconLayers,
-  IconRoute,
-  IconScience,
-  IconSun,
-  IconX,
-} from '../ui/icons';
+import { IconFolder, IconGlobe, IconRoute, IconScience, IconSun, IconX } from '../ui/icons';
 import { LoadingScreen } from './LoadingScreen';
 import { PrototypeNotice } from './PrototypeNotice';
 import { TopBar } from './TopBar';
@@ -29,7 +22,6 @@ const ALL_TABS: Array<{
   panel: ComponentType;
 }> = [
   { id: 'explore', icon: IconGlobe, panel: ExplorePanel },
-  { id: 'layers', icon: IconLayers, panel: LayersPanel },
   { id: 'route', icon: IconRoute, panel: RoutePanel },
   { id: 'science', icon: IconScience, panel: SciencePanel },
   { id: 'environment', icon: IconSun, panel: EnvironmentPanel },
@@ -91,6 +83,8 @@ export function App() {
       </main>
       <div className="canvas-area">
         <MarsCanvas />
+        <LayersControl />
+        <MapLegend />
         {picking && (
           <div className="picking-banner" role="status">
             {t('route.picking')}

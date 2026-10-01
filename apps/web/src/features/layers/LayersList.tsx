@@ -7,7 +7,8 @@ import { ProvenanceDialog } from './ProvenanceDialog';
 
 const GROUPS = ['imagery', 'terrain', 'science', 'surface'] as const;
 
-export function LayersPanel() {
+/** Layer list with provenance; rendered inside the map's Layers popover. */
+export function LayersList() {
   const { t } = useTranslation();
   const layers = useApp((s) => s.layers);
   const setLayer = useApp((s) => s.setLayer);
@@ -62,35 +63,9 @@ export function LayersPanel() {
               </div>
             );
           })}
-          {group === 'terrain' && layers.slope && <SlopeLegend />}
         </div>
       ))}
       <ProvenanceDialog layer={about} onClose={() => setAbout(null)} />
     </section>
-  );
-}
-
-export function SlopeLegend() {
-  const { t } = useTranslation();
-  return (
-    <div className="legend" aria-label={t('legend.slope.title')}>
-      <strong>{t('legend.slope.title')}</strong>
-      <div className="legend-row">
-        <span className="swatch" style={{ background: 'rgb(31 158 137 / 0.6)' }} />
-        {t('legend.slope.mild')}
-      </div>
-      <div className="legend-row">
-        <span className="swatch" style={{ background: 'rgb(253 231 37 / 0.8)' }} />
-        {t('legend.slope.moderate')}
-      </div>
-      <div className="legend-row">
-        <span className="swatch" style={{ background: 'rgb(248 149 64 / 0.9)' }} />
-        {t('legend.slope.steep')}
-      </div>
-      <div className="legend-row">
-        <span className="swatch swatch-striped" />
-        {t('legend.slope.blocked')}
-      </div>
-    </div>
   );
 }

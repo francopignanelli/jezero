@@ -1,9 +1,10 @@
 import { nextLocalTrueSolarTime, type RouteComparison, type RouteProfile } from '@copernico/domain';
 import { JEZERO } from '../config';
 import { create } from 'zustand';
+import type { OverlayKind } from '../features/routes/overlays';
 
 export type Mode = 'orbit' | 'jezero';
-export type Tab = 'explore' | 'layers' | 'route' | 'science' | 'environment' | 'missions';
+export type Tab = 'explore' | 'route' | 'science' | 'environment' | 'missions';
 
 export type LayerId =
   | 'viking'
@@ -60,6 +61,9 @@ interface AppState {
   flyRequest: { lat: number; lon: number; nonce: number } | null;
   loading: LoadingState;
   sceneReady: boolean;
+  /** Value ranges of the computed overlays (for their map legends). */
+  overlayRanges: Partial<Record<OverlayKind, [number, number]>>;
+  setOverlayRange(kind: OverlayKind, range: [number, number]): void;
   setLoading(p: Partial<LoadingState>): void;
   setSceneReady(v: boolean): void;
   setMode(mode: Mode): void;
@@ -123,6 +127,9 @@ export const useApp = create<AppState>((set) => ({
     surface: 'pending',
   },
   sceneReady: false,
+  overlayRanges: {},
+  setOverlayRange: (kind, range) =>
+    set((s) => ({ overlayRanges: { ...s.overlayRanges, [kind]: range } })),
   setLoading: (p) => set((s) => ({ loading: { ...s.loading, ...p } })),
   setSceneReady: (sceneReady) => set({ sceneReady }),
   setMode: (mode) => set({ mode }),
@@ -153,3 +160,7 @@ export const useApp = create<AppState>((set) => ({
   setEvaStart: (evaStartUtcMs) => set({ evaStartUtcMs }),
   flyTo: (lat, lon) => set({ flyRequest: { lat, lon, nonce: Date.now() } }),
 }));
+
+// Development only: lets browser checks drive the app state directly.
+if (import.meta.env.DEV)
+  (window as unknown as { __copernicoStore?: typeof useApp }).__copernicoStore = useApp;

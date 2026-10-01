@@ -18,16 +18,16 @@
     "calculated": "Calculado con el algoritmo Mars24 (NASA GISS). Numeración de soles: reloj de la misión Mars 2020.",
     "marsYear": "Año marciano {{my}}",
     "plannedEva": "EVA planificada",
-    "plannedEvaHint": "Hora de la caminata planificada en Jezero; define la iluminación y el cielo. Cambiala en Ambiente.",
+    "plannedEvaHint": "Hora de la caminata planificada en Jezero; define la iluminación y el cielo. Cambiala en Condiciones.",
     "ltstShort": "{{time}} LTST",
     "plannedEvaShort": "EVA"
   },
   "nav": {
     "explore": "Explorar",
     "layers": "Capas",
-    "route": "Ruta",
+    "route": "Planificar",
     "science": "Ciencia",
-    "environment": "Ambiente",
+    "environment": "Condiciones",
     "missions": "Misiones",
     "label": "Paneles principales",
     "hidePanel": "Ocultar panel"
@@ -47,7 +47,8 @@
       "two": "2 · Elegí un inicio, paradas y un destino",
       "three": "3 · Compará rutas y leé por qué difieren",
       "four": "4 · Revisá luz diurna, margen de regreso y paradas científicas"
-    }
+    },
+    "missions": "Misiones de la NASA en este mapa"
   },
   "layers": {
     "title": "Capas de datos",
@@ -75,7 +76,8 @@
       "pois": "Puntos de interés científico",
       "ingenuity": "Vuelos de Ingenuity",
       "sky": "Estrellas, planetas y Vía Láctea"
-    }
+    },
+    "close": "Cerrar capas"
   },
   "legend": {
     "slope": {
@@ -213,7 +215,7 @@
     "corrected": "Posición corregida a partir del este/norte publicado"
   },
   "environment": {
-    "title": "Ambiente y tiempo",
+    "title": "Condiciones y hora",
     "intro": "Qué se calcula, qué se midió y cuándo. No hay clima en vivo para Jezero.",
     "evaStart": "Inicio planificado de la EVA (UTC)",
     "sunElevation": "Elevación del Sol",
