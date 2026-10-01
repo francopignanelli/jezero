@@ -460,7 +460,7 @@ export class SkyRenderer {
         glMat(eyeToWorld),
       );
       gl.uniform2f(gl.getUniformLocation(this.skyProgram, 'u_tanHalf'), tanHalf[0], tanHalf[1]);
-      gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_gain'), 0.7);
+      gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_gain'), 0.5);
       gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_day'), day * 0.85);
       gl.uniform3f(gl.getUniformLocation(this.skyProgram, 'u_up'), ...view.up);
       gl.bindVertexArray(this.quad);

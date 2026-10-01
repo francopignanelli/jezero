@@ -66,3 +66,17 @@ def test_tiling_scheme():
     assert len(jezero) == (math.ceil((77.48 + 180) / size) - math.floor((77.28 + 180) / size)) * (
         math.ceil((90 - 18.40) / size) - math.floor((90 - 18.52) / size)
     )
+
+
+def test_edge_feather_ramps_to_zero_at_the_box_edge():
+    from copernico_geo.frames import BBox
+    from copernico_geo.imagery import edge_feather
+    from copernico_geo.tiling import tiles_covering
+
+    box = BBox(west=77.0, south=17.6, east=78.58, north=19.28)
+    tile = next(t for t in tiles_covering(10, box) if t.bounds.west <= 77.0 <= t.bounds.east)
+    w = edge_feather(tile, box, 0.12)
+    assert w.min() >= 0 and w.max() <= 1
+    # Column nearest the west edge is (almost) transparent; well inside it is opaque.
+    col = int((77.0 - tile.bounds.west) / (tile.bounds.east - tile.bounds.west) * 256)
+    assert w[:, min(col + 1, 255)].max() < 0.05

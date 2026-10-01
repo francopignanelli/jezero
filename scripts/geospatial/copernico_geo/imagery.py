@@ -1,7 +1,8 @@
 """Imagery tile pyramids (WebP, 256 px, Cesium GeographicTilingScheme on IAU_2015:49900).
 
 Pyramids (data/build/tiles/imagery/<id>/{z}/{x}/{y}.webp):
-  viking   global       z0–5   Viking colorized mosaic (925 m)
+  viking    global       z0–5   Viking colorized mosaic (925 m)
+  viking-hd regional     z6–8   Viking MDIM 2.1 colorized (232 m) window around Jezero
   ctx      crater       z6–13  JPL CTX orthomosaic (5 m)
   hirise   operational  z12–16 USGS TRN HiRISE orthomosaic (read at 0.5 m)
 """
@@ -22,6 +23,8 @@ from .tiling import TILE_PX, WORLD, Tile, pixel_deg, tiles_covering
 gdal.UseExceptions()
 OUT = BUILD / "tiles" / "imagery"
 CRATER = BBox(west=77.0, south=17.6, east=78.58, north=19.28)
+# Regional window for the sharp colour descent from orbit (Isidis rim, Nili Fossae, Syrtis edge).
+VIKING_HD = BBox(west=70.0, south=12.0, east=85.0, north=25.0)
 
 
 def geographic_mosaic(src: Path, name: str, box: BBox, zmax: int, resample: str, src_nodata=None) -> Path:
@@ -52,7 +55,20 @@ def geographic_mosaic(src: Path, name: str, box: BBox, zmax: int, resample: str,
     return dst
 
 
-def write_tile(mosaic: gdal.Dataset, tile: Tile, out_dir: Path) -> bool:
+def edge_feather(tile: Tile, box: BBox, feather_deg: float) -> np.ndarray:
+    """0–1 weight per tile pixel: ramps linearly to 0 over `feather_deg` at the box edges, so a
+    greyscale tier fades into the colour globe instead of ending in a hard rectangle."""
+    b = tile.bounds
+    step = (b.east - b.west) / TILE_PX
+    lon = b.west + (np.arange(TILE_PX) + 0.5) * step
+    lat = b.north - (np.arange(TILE_PX) + 0.5) * step
+    wx = np.clip(np.minimum(lon - box.west, box.east - lon) / feather_deg, 0, 1)
+    wy = np.clip(np.minimum(lat - box.south, box.north - lat) / feather_deg, 0, 1)
+    w = np.outer(wy, wx)
+    return w * w * (3 - 2 * w)  # smoothstep
+
+
+def write_tile(mosaic: gdal.Dataset, tile: Tile, out_dir: Path, box: BBox | None = None, feather_deg: float = 0.0) -> bool:
     b = tile.bounds
     mem = gdal.Translate(
         "",
@@ -67,6 +83,10 @@ def write_tile(mosaic: gdal.Dataset, tile: Tile, out_dir: Path) -> bool:
     alpha = arr[-1]
     if not alpha.any():
         return False
+    if box is not None and feather_deg > 0:
+        alpha = (alpha * edge_feather(tile, box, feather_deg)).astype(np.uint8)
+        if not alpha.any():
+            return False
     colour = arr[:-1]
     rgb = np.repeat(colour, 3, axis=0) if colour.shape[0] == 1 else colour[:3]
     rgba = np.concatenate([rgb, alpha[None]], axis=0).astype(np.uint8)
@@ -80,14 +100,14 @@ def write_tile(mosaic: gdal.Dataset, tile: Tile, out_dir: Path) -> bool:
     return True
 
 
-def pyramid(layer_id: str, mosaic_path: Path, box: BBox, zmin: int, zmax: int, meta: dict) -> dict:
+def pyramid(layer_id: str, mosaic_path: Path, box: BBox, zmin: int, zmax: int, meta: dict, feather_deg: float = 0.0) -> dict:
     out_dir = ensure(OUT / layer_id)
     mosaic = gdal.Open(str(mosaic_path))
     written = 0
     for z in range(zmin, zmax + 1):
         tiles = tiles_covering(z, box)
         for tile in tiles:
-            written += write_tile(mosaic, tile, out_dir)
+            written += write_tile(mosaic, tile, out_dir, box, feather_deg)
         print(f"[imagery] {layer_id} z{z}: {len(tiles)} candidate tiles")
     layer = {
         "id": layer_id,
@@ -99,10 +119,24 @@ def pyramid(layer_id: str, mosaic_path: Path, box: BBox, zmin: int, zmax: int, m
         "minLevel": zmin,
         "maxLevel": zmax,
         "tiles": written,
+        "featherDeg": feather_deg,
         **meta,
     }
     (out_dir / "layer.json").write_text(json.dumps(layer, indent=2), encoding="utf-8")
     return layer
+
+
+def build_viking_hd() -> dict:
+    """232 m colour over the Jezero region. The 12.7 GB source is stripped and uncompressed; its
+    window is fetched with plain HTTP row ranges by scripts/data/fetch-tiff-window.ts (GDAL /vsicurl/
+    reads dropped connections from inside Docker) and tiled here from the resulting VRT."""
+    from .paths import RAW
+
+    src = RAW / "viking-mdim21-232" / "viking_hd_window.vrt"
+    if not src.exists():
+        raise FileNotFoundError("run: npx tsx scripts/data/fetch-tiff-window.ts")
+    return pyramid("viking-hd", geographic_mosaic(src, "viking-hd", VIKING_HD, 8, "average", 0), VIKING_HD, 6, 8,
+                   {"datasetId": "viking-mdim21-232", "source": read_record(src)})
 
 
 def build() -> list[dict]:
@@ -115,12 +149,12 @@ def build() -> list[dict]:
     ctx = fetch.download("ctx-ortho-jpl")
     layers.append(
         pyramid("ctx", geographic_mosaic(ctx, "ctx", CRATER, 13, "average", 0), CRATER, 6, 13,
-                {"datasetId": "ctx-ortho-jpl", "source": read_record(ctx)})
+                {"datasetId": "ctx-ortho-jpl", "source": read_record(ctx)}, feather_deg=0.12)
     )
     hirise = fetch.window("hirise-ortho-trn", res_m=0.5)
     layers.append(
         pyramid("hirise", geographic_mosaic(hirise, "hirise", JEZERO_AOI, 16, "average", 0), JEZERO_AOI, 12, 16,
-                {"datasetId": "hirise-ortho-trn", "source": read_record(hirise)})
+                {"datasetId": "hirise-ortho-trn", "source": read_record(hirise)}, feather_deg=0.008)
     )
     for layer in layers:
         entry = dataset(layer["datasetId"])

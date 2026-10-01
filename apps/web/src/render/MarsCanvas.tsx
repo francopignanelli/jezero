@@ -22,12 +22,54 @@ import { registerScene } from './sceneRegistry';
 import { MarsScene, type LineSpec, type LonLatRect } from './marsScene';
 import { densify, simplify, type LatLonPoint } from './pathGeometry';
 
-const IMAGERY: Array<{ id: LayerId; credit: string }> = [
-  { id: 'viking', credit: 'NASA/USGS Viking Orbiter colorized mosaic' },
-  { id: 'ctx', credit: 'NASA/JPL/MSSS/USGS CTX (Mars 2020 science investigation mosaic)' },
+/**
+ * Imagery tiers, bottom to top. `toggle` is the layer-panel switch that controls the tier. The
+ * Viking 232 m regional pyramid sharpens the descent from orbit; the colour wash re-uses it over
+ * the greyscale CTX/HiRISE tiers (see marsScene.fadeImageryTiers).
+ */
+/**
+ * The Viking colorized mosaics exaggerate blue in dark basaltic regions; a mild grade (less
+ * saturation, slightly warmer and brighter) reads closer to Mars as seen in natural-colour images.
+ * Colours remain illustrative, as the provenance card states.
+ */
+const VIKING_GRADE = { saturation: 0.5, hue: 0.06, gamma: 1.05, brightness: 1.1, contrast: 1.1 };
+const IMAGERY: Array<{
+  id: string;
+  toggle: LayerId;
+  credit: string;
+  tiles?: string;
+  rectangle?: LonLatRect;
+  grade?: typeof VIKING_GRADE;
+}> = [
+  {
+    id: 'viking',
+    toggle: 'viking',
+    credit: 'NASA/USGS Viking Orbiter colorized mosaic',
+    grade: VIKING_GRADE,
+  },
+  {
+    id: 'viking-hd',
+    toggle: 'viking',
+    credit: 'NASA/USGS Viking MDIM 2.1 colorized mosaic (232 m)',
+    grade: VIKING_GRADE,
+  },
+  {
+    id: 'ctx',
+    toggle: 'ctx',
+    credit: 'NASA/JPL/MSSS/USGS CTX (Mars 2020 science investigation mosaic)',
+  },
   {
     id: 'hirise',
+    toggle: 'hirise',
     credit: 'NASA/JPL/University of Arizona/USGS HiRISE (Mars 2020 TRN orthomosaic)',
+  },
+  {
+    id: 'colour-wash',
+    toggle: 'viking',
+    tiles: 'viking-hd',
+    credit: 'Colour from the Viking MDIM 2.1 mosaic over CTX/HiRISE (approximate)',
+    rectangle: { west: 77.0, south: 17.6, east: 78.58, north: 19.28 },
+    grade: VIKING_GRADE,
   },
 ];
 const OVERLAYS: OverlayKind[] = ['slope', 'elevation', 'thermalInertia'];
@@ -125,8 +167,8 @@ export function MarsCanvas() {
       const terrainOk = await scene.loadTerrain(dataUrl('tiles/terrain'), DATA_VERSION);
       setLoading({ terrain: terrainOk ? 'done' : 'failed' });
       let imageryOk = true;
-      for (const { id, credit } of IMAGERY) {
-        const meta = await loadImageryLayer(id);
+      for (const { id, toggle, credit, tiles, rectangle, grade } of IMAGERY) {
+        const meta = await loadImageryLayer(tiles ?? id);
         if (scene.isDestroyed()) return;
         if (!meta) {
           imageryOk = false;
@@ -134,13 +176,14 @@ export function MarsCanvas() {
         }
         scene.addTiledLayer({
           id,
-          url: dataUrl(`tiles/imagery/${id}/{z}/{x}/{y}.webp?v=${DATA_VERSION}`),
-          rectangle: meta.rectangle,
+          url: dataUrl(`tiles/imagery/${tiles ?? id}/{z}/{x}/{y}.webp?v=${DATA_VERSION}`),
+          rectangle: rectangle ?? meta.rectangle,
           minLevel: meta.minLevel,
           maxLevel: meta.maxLevel,
           credit,
+          ...(grade ? { grade } : {}),
         });
-        scene.setLayerVisible(id, useApp.getState().layers[id]);
+        scene.setLayerVisible(id, useApp.getState().layers[toggle]);
       }
       setLoading({ imagery: imageryOk ? 'done' : 'failed' });
       const tilesOk = await scene.whenTilesLoaded();
@@ -228,6 +271,8 @@ export function MarsCanvas() {
         scene.setLayerVisible(id, visible);
     }
     scene.setLayerVisible('roverLatest', layers.rover);
+    scene.setLayerVisible('viking-hd', layers.viking);
+    scene.setLayerVisible('colour-wash', layers.viking && (layers.ctx || layers.hirise));
     scene.setSkyVisible(layers.sky);
   }, [layers]);
 

@@ -14,6 +14,7 @@ def main(argv: list[str]) -> int:
     sub.add_parser("inspect", help="print and assert source metadata (header reads only)")
     sub.add_parser("operational", help="build the Jezero routing grid and coverage outline")
     sub.add_parser("imagery", help="build imagery tile pyramids")
+    sub.add_parser("imagery-hd", help="regional 232 m Viking colour pyramid around Jezero")
     sub.add_parser("terrain", help="build quantized-mesh terrain tiles (needs 'operational')")
     sub.add_parser("all", help="operational, imagery, terrain")
     sub.add_parser("sky", help="convert the Milky Way PNG from scripts/data/build-sky.ts to WebP")
@@ -41,6 +42,12 @@ def main(argv: list[str]) -> int:
         from .operational import build
 
         build()
+    if args.cmd == "imagery-hd":
+        from .imagery import build_viking_hd
+
+        layer = build_viking_hd()
+        print(f"[imagery] viking-hd: {layer['tiles']} tiles")
+        return 0
     if args.cmd in ("imagery", "all"):
         from .imagery import build as build_imagery
 

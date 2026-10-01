@@ -222,6 +222,38 @@
       "expect": {}
     },
     {
+      "id": "viking-mdim21-232",
+      "title": "Viking MDIM 2.1 colorized global mosaic (232 m), regional window around Jezero",
+      "mission": "Viking Orbiters 1 & 2",
+      "instrument": "Visual Imaging Subsystem",
+      "productId": "Mars_Viking_MDIM21_ClrMosaic_global_232m",
+      "publisher": "USGS Astrogeology Science Center",
+      "landingPage": "https://astrogeology.usgs.gov/search/map/mars_viking_colorized_global_mosaic_232m",
+      "accessUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars_Viking_MDIM21_ClrMosaic_global_232m.tif",
+      "access": "window",
+      "published": "2022-11-10 (file date on the USGS server)",
+      "coverage": {
+        "west": 70,
+        "east": 85,
+        "south": 12,
+        "north": 25
+      },
+      "resolution": {
+        "value": 232,
+        "unit": "m/px"
+      },
+      "units": "RGB (colorized)",
+      "crs": "Simple cylindrical (lat_ts 0) on the Mars sphere R = 3396190 m",
+      "verticalDatum": null,
+      "uncertainty": "Colorized mosaic for visual context (colors enhanced, not true color); MDIM 2.1 horizontal accuracy ~200–300 m. Only a 15° × 13° window is read (GDAL range requests).",
+      "license": "Public domain (USGS/NASA)",
+      "citation": "USGS Astrogeology, Viking MDIM 2.1 colorized global mosaic 232 m.",
+      "role": [
+        "global-imagery"
+      ],
+      "expect": {}
+    },
+    {
       "id": "themis-ti-jezero",
       "title": "THEMIS-derived thermal inertia of Jezero Crater",
       "mission": "Mars Odyssey",

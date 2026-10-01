@@ -27,6 +27,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   SingleTileImageryProvider,
+  SkyAtmosphere,
   UrlTemplateImageryProvider,
   sampleTerrainMostDetailed,
   type ImageryProvider,
@@ -94,8 +95,18 @@ export interface LonLatRect {
   north: number;
 }
 
+/** Display grading of a colour layer (Cesium ImageryLayer adjustments). */
+export interface LayerGrade {
+  saturation?: number;
+  hue?: number;
+  gamma?: number;
+  brightness?: number;
+  contrast?: number;
+}
+
 export interface RasterLayerSpec {
   id: string;
+  grade?: LayerGrade;
   url: string;
   rectangle: LonLatRect;
   minLevel: number;
@@ -291,6 +302,18 @@ export class MarsScene {
     globe.maximumScreenSpaceError = 1.5;
     globe.tileCacheSize = 400;
     scene.fog.enabled = false;
+    // Thin, dusty Mars atmosphere seen at the limb from orbit: scale height ~11 km, scattering
+    // coefficients with red > green > blue (dust-dominated, the reverse of Earth's Rayleigh sky).
+    // Shown only from altitude (see updateAtmosphere); illustrative, not a radiative-transfer model.
+    const sky = new SkyAtmosphere(MARS_SPHERE);
+    sky.atmosphereRayleighCoefficient = new Cartesian3(19.9e-6, 13.6e-6, 5.75e-6);
+    sky.atmosphereMieCoefficient = new Cartesian3(21e-6, 21e-6, 21e-6);
+    sky.atmosphereRayleighScaleHeight = 11_000;
+    sky.atmosphereMieScaleHeight = 11_000;
+    sky.atmosphereMieAnisotropy = 0.76;
+    sky.atmosphereLightIntensity = 14;
+    sky.perFragmentAtmosphere = true;
+    scene.skyAtmosphere = sky;
     scene.postProcessStages.fxaa.enabled = true;
     if (scene.sun) scene.sun.show = false;
     if (scene.moon) scene.moon.show = false;
@@ -311,6 +334,7 @@ export class MarsScene {
     }
     this.annotations = new AnnotationLayer(container, scene);
     scene.preRender.addEventListener(() => {
+      this.updateAtmosphere();
       this.fadeImageryTiers();
       this.updateLineOcclusion();
     });
@@ -441,6 +465,17 @@ export class MarsScene {
     this.requestRender();
   }
 
+  /** Limb haze only when the planet is seen from above ~150 km; near the surface our sky layer draws the sky. */
+  private updateAtmosphere(): void {
+    const sky = this.widget.scene.skyAtmosphere;
+    if (!sky) return;
+    const show = this.widget.camera.positionCartographic.height > 150_000;
+    if (sky.show !== show) {
+      sky.show = show;
+      this.requestRender();
+    }
+  }
+
   private fadeImageryTiers(): void {
     const h = this.widget.camera.positionCartographic.height + 2_500; // above the Jezero floor
     const fade = (layer: ImageryLayer | undefined, far: number, near: number) => {
@@ -453,6 +488,14 @@ export class MarsScene {
     };
     fade(this.rasters.get('ctx'), 160_000, 70_000);
     fade(this.rasters.get('hirise'), 25_000, 12_000);
+    // Viking colour washed over the grey tiers (alpha blend ≈ colour from 232 m, detail from 5 m /
+    // 25 cm). It follows the CTX fade so the globe and the crater blend without a seam.
+    const wash = this.rasters.get('colour-wash');
+    const ctx = this.rasters.get('ctx');
+    if (wash && ctx) {
+      const a = 0.45 * ctx.alpha;
+      if (Math.abs(wash.alpha - a) > 0.01) wash.alpha = a;
+    }
   }
 
   // ---------- rasters ----------
@@ -474,6 +517,8 @@ export class MarsScene {
       tileHeight: 256,
     });
     this.addProvider(spec.id, provider, spec.minLevel);
+    const layer = this.rasters.get(spec.id);
+    if (layer && spec.grade) Object.assign(layer, spec.grade);
   }
 
   /** Ids of raster layers starting with `prefix` (for removing a family of overlays). */
