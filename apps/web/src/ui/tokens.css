@@ -1,0 +1,60 @@
+/* Copernico design tokens: restrained mission-control palette with a Mars accent.
+   Text/background pairs meet WCAG 2.2 AA (≥ 4.5:1 for body text). */
+:root {
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --space-0: #020306;
+  --bg: #0b0e13;
+  --surface: #12161d;
+  --surface-2: #181d26;
+  --surface-3: #202733;
+  --border: #2b3441;
+  --border-strong: #3a4556;
+
+  --text: #eceae6;
+  --text-muted: #a4adba;
+  --text-faint: #7d8898;
+
+  --mars: #e0784a; /* 6.1:1 on --bg */
+  --mars-strong: #f08c5c;
+  --mars-dim: #7a3a1f;
+  --info: #6cc6e6;
+  --ok: #58c98f;
+  --warn: #f2c14e;
+  --danger: #ff6b6b;
+
+  --route-primary: #5fd4c4;
+  --route-alt: #e8e2d6;
+  --rover: #f2b84b;
+  --poi: #b69cff;
+  --sample: #ff9ad5;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+  --focus: 0 0 0 3px rgb(108 198 230 / 0.75);
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-md: 0.9375rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.5rem;
+
+  --rail-w: 76px;
+  --panel-w: 380px;
+  --inspector-w: 0px;
+  --topbar-h: 52px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

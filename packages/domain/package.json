@@ -1,0 +1,17 @@
+{
+  "name": "@copernico/domain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scientific core: Mars reference frames, terrain analysis, route planning and Mars time. No DOM, no I/O.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "astronomy-engine": "2.1.19"
+  }
+}

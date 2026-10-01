@@ -1,0 +1,249 @@
+{
+  "catalogVersion": 1,
+  "notes": "Curated science points of interest. Coordinates are planetocentric °N / east °E in the Mars 2020 frame. 'basis' states how each coordinate was obtained. Descriptions summarise the cited NASA sources; they are not new findings. Research: docs/research/rover-environment-time.md §D.",
+  "pois": [
+    {
+      "id": "landing-site",
+      "name": "Octavia E. Butler Landing",
+      "lat": 18.44457,
+      "lon": 77.45091,
+      "basis": "PDS PLACES SITE 1 localization",
+      "sampleNumbers": ["8", "9"],
+      "why": {
+        "en": "Perseverance touchdown site (18 February 2021) on the crater floor. Samples 8 and 9 were cored nearby from igneous rock.",
+        "es": "Sitio de aterrizaje de Perseverance (18 de febrero de 2021) en el fondo del cráter. Las muestras 8 y 9 se extrajeron cerca, de roca ígnea."
+      },
+      "investigate": {
+        "en": "Crater-floor lava or igneous units (Máaz formation) and how they differ from the delta sediments to the west.",
+        "es": "Unidades ígneas del fondo del cráter (formación Máaz) y cómo se diferencian de los sedimentos del delta al oeste."
+      },
+      "sources": ["NASA PDS PLACES best_tactical.csv (Release 16)", "NASA/JPL MMGIS M20_SAMPLE_v3.json"]
+    },
+    {
+      "id": "rochette",
+      "name": "Rochette (Artuby Ridge)",
+      "lat": 18.43073,
+      "lon": 77.44433,
+      "basis": "Sample location (MMGIS)",
+      "sampleNumbers": ["2", "3"],
+      "why": {
+        "en": "First successful rock cores of the mission (Montdenier and Montagnac, September 2021), from igneous rock of the Máaz formation.",
+        "es": "Primeros núcleos de roca exitosos de la misión (Montdenier y Montagnac, septiembre de 2021), de roca ígnea de la formación Máaz."
+      },
+      "investigate": {
+        "en": "Signs of water alteration in igneous rock, recorded as salts and altered minerals.",
+        "es": "Indicios de alteración por agua en roca ígnea, registrados como sales y minerales alterados."
+      },
+      "sources": ["NASA/JPL MMGIS M20_SAMPLE_v3.json"]
+    },
+    {
+      "id": "seitah-brac",
+      "name": "Séítah — Brac",
+      "lat": 18.43398,
+      "lon": 77.44305,
+      "basis": "Sample location (MMGIS)",
+      "sampleNumbers": ["4", "5"],
+      "why": {
+        "en": "Olivine-rich igneous rock in the Séítah region (samples Salette and Coulettes, November 2021).",
+        "es": "Roca ígnea rica en olivino en la región de Séítah (muestras Salette y Coulettes, noviembre de 2021)."
+      },
+      "investigate": {
+        "en": "How olivine-rich rock formed and whether it interacted with water after cooling.",
+        "es": "Cómo se formó la roca rica en olivino y si interactuó con agua después de enfriarse."
+      },
+      "sources": ["NASA/JPL MMGIS M20_SAMPLE_v3.json"]
+    },
+    {
+      "id": "enchanted-lake",
+      "name": "Enchanted Lake",
+      "lat": 18.4506,
+      "lon": 77.4014,
+      "basis": "Approximate: rover waypoint on sol 422 (NASA-named feature)",
+      "sampleNumbers": [],
+      "why": {
+        "en": "Perseverance's first close look at sedimentary rocks at the base of the delta (April 2022).",
+        "es": "La primera observación cercana de Perseverance de rocas sedimentarias en la base del delta (abril de 2022)."
+      },
+      "investigate": {
+        "en": "Layering and grain size that record how water deposited sediment into the ancient lake.",
+        "es": "Estratificación y tamaño de grano que registran cómo el agua depositó sedimento en el antiguo lago."
+      },
+      "sources": ["NASA/JPL news (sol 424, 2022-04-30)", "NASA/JPL MMGIS M20_waypoints.json"]
+    },
+    {
+      "id": "wildcat-ridge",
+      "name": "Hawksbill Gap — Wildcat Ridge",
+      "lat": 18.45864,
+      "lon": 77.40589,
+      "basis": "Sample location (MMGIS)",
+      "sampleNumbers": ["12", "13"],
+      "why": {
+        "en": "Fine-grained sedimentary rock at the delta front (samples Hazeltop and Bearwallow, July–August 2022) in which NASA reported organic-compound detections.",
+        "es": "Roca sedimentaria de grano fino en el frente del delta (muestras Hazeltop y Bearwallow, julio–agosto de 2022) en la que la NASA informó detecciones de compuestos orgánicos."
+      },
+      "investigate": {
+        "en": "Mudstone layers that could preserve chemical traces of past habitable conditions.",
+        "es": "Capas de fangolita que podrían preservar trazas químicas de condiciones habitables pasadas."
+      },
+      "sources": ["NASA/JPL MMGIS M20_SAMPLE_v3.json", "NASA/JPL news, September 2022"]
+    },
+    {
+      "id": "three-forks",
+      "name": "Three Forks sample depot",
+      "lat": 18.45296,
+      "lon": 77.40821,
+      "basis": "Centroid of the depot polygon (MMGIS)",
+      "sampleNumbers": [],
+      "why": {
+        "en": "Ten sample tubes were left on the surface here (December 2022 – January 2023) as a backup cache.",
+        "es": "Aquí se dejaron diez tubos de muestras en la superficie (diciembre de 2022 – enero de 2023) como depósito de respaldo."
+      },
+      "investigate": {
+        "en": "A real logistics site: plan approaches that keep a crew away from the tubes' footprint.",
+        "es": "Un sitio logístico real: planificar accesos que mantengan a la tripulación fuera del área de los tubos."
+      },
+      "sources": ["NASA/JPL MMGIS M20_TF_Sample_Depot.json"]
+    },
+    {
+      "id": "belva",
+      "name": "Belva crater",
+      "lat": 18.4829,
+      "lon": 77.369,
+      "basis": "Approximate: rover waypoint on sol 770 at the crater's west rim",
+      "sampleNumbers": [],
+      "why": {
+        "en": "An impact crater on the delta whose walls expose delta layers in cross-section.",
+        "es": "Un cráter de impacto sobre el delta cuyas paredes exponen las capas del delta en corte transversal."
+      },
+      "investigate": {
+        "en": "Stacked layers that show how the delta built up over time.",
+        "es": "Capas apiladas que muestran cómo se formó el delta con el tiempo."
+      },
+      "sources": ["NASA/JPL news (sol 772)", "NASA/JPL MMGIS M20_waypoints.json"]
+    },
+    {
+      "id": "comet-geyser",
+      "name": "Comet Geyser (margin unit)",
+      "lat": 18.49187,
+      "lon": 77.32722,
+      "basis": "Sample location (MMGIS)",
+      "sampleNumbers": ["24"],
+      "why": {
+        "en": "Sample 24 (March 2024) from the margin unit, recorded by the mission as silica-cemented carbonate.",
+        "es": "Muestra 24 (marzo de 2024) de la unidad marginal, registrada por la misión como carbonato cementado con sílice."
+      },
+      "investigate": {
+        "en": "Carbonates that can form in water and may record the ancient lake shoreline.",
+        "es": "Carbonatos que pueden formarse en agua y registrar la antigua costa del lago."
+      },
+      "sources": ["NASA/JPL MMGIS M20_SAMPLE_v3.json"]
+    },
+    {
+      "id": "ingenuity-final",
+      "name": "Ingenuity final landing site",
+      "lat": 18.49727,
+      "lon": 77.32253,
+      "basis": "Ingenuity flight 72 position (MMGIS)",
+      "sampleNumbers": [],
+      "why": {
+        "en": "Where the Ingenuity helicopter ended its 72nd and final flight (18 January 2024).",
+        "es": "Donde el helicóptero Ingenuity terminó su vuelo 72, el último (18 de enero de 2024)."
+      },
+      "investigate": {
+        "en": "Hardware exposure on the Martian surface over time (dust accumulation, wind effects).",
+        "es": "Exposición de equipos en la superficie marciana a lo largo del tiempo (acumulación de polvo, efectos del viento)."
+      },
+      "sources": ["NASA/JPL MMGIS m20_heli_waypoints.json"]
+    },
+    {
+      "id": "cheyava-falls",
+      "name": "Cheyava Falls — Sapphire Canyon",
+      "lat": 18.49747,
+      "lon": 77.30515,
+      "basis": "Sample location (MMGIS)",
+      "sampleNumbers": ["25"],
+      "why": {
+        "en": "Sample 25 (July 2024) from the Bright Angel area of Neretva Vallis; NASA described features in this rock as a potential biosignature (Nature, 2025).",
+        "es": "Muestra 25 (julio de 2024) del área Bright Angel de Neretva Vallis; la NASA describió rasgos de esta roca como una posible biofirma (Nature, 2025)."
+      },
+      "investigate": {
+        "en": "The 'leopard spot' textures and whether non-biological processes could explain them.",
+        "es": "Las texturas de 'manchas de leopardo' y si procesos no biológicos podrían explicarlas."
+      },
+      "sources": ["NASA/JPL MMGIS M20_SAMPLE_v3.json", "NASA news, September 2025"]
+    },
+    {
+      "id": "neretva-vallis",
+      "name": "Neretva Vallis",
+      "lat": 18.55,
+      "lon": 77.2,
+      "basis": "USGS Gazetteer feature centre (17 km valley)",
+      "sampleNumbers": [],
+      "why": {
+        "en": "The river valley that fed water and sediment into Jezero's delta.",
+        "es": "El valle fluvial que aportó agua y sedimentos al delta de Jezero."
+      },
+      "investigate": {
+        "en": "Channel deposits that record how much water flowed into the lake.",
+        "es": "Depósitos del canal que registran cuánta agua fluyó hacia el lago."
+      },
+      "sources": ["USGS Gazetteer of Planetary Nomenclature, feature 15879"]
+    },
+    {
+      "id": "witch-hazel-hill",
+      "name": "Witch Hazel Hill — Silver Mountain",
+      "lat": 18.46059,
+      "lon": 77.26474,
+      "basis": "Sample location (MMGIS)",
+      "sampleNumbers": ["26", "27"],
+      "why": {
+        "en": "Crater-rim rocks: sample 26 (Silver Mountain, igneous/impactite) and sample 27 (Green Gardens, serpentinite), early 2025.",
+        "es": "Rocas del borde del cráter: muestra 26 (Silver Mountain, ígnea/impactita) y muestra 27 (Green Gardens, serpentinita), inicios de 2025."
+      },
+      "investigate": {
+        "en": "Ancient crust exposed by the Jezero impact and water–rock reactions recorded by serpentinite.",
+        "es": "Corteza antigua expuesta por el impacto de Jezero y reacciones agua–roca registradas por la serpentinita."
+      },
+      "sources": ["NASA/JPL MMGIS M20_SAMPLE_v3.json"]
+    },
+    {
+      "id": "lookout-hill",
+      "name": "Lookout Hill (crater rim)",
+      "lat": 18.4575,
+      "lon": 77.2685,
+      "basis": "Approximate: rover waypoint on sol 1354",
+      "sampleNumbers": [],
+      "why": {
+        "en": "Where Perseverance reached the top of the crater rim (December 2024).",
+        "es": "Donde Perseverance alcanzó la cima del borde del cráter (diciembre de 2024)."
+      },
+      "investigate": {
+        "en": "Views into the crater and over the rim terrain beyond.",
+        "es": "Vistas hacia el interior del cráter y del terreno más allá del borde."
+      },
+      "sources": ["NASA/JPL news, 2024-12-12", "NASA/JPL MMGIS M20_waypoints.json"]
+    },
+    {
+      "id": "lac-de-charmes",
+      "name": "Lac de Charmes",
+      "lat": 18.4277,
+      "lon": 77.2267,
+      "basis": "Approximate: rover waypoint on sol 1792",
+      "sampleNumbers": [],
+      "why": {
+        "en": "Terrain beyond the western rim that NASA described as crust older than the crater itself.",
+        "es": "Terreno más allá del borde occidental que la NASA describió como corteza más antigua que el propio cráter."
+      },
+      "investigate": {
+        "en": "Pre-impact rocks that sample Mars's early crust.",
+        "es": "Rocas previas al impacto que muestrean la corteza temprana de Marte."
+      },
+      "sources": ["NASA/JPL news, 2026-05-12", "NASA/JPL MMGIS M20_waypoints.json"]
+    }
+  ],
+  "guidedMission": {
+    "id": "guided-delta-front",
+    "waypoints": ["landing-site", "three-forks", "wildcat-ridge"],
+    "returnToStart": true
+  }
+}

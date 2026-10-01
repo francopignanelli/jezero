@@ -1,0 +1,37 @@
+# dependencies and builds
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+cdk.out/
+playwright-report/
+test-results/
+
+# planetary data: raw sources and intermediates are never committed (see docs/datasets.md)
+data/raw/
+data/work/
+data/build/
+
+# secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# local agent state
+.claude/scheduled_tasks.lock

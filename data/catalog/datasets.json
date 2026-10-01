@@ -1,0 +1,387 @@
+{
+  "$schema": "./datasets.schema.json",
+  "catalogVersion": 1,
+  "notes": "Provenance registry. Every artifact served by Copernico traces back to one entry here. 'expect' fields are asserted by scripts/geospatial before any processing. Research evidence: docs/research/datasets-terrain.md and docs/research/rover-environment-time.md.",
+  "datasets": [
+    {
+      "id": "hirise-dtm-trn",
+      "title": "Mars 2020 TRN HiRISE DTM mosaic (1 m)",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "HiRISE",
+      "productId": "JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40",
+      "publisher": "USGS Astrogeology Science Center",
+      "landingPage": "https://astrogeology.usgs.gov/search/map/Mars/Mars2020/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40",
+      "accessUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+      "access": "window",
+      "doi": "10.5066/P9REJ9JN",
+      "published": "2020-07-24",
+      "coverage": {
+        "west": 77.2229,
+        "east": 77.584,
+        "south": 18.3068,
+        "north": 18.6693
+      },
+      "resolution": {
+        "value": 1,
+        "unit": "m/px"
+      },
+      "units": "m",
+      "crs": "Equirectangular, lat_ts 0, lon_0 0, sphere R = 3396190 m (≡ IAU_2015:49910)",
+      "verticalDatum": "Height above the MOLA areoid ('DeltaGeoid')",
+      "uncertainty": "Vertical precision ~0.2 m (HiRISE DTM, Kirk et al. 2008); median −0.4 m vs CTX DTM; HiRISE co-registration < 3 m (P99). The 'CR' crater-rim stereo model has documented quality problems.",
+      "license": "US Government work / no use constraints (USGS); please cite",
+      "citation": "Fergason, R.L. et al. (2020) Mars 2020 Terrain Relative Navigation Flight Product Generation. LPSC 51, #2020.",
+      "role": [
+        "operational-terrain",
+        "slope",
+        "routing"
+      ],
+      "expect": {
+        "proj": "eqc",
+        "lat_ts": 0,
+        "lon_0": 0,
+        "radius": 3396190,
+        "nodataBelow": -1e+38
+      }
+    },
+    {
+      "id": "hirise-ortho-trn",
+      "title": "Mars 2020 TRN HiRISE orthomosaic (25 cm)",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "HiRISE",
+      "productId": "JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first",
+      "publisher": "USGS Astrogeology Science Center",
+      "landingPage": "https://astrogeology.usgs.gov/search/map/Mars/Mars2020/JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first",
+      "accessUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first.tif",
+      "access": "window",
+      "doi": "10.5066/P9QJDP48",
+      "published": "2020-07-24",
+      "coverage": {
+        "west": 77.2229,
+        "east": 77.584,
+        "south": 18.3068,
+        "north": 18.6693
+      },
+      "resolution": {
+        "value": 0.25,
+        "unit": "m/px"
+      },
+      "units": "DN (8-bit, panchromatic)",
+      "crs": "Equirectangular, lat_ts 0, lon_0 0, sphere R = 3396190 m",
+      "verticalDatum": null,
+      "uncertainty": "Orthorectified on the TRN DTM; served at 0.5 m in Copernico. Image resolution ≠ elevation resolution.",
+      "license": "US Government work / no use constraints (USGS); please cite",
+      "citation": "Fergason, R.L. et al. (2020) LPSC 51, #2020.",
+      "role": [
+        "operational-imagery"
+      ],
+      "expect": {
+        "proj": "eqc",
+        "lat_ts": 0,
+        "lon_0": 0,
+        "radius": 3396190
+      }
+    },
+    {
+      "id": "ctx-dem-jpl",
+      "title": "Mars 2020 Science Investigation CTX DEM (20 m)",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "CTX",
+      "productId": "M20_JezeroCrater_CTXDEM_20m",
+      "publisher": "NASA JPL / USGS",
+      "landingPage": "https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic",
+      "accessUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXDEM_20m.tif",
+      "access": "download",
+      "published": "2020",
+      "coverage": {
+        "west": 76.997,
+        "east": 78.583,
+        "south": 17.581,
+        "north": 19.29
+      },
+      "resolution": {
+        "value": 20,
+        "unit": "m/px"
+      },
+      "units": "m",
+      "crs": "Equirectangular, lat_ts 18.4663, lon_0 0, sphere R = 3396190 m (verified from the GeoTIFF header 2026-09-25; the Astropedia page's 3396160 m is incorrect)",
+      "verticalDatum": "Height above the MOLA areoid",
+      "uncertainty": "'Accurate to control net'. Used for crater-scale context terrain only, never for routing.",
+      "license": "US Government work; cite Mangold et al. 2021",
+      "citation": "Mangold, N. et al. (2021) Perseverance rover reveals an ancient delta-lake system and flood deposits at Jezero crater, Mars. Science 374, 711–717.",
+      "role": [
+        "context-terrain"
+      ],
+      "expect": {
+        "proj": "eqc",
+        "lat_ts": 18.4663,
+        "lon_0": 0
+      }
+    },
+    {
+      "id": "ctx-ortho-jpl",
+      "title": "Mars 2020 Science Investigation CTX orthomosaic (5 m)",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "CTX",
+      "productId": "M20_JezeroCrater_CTXortho_mosaic_5m",
+      "publisher": "NASA JPL / USGS",
+      "landingPage": "https://astrogeology.usgs.gov/search/map/mars_2020_science_investigation_ctx_dem_mosaic",
+      "accessUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXortho_mosaic_5m.tif",
+      "access": "download",
+      "published": "2020",
+      "coverage": {
+        "west": 76.997,
+        "east": 78.583,
+        "south": 17.581,
+        "north": 19.29
+      },
+      "resolution": {
+        "value": 5,
+        "unit": "m/px"
+      },
+      "units": "DN (8-bit, panchromatic)",
+      "crs": "Equirectangular, lat_ts 18.4663, lon_0 0, sphere",
+      "verticalDatum": null,
+      "uncertainty": "Crater-scale context imagery.",
+      "license": "US Government work; cite Mangold et al. 2021",
+      "citation": "Mangold, N. et al. (2021) Science 374, 711–717.",
+      "role": [
+        "context-imagery"
+      ],
+      "expect": {
+        "proj": "eqc",
+        "lat_ts": 18.4663,
+        "lon_0": 0
+      }
+    },
+    {
+      "id": "mola-megdr-32",
+      "title": "MOLA Mission Experiment Gridded Data Record, 32 pixels/degree topography",
+      "mission": "Mars Global Surveyor",
+      "instrument": "MOLA",
+      "productId": "MEGT90N000FB",
+      "publisher": "NASA PDS Geosciences Node",
+      "landingPage": "https://pds-geosciences.wustl.edu/missions/mgs/megdr.html",
+      "accessUrl": "https://pds-geosciences.wustl.edu/mgs/mgs-m-mola-5-megdr-l3-v1/mgsl_300x/meg032/megt90n000fb.img",
+      "labelUrl": "https://pds-geosciences.wustl.edu/mgs/mgs-m-mola-5-megdr-l3-v1/mgsl_300x/meg032/megt90n000fb.lbl",
+      "access": "download",
+      "published": "2003",
+      "coverage": {
+        "west": 0,
+        "east": 360,
+        "south": -90,
+        "north": 90
+      },
+      "resolution": {
+        "value": 32,
+        "unit": "px/deg"
+      },
+      "units": "m",
+      "crs": "Simple cylindrical, planetocentric, east longitude 0–360",
+      "verticalDatum": "Planetary radius minus MOLA areoid",
+      "uncertainty": "~1.85 km grid; vertical accuracy of MOLA tracks ~1 m, gridding error dominates at this scale.",
+      "license": "NASA PDS (public)",
+      "citation": "Smith, D.E. et al. (2003) MGS MOLA MEGDR, MGS-M-MOLA-5-MEGDR-L3-V1.0, NASA PDS.",
+      "role": [
+        "global-terrain"
+      ],
+      "expect": {
+        "proj": "eqc"
+      }
+    },
+    {
+      "id": "viking-color-925",
+      "title": "Viking Orbiter colorized global mosaic (925 m)",
+      "mission": "Viking Orbiters 1 & 2",
+      "instrument": "Visual Imaging Subsystem",
+      "productId": "Mars_Viking_ClrMosaic_global_925m",
+      "publisher": "USGS Astrogeology Science Center",
+      "landingPage": "https://astrogeology.usgs.gov/search/map/mars_viking_colorized_global_mosaic_232m",
+      "accessUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars_Viking_ClrMosaic_global_925m.tif",
+      "access": "download",
+      "published": "UNVERIFIED (to be read from file metadata)",
+      "coverage": {
+        "west": -180,
+        "east": 180,
+        "south": -90,
+        "north": 90
+      },
+      "resolution": {
+        "value": 925,
+        "unit": "m/px"
+      },
+      "units": "RGB (colorized)",
+      "crs": "Simple cylindrical on the Mars sphere (to be confirmed from the file)",
+      "verticalDatum": null,
+      "uncertainty": "Colorized mosaic for visual context; horizontal accuracy ~200–300 m (MDIM 2.1). Colors are enhanced, not true color.",
+      "license": "Public domain (USGS/NASA)",
+      "citation": "USGS Astrogeology, Viking MDIM 2.1 / colorized global mosaic.",
+      "role": [
+        "global-imagery"
+      ],
+      "expect": {}
+    },
+    {
+      "id": "themis-ti-jezero",
+      "title": "THEMIS-derived thermal inertia of Jezero Crater",
+      "mission": "Mars Odyssey",
+      "instrument": "THEMIS (with MGS TES albedo)",
+      "productId": "Jezero_Thermal_Inertia_v1",
+      "publisher": "Edwards & Buz (Zenodo)",
+      "landingPage": "https://zenodo.org/records/4931348",
+      "accessUrl": "https://zenodo.org/api/records/4931348/files/Jezero_Thermal_Inertia_v1.tiff/content",
+      "access": "download",
+      "doi": "10.5281/zenodo.4931348",
+      "published": "2021-06-11",
+      "coverage": {
+        "west": 77,
+        "east": 78.5,
+        "south": 17.75,
+        "north": 19.25
+      },
+      "resolution": {
+        "value": 100,
+        "unit": "m/px"
+      },
+      "units": "J m^-2 K^-1 s^-1/2",
+      "crs": "Simple cylindrical, lon_0 0, sphere R = 3396190 m",
+      "verticalDatum": null,
+      "uncertainty": "Derived product; ~100 m resolution, much coarser than the routing grid. Used as a soft penalty flag only.",
+      "license": "CC BY 4.0",
+      "citation": "Edwards, C.S. & Buz, J. (2021) THEMIS-derived Thermal Inertia of Jezero Crater, Mars. Zenodo. doi:10.5281/zenodo.4931348",
+      "role": [
+        "science-layer",
+        "routing-penalty"
+      ],
+      "expect": {}
+    },
+    {
+      "id": "m2020-mmgis",
+      "title": "Mars 2020 rover waypoints, traverse, samples and Ingenuity flights (MMGIS)",
+      "mission": "Mars 2020",
+      "instrument": "Rover localization (tactical)",
+      "productId": "M20_waypoints.json, M20_traverse.json, M20_SAMPLE_v3.json, M20_TF_Sample_Depot.json, m20_heli_waypoints.json",
+      "publisher": "NASA/JPL-Caltech",
+      "landingPage": "https://science.nasa.gov/mission/mars-2020-perseverance/location-map/",
+      "accessUrl": "https://mars.nasa.gov/mmgis-maps/M20/Layers/json/",
+      "access": "snapshot",
+      "published": "continuously updated; snapshot date recorded per build",
+      "coverage": null,
+      "resolution": null,
+      "units": "planetocentric °N / °E; easting/northing in the Mars 2020 frame (eqc lat_ts 18.4663)",
+      "crs": "Mars 2020 frame; the files' 'CRS84' declaration is an Earth placeholder and is ignored",
+      "verticalDatum": "elev_geoid: height above the areoid",
+      "uncertainty": "Tactical localizations, ~10 sols latency. Known data bug: Lefroy Bay lat/lon duplicated from Pelican Point (easting/northing used instead).",
+      "license": "NASA media/data usage guidelines (terms UNVERIFIED); cite NASA/JPL-Caltech",
+      "citation": "NASA/JPL-Caltech, Mars 2020 Perseverance location map (MMGIS).",
+      "role": [
+        "rover",
+        "science-pois"
+      ],
+      "expect": {}
+    },
+    {
+      "id": "m2020-places",
+      "title": "Mars 2020 PLACES localizations (best tactical)",
+      "mission": "Mars 2020",
+      "instrument": "Rover localization (PLACES)",
+      "productId": "urn:nasa:pds:mars2020_rover_places:data_localizations:best_tactical",
+      "publisher": "NASA PDS Geosciences Node",
+      "landingPage": "https://pds-geosciences.wustl.edu/missions/mars2020/places.htm",
+      "accessUrl": "https://pds-geosciences.wustl.edu/m2020/urn-nasa-pds-mars2020_rover_places/data_localizations/best_tactical.csv",
+      "access": "download",
+      "published": "Release 16, 2026-08-11 (sols 0–1897)",
+      "coverage": null,
+      "resolution": null,
+      "units": "planetocentric °N / °E; m",
+      "crs": "Mars 2020 frame (eqc lat_ts 18.4663, R 3396190 m) — verified to < 1 cm by unit tests",
+      "verticalDatum": "Height above the areoid",
+      "uncertainty": "Archival localizations (~2 months latency). The planetodetic_latitude column is constant and unused.",
+      "license": "NASA PDS (public)",
+      "citation": "Mars 2020 PLACES bundle, NASA PDS Geosciences Node.",
+      "role": [
+        "validation",
+        "rover"
+      ],
+      "expect": {}
+    },
+    {
+      "id": "m2020-meda",
+      "title": "Mars 2020 MEDA calibrated air temperature (ATS) and derived pressure (PS)",
+      "mission": "Mars 2020",
+      "instrument": "MEDA (Mars Environmental Dynamics Analyzer)",
+      "productId": "mars2020_meda: data_calibrated_env CAL_ATS, data_derived_env DER_PS, DER_ANCILLARY",
+      "publisher": "NASA PDS Atmospheres Node",
+      "landingPage": "https://pds-atmospheres.nmsu.edu/data_and_services/atmospheres_data/PERSEVERANCE/meda.html",
+      "accessUrl": "https://atmos.nmsu.edu/PDS/data/PDS4/Mars2020/mars2020_meda/",
+      "access": "snapshot",
+      "published": "Release 16, 2026-08-11 (sols 1740–1859, to 2026-05-13)",
+      "coverage": null,
+      "resolution": {
+        "value": 1,
+        "unit": "Hz sampling during observation periods"
+      },
+      "units": "K (air temperature), Pa (pressure), deg (Ls)",
+      "crs": "Point measurements at the rover position (MMGIS waypoint for the sol)",
+      "verticalDatum": null,
+      "uncertainty": "ATS values are local temperatures near the mast and may include rover thermal influence; the median of ATS 1–3 is used per sample. Pressure depends on elevation, which changed by ~640 m along the traverse. Releases lag observations by ~3–4 months.",
+      "license": "NASA PDS (public); cite the MEDA archive",
+      "citation": "Rodriguez-Manfredi, J.A. et al., Mars 2020 MEDA bundle, NASA PDS Atmospheres Node.",
+      "role": [
+        "environment-observed"
+      ],
+      "expect": {}
+    },
+    {
+      "id": "bsc5",
+      "title": "Yale Bright Star Catalog, 5th Revised Edition (J2000)",
+      "mission": "Ground-based astrometry (reference catalog)",
+      "instrument": "—",
+      "productId": "BSC5 (binary, J2000)",
+      "publisher": "Smithsonian Astrophysical Observatory TDC (Hoffleit & Warren 1991)",
+      "landingPage": "http://tdc-www.harvard.edu/catalogs/bsc5.html",
+      "accessUrl": "http://tdc-www.harvard.edu/catalogs/BSC5",
+      "access": "download",
+      "published": "1991 (5th revised edition)",
+      "coverage": null,
+      "resolution": null,
+      "units": "RA/Dec (rad, ICRF/J2000), V magnitude",
+      "crs": "ICRF/J2000; proper motion applied to epoch 2026.75",
+      "verticalDatum": null,
+      "uncertainty": "Catalog positions (arcsecond level); stars with V ≤ 6.5 (8,404). Colours approximated from spectral class.",
+      "license": "Public astronomical catalog; cite Hoffleit & Warren (1991)",
+      "citation": "Hoffleit, D. & Warren, W.H. Jr. (1991) The Bright Star Catalogue, 5th Revised Ed.",
+      "role": [
+        "sky-reference"
+      ],
+      "expect": {}
+    },
+    {
+      "id": "svs-deep-star-maps",
+      "title": "Deep Star Maps 2020: Milky Way background (celestial, 4K)",
+      "mission": "Gaia and Hipparcos (ESA), Tycho-2",
+      "instrument": "—",
+      "productId": "milkyway_2020_4k.exr",
+      "publisher": "NASA Goddard Scientific Visualization Studio",
+      "landingPage": "https://svs.gsfc.nasa.gov/4851",
+      "accessUrl": "https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_4k.exr",
+      "access": "download",
+      "published": "2020 (updated 2021-01-04)",
+      "coverage": null,
+      "resolution": {
+        "value": 0.088,
+        "unit": "deg/px"
+      },
+      "units": "relative radiance (display stretch applied)",
+      "crs": "ICRF plate carrée, RA 0h at centre increasing leftward",
+      "verticalDatum": null,
+      "uncertainty": "Visualization product; asinh display stretch (not photometric).",
+      "license": "NASA SVS media (credit required); Gaia DR2 data ESA/Gaia/DPAC (CC BY-SA 3.0 IGO)",
+      "citation": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC.",
+      "role": [
+        "sky-reference"
+      ],
+      "expect": {}
+    }
+  ]
+}

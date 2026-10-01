@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+cdk.out
+data
+docs/research
+LICENSE
+*.md

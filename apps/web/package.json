@@ -1,0 +1,30 @@
+{
+  "name": "@copernico/web",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@copernico/domain": "0.1.0",
+    "cesium": "1.145.0",
+    "i18next": "26.4.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-i18next": "17.0.15",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "jsdom": "30.1.1",
+    "vite": "8.3.1"
+  }
+}

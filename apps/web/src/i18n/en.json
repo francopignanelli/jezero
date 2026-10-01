@@ -1,0 +1,284 @@
+{
+  "app": {
+    "name": "Copernico",
+    "tagline": "Marswalk planning with NASA mission data",
+    "skipToMain": "Skip to main content",
+    "prototypeNotice": "Research and education prototype. Routes show lower estimated risk, never guaranteed safety."
+  },
+  "breadcrumb": {
+    "mars": "Mars",
+    "jezero": "Jezero Crater",
+    "operational": "Operational area"
+  },
+  "status": {
+    "sol": "Sol {{sol}}",
+    "ls": "Ls {{ls}}°",
+    "ltst": "LTST {{time}} at Jezero",
+    "calculated": "Calculated with the Mars24 algorithm (NASA GISS). Sol numbering: Mars 2020 mission clock.",
+    "marsYear": "Mars Year {{my}}"
+  },
+  "nav": {
+    "explore": "Explore",
+    "layers": "Layers",
+    "route": "Route",
+    "science": "Science",
+    "environment": "Environment",
+    "missions": "Missions",
+    "label": "Main panels"
+  },
+  "explore": {
+    "title": "Explore Mars",
+    "intro": "You are looking at Mars. The outlined area in Jezero Crater is where detailed Marswalk planning is supported by 1 m terrain data.",
+    "exploreJezero": "Explore Jezero",
+    "backToOrbit": "Back to orbit",
+    "coverage": "Route-planning coverage",
+    "coverageNote": "HiRISE-derived 1 m elevation model. Outside this outline Copernico does not compute routes.",
+    "guided": "Guided Marswalk",
+    "guidedDescription": "Landing site → Three Forks sample depot → Hawksbill Gap delta front, returning to the start.",
+    "startGuided": "Load guided Marswalk",
+    "steps": {
+      "one": "1 · Fly into Jezero",
+      "two": "2 · Choose a start, stops and a destination",
+      "three": "3 · Compare routes and read why they differ",
+      "four": "4 · Check daylight, walk-back margin and science stops"
+    }
+  },
+  "layers": {
+    "title": "Data layers",
+    "intro": "Every layer shows its source mission, date, resolution and limits.",
+    "groups": {
+      "imagery": "Imagery",
+      "terrain": "Terrain analysis",
+      "science": "Science",
+      "surface": "Surface missions"
+    },
+    "show": "Show {{name}}",
+    "about": "About this layer",
+    "unavailable": "Not available yet: data not built",
+    "loadGridFirst": "Enter Jezero to compute this layer",
+    "items": {
+      "viking": "Global color mosaic",
+      "ctx": "Crater imagery (CTX, 5 m)",
+      "hirise": "High-resolution imagery (HiRISE)",
+      "slope": "Slope classes",
+      "elevation": "Elevation",
+      "thermalInertia": "Thermal inertia",
+      "coverage": "Route-planning coverage",
+      "rover": "Perseverance traverse",
+      "samples": "Sample sites",
+      "pois": "Science points of interest",
+      "ingenuity": "Ingenuity flights",
+      "sky": "Stars, planets & Milky Way"
+    }
+  },
+  "legend": {
+    "slope": {
+      "title": "Terrain slope (10 m baseline)",
+      "mild": "0–10° mild",
+      "moderate": "10–15° moderate",
+      "steep": "15–20° steep",
+      "blocked": "> 20° beyond limit (striped)"
+    },
+    "elevation": {
+      "title": "Elevation above the areoid",
+      "low": "{{value}} m",
+      "high": "{{value}} m"
+    },
+    "thermalInertia": {
+      "title": "Thermal inertia (J m⁻² K⁻¹ s⁻½)",
+      "low": "< 100 possible loose material",
+      "high": "high: rock or indurated"
+    }
+  },
+  "provenance": {
+    "mission": "Mission",
+    "instrument": "Instrument",
+    "product": "Product",
+    "published": "Published",
+    "resolution": "Resolution",
+    "units": "Units",
+    "crs": "Coordinate reference",
+    "datum": "Vertical datum",
+    "uncertainty": "Uncertainty and limits",
+    "license": "License",
+    "citation": "Citation",
+    "source": "Source",
+    "derived": "Derived by Copernico from:",
+    "close": "Close"
+  },
+  "route": {
+    "title": "Plan a Marswalk",
+    "intro": "Pick points on the map or add them from the lists. Routes stay inside the coverage outline.",
+    "waypoints": "Waypoints",
+    "start": "Start",
+    "stop": "Stop {{n}}",
+    "destination": "Destination",
+    "empty": "No waypoints yet. Choose a start point.",
+    "pickOnMap": "Pick on map",
+    "picking": "Click the terrain to add a point (Esc to stop)",
+    "addCoordinates": "Add by coordinates",
+    "latitude": "Latitude (°N, planetocentric)",
+    "longitude": "Longitude (°E)",
+    "add": "Add",
+    "remove": "Remove {{name}}",
+    "moveUp": "Move {{name}} up",
+    "clear": "Clear",
+    "returnToStart": "Return to start (round trip)",
+    "profile": "Route profile",
+    "profiles": {
+      "lower-risk": "Lower estimated risk",
+      "shortest": "Shortest feasible"
+    },
+    "compute": "Calculate routes",
+    "computing": "Calculating…",
+    "loadingGrid": "Loading Jezero terrain grid…",
+    "gridUnavailable": "The Jezero terrain grid is not available. Route planning is disabled.",
+    "needTwo": "Add at least two waypoints.",
+    "results": "Results",
+    "noRoute": "No route satisfies the constraints",
+    "summary": "Summary",
+    "profileChart": "Elevation profile",
+    "itinerary": "Itinerary",
+    "compare": "Compare alternatives",
+    "why": "Why this route",
+    "unresolved": "Hazards the data cannot resolve",
+    "unresolvedList": "Rocks smaller than ~1.5 m, relief below ~0.5 m, DTM artifacts, loose or dust-covered voids, soil strength, and suit limits at Mars gravity.",
+    "assumptions": "Assumptions",
+    "assumptionsNote": "Slope limit, speeds and EVA limits come from lunar (Apollo/Artemis) sources and are assumptions for Mars. S = sourced, A = assumption.",
+    "algorithm": "Computed with {{algorithm}} · parameters {{params}} · data {{data}}"
+  },
+  "metrics": {
+    "distance": "Distance",
+    "distance3d": "3D distance",
+    "gain": "Elevation gain",
+    "loss": "Elevation loss",
+    "maxSlope": "Max terrain slope",
+    "maxGrade": "Max path grade",
+    "duration": "Estimated duration",
+    "durationRange": "Range across speed models: {{min}} – {{max}}",
+    "walkback": "Walk-back margin",
+    "walkbackOk": "{{margin}} to spare",
+    "walkbackFail": "exceeded by {{margin}}",
+    "bands": "Distance by slope band",
+    "farthest": "Farthest from start"
+  },
+  "explain": {
+    "DETOUR_AVOIDS_STEEP_TERRAIN": "The lower-risk route is {{extra}} longer than the shortest feasible route and avoids {{steep}} of 15–20° slopes and {{moderate}} of 10–15° slopes. Its steepest terrain is {{lrMax}}, versus {{shMax}} on the shortest route (slope from the HiRISE-derived 1 m elevation model, 10 m baseline).",
+    "SAME_AS_SHORTEST": "The lower-risk and shortest feasible routes are essentially the same here.",
+    "MAX_SLOPE": "Steepest terrain on the route: {{slope}} (limit {{limit}}).",
+    "ROUGH_TERRAIN": "{{distance}} crosses rough micro-relief (1 m slopes above 25° in part of the cell).",
+    "LOW_THERMAL_INERTIA": "{{distance}} crosses low thermal inertia (< 100), which can indicate loose material. Source resolution is 100 m.",
+    "WALKBACK_EXCEEDED": "Walk-back rule violated after {{at}}: elapsed time + return along the path + 30 min ingress exceeds the 8 h EVA limit.",
+    "EVA_NOMINAL_EXCEEDED": "Estimated duration {{duration}} exceeds the 6 h nominal EVA.",
+    "WALK_RADIUS_EXCEEDED": "The route goes {{distance}} from the start, beyond the {{limit}} walking radius used for lunar walking EVAs.",
+    "OUTSIDE_COVERAGE": "Waypoint {{n}} is outside the route-planning coverage.",
+    "WAYPOINT_NOT_TRAVERSABLE": "Waypoint {{n}} is on terrain that exceeds the constraints ({{reason}}).",
+    "DISCONNECTED": "Leg {{leg}} cannot be completed: a {{barrier}} barrier separates the points. The nearest reachable point is {{gap}} from the target.",
+    "barrier": {
+      "slope": "slope",
+      "nodata": "no-data (coverage edge)",
+      "excluded": "excluded-area",
+      "mixed": "mixed slope and coverage"
+    },
+    "reason": {
+      "slope": "slope above the limit",
+      "nodata": "no terrain data",
+      "excluded": "excluded area"
+    }
+  },
+  "science": {
+    "title": "Science along the way",
+    "intro": "Sourced sites where Perseverance worked, and what a crew could investigate there.",
+    "pois": "Points of interest",
+    "samples": "Perseverance samples",
+    "rover": "Perseverance",
+    "roverLatest": "Latest published position: sol {{sol}} (source updated {{date}})",
+    "roverOutside": "Outside route-planning coverage",
+    "inCoverage": "Inside route coverage",
+    "outCoverage": "Outside route coverage",
+    "addStop": "Add as waypoint",
+    "flyTo": "Show on map",
+    "why": "Why it matters",
+    "investigate": "What to investigate",
+    "source": "Source",
+    "sampleMeta": "Sample {{n}} · sol {{sol}} · {{date}} · {{rock}}",
+    "corrected": "Position corrected from published easting/northing"
+  },
+  "environment": {
+    "title": "Environment and time",
+    "intro": "What is calculated, what was measured, and when. There is no live weather for Jezero.",
+    "now": "Now at Jezero (calculated)",
+    "evaStart": "Planned EVA start (UTC)",
+    "sunElevation": "Sun elevation",
+    "sunAzimuth": "Sun azimuth",
+    "season": "Season",
+    "daylight": "Daylight window (sun ≥ {{min}}°)",
+    "noDaylight": "The Sun does not reach {{min}}° on this sol.",
+    "kinds": {
+      "calculated": "Calculated",
+      "observed": "Measured",
+      "historical_summary": "Historical summary",
+      "modeled": "Model estimate",
+      "illustrative": "Illustrative"
+    },
+    "measurementsTitle": "Measurements (MEDA)",
+    "measurementsPending": "MEDA measurements are published on the PDS about 3–4 months after they are taken. The newest released data end on 2026-05-13 (sol 1859). They are being prepared for this app.",
+    "noLive": "No mission publishes live weather for Jezero. Any value shown here is dated.",
+    "seasons": {
+      "northSpring": "Northern spring",
+      "northSummer": "Northern summer",
+      "northAutumn": "Northern autumn",
+      "northWinter": "Northern winter"
+    },
+    "lighting": "Scene lighting uses this calculated Sun direction. No atmospheric scattering or terrain shadows are modeled.",
+    "medaLatest": "Latest released MEDA measurements · sol {{sol}}",
+    "airTemp": "Air temperature near the mast (min … max)",
+    "pressure": "Surface pressure (mean)",
+    "medaWhere": "Measured at the rover position on that sol: elevation {{elevation}} m, {{distance}} from the Jezero landing site. Pressure changes with elevation.",
+    "medaCaveat": "Median of MEDA air temperature sensors 1–3 on the mast; local values that may include rover thermal influence. Not live weather.",
+    "medaSummary": "Sols {{first}}–{{last}} summary",
+    "medaRange": "Across {{n}} sols with data: nightly lows {{lowMin}} to {{lowMax}} °C, daily highs {{highMin}} to {{highMax}} °C, mean pressure {{pMin}}–{{pMax}} Pa."
+  },
+  "missions": {
+    "title": "My missions",
+    "signedOut": "Sign in to save missions. Exploring and route planning work without an account.",
+    "comingSoon": "Accounts and saved missions are being connected."
+  },
+  "assistant": {
+    "title": "Mission assistant",
+    "open": "Open assistant",
+    "close": "Collapse assistant",
+    "disabled": "The assistant is not connected yet. Route planning and all data layers work without it.",
+    "placeholder": "Ask about the route, Jezero, or the data…",
+    "notConnected": "Not connected"
+  },
+  "errors": {
+    "webgl": "Your browser or device cannot display the 3D globe (WebGL 2 unavailable). Route results remain available as text.",
+    "dataMissing": "Some data layers are not available: {{what}}",
+    "retry": "Retry"
+  },
+  "units": {
+    "m": "{{value}} m",
+    "km": "{{value}} km",
+    "deg": "{{value}}°"
+  },
+  "loading": {
+    "subtitle": "Preparing Mars: orbital data, terrain and the sky as seen from Jezero",
+    "steps": {
+      "stars": "Star catalog (8,404 stars)",
+      "sky": "Milky Way background",
+      "terrain": "Mars terrain model",
+      "imagery": "Orbital imagery",
+      "tiles": "Rendering the first view",
+      "surface": "Perseverance and science data"
+    },
+    "hd": "HD 8K",
+    "sd": "standard 4K",
+    "status": {
+      "pending": "loading",
+      "done": "ready",
+      "failed": "unavailable"
+    },
+    "continue": "Continue with what has loaded"
+  }
+}

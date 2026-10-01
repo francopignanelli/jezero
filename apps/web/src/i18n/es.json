@@ -1,0 +1,284 @@
+{
+  "app": {
+    "name": "Copernico",
+    "tagline": "Planificación de caminatas marcianas con datos de misiones de la NASA",
+    "skipToMain": "Saltar al contenido principal",
+    "prototypeNotice": "Prototipo de investigación y educación. Las rutas muestran menor riesgo estimado, nunca seguridad garantizada."
+  },
+  "breadcrumb": {
+    "mars": "Marte",
+    "jezero": "Cráter Jezero",
+    "operational": "Área operativa"
+  },
+  "status": {
+    "sol": "Sol {{sol}}",
+    "ls": "Ls {{ls}}°",
+    "ltst": "LTST {{time}} en Jezero",
+    "calculated": "Calculado con el algoritmo Mars24 (NASA GISS). Numeración de soles: reloj de la misión Mars 2020.",
+    "marsYear": "Año marciano {{my}}"
+  },
+  "nav": {
+    "explore": "Explorar",
+    "layers": "Capas",
+    "route": "Ruta",
+    "science": "Ciencia",
+    "environment": "Ambiente",
+    "missions": "Misiones",
+    "label": "Paneles principales"
+  },
+  "explore": {
+    "title": "Explorar Marte",
+    "intro": "Estás viendo Marte. El área delimitada en el cráter Jezero es donde la planificación detallada de caminatas cuenta con datos de terreno de 1 m.",
+    "exploreJezero": "Explorar Jezero",
+    "backToOrbit": "Volver a la órbita",
+    "coverage": "Cobertura para planificar rutas",
+    "coverageNote": "Modelo de elevación de 1 m derivado de HiRISE. Fuera de este contorno Copernico no calcula rutas.",
+    "guided": "Caminata guiada",
+    "guidedDescription": "Sitio de aterrizaje → depósito de muestras Three Forks → frente del delta en Hawksbill Gap, con regreso al inicio.",
+    "startGuided": "Cargar caminata guiada",
+    "steps": {
+      "one": "1 · Viajá a Jezero",
+      "two": "2 · Elegí un inicio, paradas y un destino",
+      "three": "3 · Compará rutas y leé por qué difieren",
+      "four": "4 · Revisá luz diurna, margen de regreso y paradas científicas"
+    }
+  },
+  "layers": {
+    "title": "Capas de datos",
+    "intro": "Cada capa muestra la misión de origen, fecha, resolución y limitaciones.",
+    "groups": {
+      "imagery": "Imágenes",
+      "terrain": "Análisis del terreno",
+      "science": "Ciencia",
+      "surface": "Misiones de superficie"
+    },
+    "show": "Mostrar {{name}}",
+    "about": "Sobre esta capa",
+    "unavailable": "Aún no disponible: datos no generados",
+    "loadGridFirst": "Entrá a Jezero para calcular esta capa",
+    "items": {
+      "viking": "Mosaico global en color",
+      "ctx": "Imágenes del cráter (CTX, 5 m)",
+      "hirise": "Imágenes de alta resolución (HiRISE)",
+      "slope": "Clases de pendiente",
+      "elevation": "Elevación",
+      "thermalInertia": "Inercia térmica",
+      "coverage": "Cobertura para rutas",
+      "rover": "Recorrido de Perseverance",
+      "samples": "Sitios de muestreo",
+      "pois": "Puntos de interés científico",
+      "ingenuity": "Vuelos de Ingenuity",
+      "sky": "Estrellas, planetas y Vía Láctea"
+    }
+  },
+  "legend": {
+    "slope": {
+      "title": "Pendiente del terreno (base de 10 m)",
+      "mild": "0–10° suave",
+      "moderate": "10–15° moderada",
+      "steep": "15–20° pronunciada",
+      "blocked": "> 20° fuera del límite (rayado)"
+    },
+    "elevation": {
+      "title": "Elevación sobre el areoide",
+      "low": "{{value}} m",
+      "high": "{{value}} m"
+    },
+    "thermalInertia": {
+      "title": "Inercia térmica (J m⁻² K⁻¹ s⁻½)",
+      "low": "< 100 posible material suelto",
+      "high": "alta: roca o material consolidado"
+    }
+  },
+  "provenance": {
+    "mission": "Misión",
+    "instrument": "Instrumento",
+    "product": "Producto",
+    "published": "Publicado",
+    "resolution": "Resolución",
+    "units": "Unidades",
+    "crs": "Referencia de coordenadas",
+    "datum": "Datum vertical",
+    "uncertainty": "Incertidumbre y límites",
+    "license": "Licencia",
+    "citation": "Cita",
+    "source": "Fuente",
+    "derived": "Derivado por Copernico a partir de:",
+    "close": "Cerrar"
+  },
+  "route": {
+    "title": "Planificar una caminata",
+    "intro": "Elegí puntos en el mapa o agregalos desde las listas. Las rutas se mantienen dentro del contorno de cobertura.",
+    "waypoints": "Puntos de ruta",
+    "start": "Inicio",
+    "stop": "Parada {{n}}",
+    "destination": "Destino",
+    "empty": "Todavía no hay puntos. Elegí un punto de inicio.",
+    "pickOnMap": "Elegir en el mapa",
+    "picking": "Hacé clic en el terreno para agregar un punto (Esc para terminar)",
+    "addCoordinates": "Agregar por coordenadas",
+    "latitude": "Latitud (°N, planetocéntrica)",
+    "longitude": "Longitud (°E)",
+    "add": "Agregar",
+    "remove": "Quitar {{name}}",
+    "moveUp": "Subir {{name}}",
+    "clear": "Limpiar",
+    "returnToStart": "Regresar al inicio (ida y vuelta)",
+    "profile": "Perfil de ruta",
+    "profiles": {
+      "lower-risk": "Menor riesgo estimado",
+      "shortest": "Más corta factible"
+    },
+    "compute": "Calcular rutas",
+    "computing": "Calculando…",
+    "loadingGrid": "Cargando la grilla de terreno de Jezero…",
+    "gridUnavailable": "La grilla de terreno de Jezero no está disponible. La planificación de rutas está desactivada.",
+    "needTwo": "Agregá al menos dos puntos.",
+    "results": "Resultados",
+    "noRoute": "Ninguna ruta cumple las restricciones",
+    "summary": "Resumen",
+    "profileChart": "Perfil de elevación",
+    "itinerary": "Itinerario",
+    "compare": "Comparar alternativas",
+    "why": "Por qué esta ruta",
+    "unresolved": "Peligros que los datos no pueden resolver",
+    "unresolvedList": "Rocas menores a ~1,5 m, relieve menor a ~0,5 m, artefactos del modelo de elevación, huecos sueltos o cubiertos de polvo, resistencia del suelo y límites del traje en la gravedad marciana.",
+    "assumptions": "Supuestos",
+    "assumptionsNote": "El límite de pendiente, las velocidades y los límites de EVA provienen de fuentes lunares (Apolo/Artemis) y son supuestos para Marte. S = con fuente, A = supuesto.",
+    "algorithm": "Calculado con {{algorithm}} · parámetros {{params}} · datos {{data}}"
+  },
+  "metrics": {
+    "distance": "Distancia",
+    "distance3d": "Distancia 3D",
+    "gain": "Ascenso acumulado",
+    "loss": "Descenso acumulado",
+    "maxSlope": "Pendiente máxima del terreno",
+    "maxGrade": "Inclinación máxima del trayecto",
+    "duration": "Duración estimada",
+    "durationRange": "Rango según modelos de velocidad: {{min}} – {{max}}",
+    "walkback": "Margen de regreso",
+    "walkbackOk": "sobran {{margin}}",
+    "walkbackFail": "excedido por {{margin}}",
+    "bands": "Distancia por clase de pendiente",
+    "farthest": "Máxima distancia al inicio"
+  },
+  "explain": {
+    "DETOUR_AVOIDS_STEEP_TERRAIN": "La ruta de menor riesgo es {{extra}} más larga que la más corta factible y evita {{steep}} de pendientes de 15–20° y {{moderate}} de 10–15°. Su terreno más empinado es de {{lrMax}}, frente a {{shMax}} en la ruta más corta (pendiente del modelo de elevación HiRISE de 1 m, base de 10 m).",
+    "SAME_AS_SHORTEST": "Aquí la ruta de menor riesgo y la más corta factible son prácticamente iguales.",
+    "MAX_SLOPE": "Terreno más empinado en la ruta: {{slope}} (límite {{limit}}).",
+    "ROUGH_TERRAIN": "{{distance}} atraviesan microrrelieve irregular (pendientes a 1 m mayores a 25° en parte de la celda).",
+    "LOW_THERMAL_INERTIA": "{{distance}} atraviesan inercia térmica baja (< 100), que puede indicar material suelto. Resolución de la fuente: 100 m.",
+    "WALKBACK_EXCEEDED": "Se viola la regla de regreso después de {{at}}: tiempo transcurrido + regreso por el camino + 30 min de ingreso superan el límite de 8 h de EVA.",
+    "EVA_NOMINAL_EXCEEDED": "La duración estimada de {{duration}} supera la EVA nominal de 6 h.",
+    "WALK_RADIUS_EXCEEDED": "La ruta se aleja {{distance}} del inicio, más allá del radio de {{limit}} usado para EVAs lunares a pie.",
+    "OUTSIDE_COVERAGE": "El punto {{n}} está fuera de la cobertura para rutas.",
+    "WAYPOINT_NOT_TRAVERSABLE": "El punto {{n}} está en terreno que supera las restricciones ({{reason}}).",
+    "DISCONNECTED": "El tramo {{leg}} no puede completarse: una barrera de {{barrier}} separa los puntos. El punto alcanzable más cercano está a {{gap}} del objetivo.",
+    "barrier": {
+      "slope": "pendiente",
+      "nodata": "falta de datos (borde de cobertura)",
+      "excluded": "área excluida",
+      "mixed": "pendiente y cobertura"
+    },
+    "reason": {
+      "slope": "pendiente superior al límite",
+      "nodata": "sin datos de terreno",
+      "excluded": "área excluida"
+    }
+  },
+  "science": {
+    "title": "Ciencia en el camino",
+    "intro": "Sitios con fuente donde trabajó Perseverance y qué podría investigar una tripulación allí.",
+    "pois": "Puntos de interés",
+    "samples": "Muestras de Perseverance",
+    "rover": "Perseverance",
+    "roverLatest": "Última posición publicada: sol {{sol}} (fuente actualizada el {{date}})",
+    "roverOutside": "Fuera de la cobertura para rutas",
+    "inCoverage": "Dentro de la cobertura",
+    "outCoverage": "Fuera de la cobertura",
+    "addStop": "Agregar como punto de ruta",
+    "flyTo": "Ver en el mapa",
+    "why": "Por qué importa",
+    "investigate": "Qué investigar",
+    "source": "Fuente",
+    "sampleMeta": "Muestra {{n}} · sol {{sol}} · {{date}} · {{rock}}",
+    "corrected": "Posición corregida a partir del este/norte publicado"
+  },
+  "environment": {
+    "title": "Ambiente y tiempo",
+    "intro": "Qué se calcula, qué se midió y cuándo. No hay clima en vivo para Jezero.",
+    "now": "Ahora en Jezero (calculado)",
+    "evaStart": "Inicio planificado de la EVA (UTC)",
+    "sunElevation": "Elevación del Sol",
+    "sunAzimuth": "Acimut del Sol",
+    "season": "Estación",
+    "daylight": "Ventana de luz (Sol ≥ {{min}}°)",
+    "noDaylight": "El Sol no alcanza {{min}}° en este sol.",
+    "kinds": {
+      "calculated": "Calculado",
+      "observed": "Medido",
+      "historical_summary": "Resumen histórico",
+      "modeled": "Estimación de modelo",
+      "illustrative": "Ilustrativo"
+    },
+    "measurementsTitle": "Mediciones (MEDA)",
+    "measurementsPending": "Las mediciones de MEDA se publican en el PDS unos 3–4 meses después de tomarse. Los últimos datos publicados llegan al 13-05-2026 (sol 1859). Se están preparando para esta aplicación.",
+    "noLive": "Ninguna misión publica clima en vivo para Jezero. Todo valor mostrado aquí tiene fecha.",
+    "seasons": {
+      "northSpring": "Primavera boreal",
+      "northSummer": "Verano boreal",
+      "northAutumn": "Otoño boreal",
+      "northWinter": "Invierno boreal"
+    },
+    "lighting": "La iluminación de la escena usa esta dirección del Sol calculada. No se modelan dispersión atmosférica ni sombras del terreno.",
+    "medaLatest": "Últimas mediciones publicadas de MEDA · sol {{sol}}",
+    "airTemp": "Temperatura del aire junto al mástil (mín … máx)",
+    "pressure": "Presión en superficie (media)",
+    "medaWhere": "Medido en la posición del rover ese sol: elevación {{elevation}} m, a {{distance}} del sitio de aterrizaje en Jezero. La presión varía con la elevación.",
+    "medaCaveat": "Mediana de los sensores de temperatura del aire 1–3 de MEDA en el mástil; valores locales que pueden incluir influencia térmica del rover. No es clima en vivo.",
+    "medaSummary": "Resumen de los soles {{first}}–{{last}}",
+    "medaRange": "En {{n}} soles con datos: mínimas nocturnas de {{lowMin}} a {{lowMax}} °C, máximas diurnas de {{highMin}} a {{highMax}} °C, presión media de {{pMin}}–{{pMax}} Pa."
+  },
+  "missions": {
+    "title": "Mis misiones",
+    "signedOut": "Iniciá sesión para guardar misiones. Explorar y planificar rutas funciona sin cuenta.",
+    "comingSoon": "Las cuentas y misiones guardadas se están conectando."
+  },
+  "assistant": {
+    "title": "Asistente de misión",
+    "open": "Abrir asistente",
+    "close": "Contraer asistente",
+    "disabled": "El asistente todavía no está conectado. La planificación de rutas y todas las capas funcionan sin él.",
+    "placeholder": "Preguntá sobre la ruta, Jezero o los datos…",
+    "notConnected": "No conectado"
+  },
+  "errors": {
+    "webgl": "Tu navegador o dispositivo no puede mostrar el globo 3D (WebGL 2 no disponible). Los resultados de rutas siguen disponibles como texto.",
+    "dataMissing": "Algunas capas no están disponibles: {{what}}",
+    "retry": "Reintentar"
+  },
+  "units": {
+    "m": "{{value}} m",
+    "km": "{{value}} km",
+    "deg": "{{value}}°"
+  },
+  "loading": {
+    "subtitle": "Preparando Marte: datos orbitales, terreno y el cielo visto desde Jezero",
+    "steps": {
+      "stars": "Catálogo estelar (8.404 estrellas)",
+      "sky": "Fondo de la Vía Láctea",
+      "terrain": "Modelo de terreno de Marte",
+      "imagery": "Imágenes orbitales",
+      "tiles": "Renderizando la primera vista",
+      "surface": "Datos de Perseverance y ciencia"
+    },
+    "hd": "HD 8K",
+    "sd": "estándar 4K",
+    "status": {
+      "pending": "cargando",
+      "done": "listo",
+      "failed": "no disponible"
+    },
+    "continue": "Continuar con lo que ya cargó"
+  }
+}
