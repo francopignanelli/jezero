@@ -1334,3 +1334,102 @@ details.samples > summary {
   padding: 4px 12px;
   font-size: var(--fs-xs);
 }
+
+/* ---------- EVA timeline ---------- */
+.timeline-summary {
+  margin: 4px 0 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.timeline-chart {
+  display: block;
+  max-width: 460px;
+  cursor: crosshair;
+  touch-action: none;
+}
+.tl-walk {
+  fill: #3ff0c0;
+  background: #3ff0c0;
+}
+.tl-dwell {
+  fill: #f2b84b;
+  background: #f2b84b;
+}
+.tl-threshold {
+  stroke: var(--text-faint);
+  stroke-dasharray: 3 3;
+}
+.tl-sun {
+  stroke: #ffd166;
+  stroke-width: 2;
+}
+.tl-sun-bad {
+  stroke: var(--danger);
+}
+.tl-label {
+  font-size: 8px;
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.tl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0;
+}
+.tl-key {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+.tl-sun-key {
+  height: 2px;
+  background: #ffd166;
+}
+.tl-check {
+  margin: 6px 0;
+  font-size: var(--fs-sm);
+}
+.tl-check.ok {
+  color: var(--ok);
+}
+.tl-check.bad {
+  color: var(--danger);
+}
+.tl-events {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  font-size: var(--fs-sm);
+}
+.tl-events li {
+  display: grid;
+  grid-template-columns: 3.4em 1fr;
+  gap: 8px;
+  padding: 3px 0;
+}
+.tl-events time {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+.dwell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.dwell input {
+  width: 4.2em;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}

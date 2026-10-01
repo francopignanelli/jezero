@@ -1,8 +1,15 @@
-import { DEFAULT_EVA_PARAMS, EVA_PARAMS_BASIS, type RouteResult } from '@copernico/domain';
-import { useEffect, useState, type FormEvent } from 'react';
+import {
+  buildTimeline,
+  DEFAULT_DWELL_MIN,
+  DEFAULT_EVA_PARAMS,
+  EVA_PARAMS_BASIS,
+  type RouteResult,
+} from '@copernico/domain';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useApp, type WaypointEntry } from '../../app/store';
+import { JEZERO } from '../../config';
 import { explanationText, isWarning } from '../../lib/explain';
 import {
   formatCoordinate,
@@ -13,6 +20,7 @@ import {
 } from '../../lib/format';
 import { IconPin, IconUp, IconX } from '../../ui/icons';
 import { ElevationProfile } from './ElevationProfile';
+import { Timeline } from './Timeline';
 import { computeRoutes } from './compute';
 import { CORRIDOR_M, nearbyCandidates } from '../science/StopsNearRoute';
 
@@ -93,6 +101,23 @@ export function RoutePanel() {
                 <span className="waypoint-label">
                   {name}
                   <span className="waypoint-coords">{formatCoordinate(w.lat, w.lon, locale)}</span>
+                  {i > 0 && (s.returnToStart || i < s.waypoints.length - 1) && (
+                    <label className="dwell">
+                      <input
+                        type="number"
+                        min={0}
+                        max={240}
+                        step={5}
+                        value={w.dwellMin ?? DEFAULT_DWELL_MIN}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (Number.isFinite(v)) s.setDwell(w.id, Math.max(0, Math.min(240, v)));
+                        }}
+                        aria-label={t('route.dwellAria', { name })}
+                      />
+                      {t('route.dwellUnit')}
+                    </label>
+                  )}
                 </span>
                 <span>
                   <button
@@ -210,6 +235,18 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
   const s = useApp();
   const result = s.result!;
   const m = primary.metrics;
+  const timeline = useMemo(
+    () =>
+      buildTimeline(
+        primary,
+        s.waypoints.map((w) => w.dwellMin ?? DEFAULT_DWELL_MIN),
+        s.returnToStart,
+        s.evaStartUtcMs,
+        JEZERO,
+      ),
+    [primary, s.waypoints, s.returnToStart, s.evaStartUtcMs],
+  );
+  const walkbackS = timeline?.walkbackMarginS ?? m?.walkback.worstMarginS ?? 0;
 
   return (
     <>
@@ -269,19 +306,28 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
             </div>
             <div className="metric">
               <dt>{t('metrics.walkback')}</dt>
-              <dd style={{ color: m.walkback.ok ? 'var(--ok)' : 'var(--danger)' }}>
-                {m.walkback.ok
-                  ? t('metrics.walkbackOk', { margin: formatDuration(m.walkback.worstMarginS) })
-                  : t('metrics.walkbackFail', { margin: formatDuration(-m.walkback.worstMarginS) })}
+              <dd style={{ color: walkbackS >= 0 ? 'var(--ok)' : 'var(--danger)' }}>
+                {walkbackS >= 0
+                  ? t('metrics.walkbackOk', { margin: formatDuration(walkbackS) })
+                  : t('metrics.walkbackFail', { margin: formatDuration(-walkbackS) })}
                 <small title={t('metrics.walkbackRule')}>
                   {t('metrics.walkbackBasis', {
                     cap: formatDuration(DEFAULT_EVA_PARAMS.evaCapHours * 3600),
                     ingress: formatDuration(DEFAULT_EVA_PARAMS.ingressHours * 3600),
                   })}
+                  {timeline && timeline.dwellS > 0 && ` · ${t('metrics.walkbackStops')}`}
                 </small>
               </dd>
             </div>
           </dl>
+
+          {timeline && (
+            <Timeline
+              timeline={timeline}
+              route={primary}
+              names={(w, i) => (w ? waypointName(t, w, i, s.waypoints.length) : t('route.start'))}
+            />
+          )}
 
           <h3>{t('route.why')}</h3>
           <ul className="explain">

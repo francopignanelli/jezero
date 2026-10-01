@@ -110,3 +110,16 @@ export function nearestOnPolyline(
   if (points.length === 1) best = Math.hypot(...xy(points[0]!));
   return { distanceM: best, segmentIndex: bestIndex };
 }
+
+/** Distance along the profile at a walking time (s), interpolated between samples. */
+export function distanceAtElapsed(profile: ElevationProfile, walkS: number): number {
+  const e = profile.elapsedS;
+  const n = e.length;
+  if (n === 0) return 0;
+  if (walkS <= 0) return 0;
+  if (walkS >= e[n - 1]!) return profile.distanceM[n - 1]!;
+  const i = segmentAt(e, walkS);
+  const span = e[i + 1]! - e[i]!;
+  const f = span > 0 ? (walkS - e[i]!) / span : 0;
+  return profile.distanceM[i]! + (profile.distanceM[i + 1]! - profile.distanceM[i]!) * f;
+}

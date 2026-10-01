@@ -155,7 +155,9 @@
     "algorithm": "Computed with {{algorithm}} · parameters {{params}} · data {{data}}",
     "profileCursor": "Elevation profile: position along the route",
     "profileReadout": "{{distance}} · {{elevation}} · slope {{slope}} · {{elapsed}} walking",
-    "profileHint": "Elevation profile (m). Hover or use the arrow keys to follow the route on the map."
+    "profileHint": "Elevation profile (m). Hover or use the arrow keys to follow the route on the map.",
+    "dwellUnit": "min at stop",
+    "dwellAria": "Minutes spent at {{name}}"
   },
   "metrics": {
     "distance": "Distance",
@@ -172,7 +174,8 @@
     "bands": "Distance by slope band",
     "farthest": "Farthest from start",
     "walkbackBasis": "{{cap}} EVA limit · {{ingress}} ingress",
-    "walkbackRule": "Smallest margin along the route: EVA limit − (time elapsed + time to walk back to the start + suit ingress). Lunar-derived rule, labelled as an assumption for Mars."
+    "walkbackRule": "Smallest margin along the route: EVA limit − (time elapsed + time to walk back to the start + suit ingress). Lunar-derived rule, labelled as an assumption for Mars.",
+    "walkbackStops": "incl. stop time"
   },
   "explain": {
     "DETOUR_AVOIDS_STEEP_TERRAIN": "The lower-risk route is {{extra}} longer than the shortest feasible route and avoids {{steep}} of 15–20° slopes and {{moderate}} of 10–15° slopes. Its steepest terrain is {{lrMax}}, versus {{shMax}} on the shortest route (slope from the HiRISE-derived 1 m elevation model, 10 m baseline).",
@@ -330,5 +333,26 @@
     "hint": "Click the terrain to inspect a point.",
     "loading": "Reading the grid…",
     "gridPending": "Enter Jezero to read the route-planning grid."
+  },
+  "timeline": {
+    "title": "EVA timeline",
+    "summary": "{{start}} → {{end}} LTST · {{total}} ({{walk}} walking + {{dwell}} at stops)",
+    "threshold": "Sun {{deg}}°",
+    "walking": "Walking",
+    "atStop": "At a stop",
+    "sun": "Sun elevation",
+    "daylightOk": "Back {{margin}} before the Sun drops below {{deg}}° (at {{time}} LTST).",
+    "daylightOkNoEnd": "The Sun stays above the threshold for the rest of the sol.",
+    "daylightBad": "The Sun drops below {{deg}}° at {{time}} LTST, {{where}}. Start earlier or shorten the EVA.",
+    "atName": "while at {{name}}",
+    "onLeg": "during leg {{n}}",
+    "stopFor": "{{duration}} at the stop",
+    "events": {
+      "depart": "Depart {{name}}",
+      "arrive": "Arrive at {{name}}",
+      "end": "Back at {{name}}"
+    },
+    "note": "Times are Local True Solar Time at Jezero (hover for UTC), calculated with Mars24. LTST hours are Mars hours (1/24 of a sol, about 61.6 Earth minutes); durations are in Earth hours. Stop time is an assumption you set per stop (default 20 min).",
+    "daylightBadStart": "The Sun is below {{deg}}° at departure ({{time}} LTST). Start later in the morning."
   }
 }

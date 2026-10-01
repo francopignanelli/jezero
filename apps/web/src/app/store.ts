@@ -28,6 +28,8 @@ export interface WaypointEntry {
   lon: number;
   label?: string;
   poiId?: string;
+  /** Minutes spent working at this stop (default DEFAULT_DWELL_MIN). */
+  dwellMin?: number;
 }
 
 export type GridStatus = 'idle' | 'loading' | 'ready' | 'unavailable';
@@ -91,6 +93,7 @@ interface AppState {
   inspected: { lat: number; lon: number } | null;
   setInspected(p: { lat: number; lon: number } | null): void;
   insertWaypoint(index: number, w: Omit<WaypointEntry, 'id'>): void;
+  setDwell(id: string, minutes: number): void;
   selectPoi(id: string | null): void;
   setEvaStart(ms: number): void;
   flyTo(lat: number, lon: number): void;
@@ -172,6 +175,11 @@ export const useApp = create<AppState>((set) => ({
   setComputeMs: (computeMs) => set({ computeMs }),
   inspected: null,
   setInspected: (inspected) => set({ inspected }),
+  // Stop time changes the timeline only; the routes stay valid.
+  setDwell: (id, minutes) =>
+    set((s) => ({
+      waypoints: s.waypoints.map((w) => (w.id === id ? { ...w, dwellMin: minutes } : w)),
+    })),
   insertWaypoint: (index, w) =>
     set((s) => {
       const list = [...s.waypoints];

@@ -155,7 +155,9 @@
     "algorithm": "Calculado con {{algorithm}} · parámetros {{params}} · datos {{data}}",
     "profileCursor": "Perfil de elevación: posición a lo largo de la ruta",
     "profileReadout": "{{distance}} · {{elevation}} · pendiente {{slope}} · {{elapsed}} caminando",
-    "profileHint": "Perfil de elevación (m). Pasá el cursor o usá las flechas para seguir la ruta en el mapa."
+    "profileHint": "Perfil de elevación (m). Pasá el cursor o usá las flechas para seguir la ruta en el mapa.",
+    "dwellUnit": "min en la parada",
+    "dwellAria": "Minutos en {{name}}"
   },
   "metrics": {
     "distance": "Distancia",
@@ -172,7 +174,8 @@
     "bands": "Distancia por clase de pendiente",
     "farthest": "Máxima distancia al inicio",
     "walkbackBasis": "límite EVA {{cap}} · ingreso {{ingress}}",
-    "walkbackRule": "Menor margen a lo largo de la ruta: límite de EVA − (tiempo transcurrido + tiempo para volver al inicio + ingreso al hábitat). Regla derivada de EVAs lunares, marcada como supuesto para Marte."
+    "walkbackRule": "Menor margen a lo largo de la ruta: límite de EVA − (tiempo transcurrido + tiempo para volver al inicio + ingreso al hábitat). Regla derivada de EVAs lunares, marcada como supuesto para Marte.",
+    "walkbackStops": "incluye paradas"
   },
   "explain": {
     "DETOUR_AVOIDS_STEEP_TERRAIN": "La ruta de menor riesgo es {{extra}} más larga que la más corta factible y evita {{steep}} de pendientes de 15–20° y {{moderate}} de 10–15°. Su terreno más empinado es de {{lrMax}}, frente a {{shMax}} en la ruta más corta (pendiente del modelo de elevación HiRISE de 1 m, base de 10 m).",
@@ -330,5 +333,26 @@
     "hint": "Hacé clic en el terreno para inspeccionar un punto.",
     "loading": "Leyendo la grilla…",
     "gridPending": "Entrá a Jezero para leer la grilla de rutas."
+  },
+  "timeline": {
+    "title": "Cronograma de la EVA",
+    "summary": "{{start}} → {{end}} LTST · {{total}} ({{walk}} caminando + {{dwell}} en paradas)",
+    "threshold": "Sol {{deg}}°",
+    "walking": "Caminando",
+    "atStop": "En una parada",
+    "sun": "Elevación del Sol",
+    "daylightOk": "Regreso {{margin}} antes de que el Sol baje de {{deg}}° (a las {{time}} LTST).",
+    "daylightOkNoEnd": "El Sol se mantiene sobre el umbral el resto del sol.",
+    "daylightBad": "El Sol baja de {{deg}}° a las {{time}} LTST, {{where}}. Empezá antes o acortá la EVA.",
+    "atName": "mientras están en {{name}}",
+    "onLeg": "durante el tramo {{n}}",
+    "stopFor": "{{duration}} en la parada",
+    "events": {
+      "depart": "Salida de {{name}}",
+      "arrive": "Llegada a {{name}}",
+      "end": "Regreso a {{name}}"
+    },
+    "note": "Horas en Tiempo Solar Verdadero Local de Jezero (pasá el cursor para ver UTC), calculadas con Mars24. Las horas LTST son horas marcianas (1/24 de sol, unos 61,6 minutos terrestres); las duraciones están en horas terrestres. El tiempo en cada parada es un supuesto que definís vos (20 min por defecto).",
+    "daylightBadStart": "El Sol está por debajo de {{deg}}° a la salida ({{time}} LTST). Empezá más tarde a la mañana."
   }
 }

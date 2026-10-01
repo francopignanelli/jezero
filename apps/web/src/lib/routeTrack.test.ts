@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { arrowsAlong, buildTrack, nearestOnPolyline, pointAt, profileAt } from './routeTrack';
+import {
+  arrowsAlong,
+  buildTrack,
+  distanceAtElapsed,
+  nearestOnPolyline,
+  pointAt,
+  profileAt,
+} from './routeTrack';
 
 // 1° of latitude on the Mars sphere = 59,274.7 m.
 const M_PER_DEG = 59_274.7;
@@ -43,6 +50,9 @@ describe('route track lookups', () => {
       slopeDeg: 8,
       elapsedS: 9,
     });
+    expect(distanceAtElapsed(profile, 2)).toBeCloseTo(2.5, 6);
+    expect(distanceAtElapsed(profile, 6.5)).toBeCloseTo(7.5, 6);
+    expect(distanceAtElapsed(profile, 100)).toBe(10);
   });
 });
 
