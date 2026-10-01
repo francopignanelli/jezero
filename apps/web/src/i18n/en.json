@@ -74,7 +74,8 @@
       "samples": "Sample sites",
       "pois": "Science points of interest",
       "ingenuity": "Ingenuity flights",
-      "sky": "Stars, planets & Milky Way"
+      "sky": "Stars, planets & Milky Way",
+      "reach": "Round-trip reach from start"
     },
     "close": "Close layers"
   },
@@ -95,6 +96,12 @@
       "title": "Thermal inertia (J m⁻² K⁻¹ s⁻½)",
       "low": "< 100 possible loose material",
       "high": "high: rock or indurated"
+    },
+    "reach": {
+      "title": "Round trip from the start (walking)",
+      "needStart": "Add a start point in Plan to see how far a crew can go and return.",
+      "computing": "Computing reach…",
+      "band": "≤ {{h}} h · {{area}} km²"
     }
   },
   "provenance": {

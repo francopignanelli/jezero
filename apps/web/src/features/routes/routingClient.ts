@@ -71,6 +71,12 @@ class RoutingClient {
     return msg.detours;
   }
 
+  async reach(lat: number, lon: number, bandsH: number[]) {
+    const msg = await this.request({ type: 'reach', id: 0, lat, lon, bandsH });
+    if (msg.type !== 'reach') throw new Error('unexpected worker response');
+    return msg;
+  }
+
   /** True once the grid is loaded (inspection and detours need it). */
   get isReady(): boolean {
     return this.ready !== null;

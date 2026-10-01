@@ -18,6 +18,7 @@ export * from './routing/explain';
 export * from './routing/planner';
 export * from './routing/inspect';
 export * from './routing/timeline';
+export * from './routing/isochrone';
 export * from './time/leapSeconds';
 export * from './time/mars24';
 export * from './time/m2020';

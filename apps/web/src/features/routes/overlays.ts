@@ -110,3 +110,40 @@ export function renderOverlay(t: PreparedTerrain, kind: OverlayKind): Overlay {
   }
   return { kind, width: cols, height: rows, rgba, range };
 }
+
+/** Round-trip reach bands (hours): one colour per band, nearest the start strongest. */
+export const REACH_COLOURS: ReadonlyArray<readonly [number, number, number, number]> = [
+  [63, 240, 192, 150],
+  [94, 201, 98, 135],
+  [181, 222, 43, 120],
+  [253, 231, 37, 110],
+  [248, 149, 64, 100],
+  [229, 92, 48, 92],
+  [188, 55, 84, 85],
+  [120, 28, 109, 80],
+];
+
+/** Colours each cell by the band of its round-trip time; cells beyond the last band stay clear. */
+export function renderReach(
+  t: PreparedTerrain,
+  roundTripS: Float32Array,
+  bandsH: readonly number[],
+) {
+  const { cols, rows } = t.layers.spec;
+  const rgba = new Uint8ClampedArray(cols * rows * 4);
+  const limits = bandsH.map((h) => h * 3600);
+  for (let k = 0; k < roundTripS.length; k++) {
+    const s = roundTripS[k]!;
+    if (!Number.isFinite(s)) continue;
+    let band = limits.findIndex((l) => s <= l);
+    if (band < 0) continue;
+    band = Math.min(band, REACH_COLOURS.length - 1);
+    const c = REACH_COLOURS[band]!;
+    const o = k * 4;
+    rgba[o] = c[0];
+    rgba[o + 1] = c[1];
+    rgba[o + 2] = c[2];
+    rgba[o + 3] = c[3];
+  }
+  return { width: cols, height: rows, rgba };
+}

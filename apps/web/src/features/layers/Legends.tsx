@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
-import { RAMP, SLOPE_COLOURS, type OverlayKind } from '../routes/overlays';
+import { RAMP, REACH_COLOURS, SLOPE_COLOURS, type OverlayKind } from '../routes/overlays';
 
 /** CSS colour for a legend swatch. Overlay alphas are tuned for draping; swatches use at least 60 %. */
 const rgba = ([r, g, b, a]: readonly [number, number, number, number]) =>
@@ -60,6 +60,46 @@ export function RampLegend({
   );
 }
 
+/** Discrete round-trip bands from the start, with the cumulative reachable area. */
+export function ReachLegend() {
+  const { t, i18n } = useTranslation();
+  const reach = useApp((s) => s.reach);
+  const hasStart = useApp((s) => s.waypoints.length > 0);
+  if (!hasStart) {
+    return (
+      <div className="legend">
+        <strong>{t('legend.reach.title')}</strong>
+        <span className="meta">{t('legend.reach.needStart')}</span>
+      </div>
+    );
+  }
+  if (!reach) {
+    return (
+      <div className="legend">
+        <strong>{t('legend.reach.title')}</strong>
+        <span className="meta">{t('legend.reach.computing')}</span>
+      </div>
+    );
+  }
+  const fmt = (v: number) => v.toLocaleString(i18n.language, { maximumFractionDigits: 1 });
+  return (
+    <div className="legend" role="group" aria-label={t('legend.reach.title')}>
+      <strong>{t('legend.reach.title')}</strong>
+      <div className="reach-bands">
+        {reach.bandsH.map((h, i) => (
+          <div key={h} className="legend-row">
+            <span
+              className="swatch"
+              style={{ background: rgba(REACH_COLOURS[Math.min(i, REACH_COLOURS.length - 1)]!) }}
+            />
+            {t('legend.reach.band', { h: fmt(h), area: fmt(reach.areaKm2[i] ?? 0) })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Legends for the analysis overlays that are currently visible, shown on the map. */
 export function MapLegend() {
   const layers = useApp((s) => s.layers);
@@ -67,6 +107,7 @@ export function MapLegend() {
   const ranges = useApp((s) => s.overlayRanges);
   if (mode !== 'jezero') return null;
   const items = [
+    layers.reach && <ReachLegend key="reach" />,
     layers.slope && <SlopeLegend key="slope" />,
     layers.elevation && ranges.elevation && (
       <RampLegend key="elevation" kind="elevation" range={ranges.elevation} />

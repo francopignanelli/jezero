@@ -2,6 +2,8 @@
 import {
   DEFAULT_EVA_PARAMS,
   detourCost,
+  locateCell as locate,
+  roundTripTimes,
   inspectPoint,
   type DetourCost,
   type PointInspection,
@@ -16,7 +18,7 @@ import {
   type Waypoint,
 } from '@copernico/domain';
 import { loadTerrainLayers, type GridHeader } from './grid';
-import { renderOverlay, type OverlayKind } from './overlays';
+import { renderOverlay, renderReach, type OverlayKind } from './overlays';
 
 /** Messages exchanged with the routing worker. Heavy computation never runs on the UI thread. */
 export type WorkerRequest =
@@ -25,7 +27,8 @@ export type WorkerRequest =
   | { type: 'overlay'; id: number; kind: OverlayKind }
   | { type: 'sample'; id: number; points: Array<{ lat: number; lon: number }> }
   | { type: 'inspect'; id: number; lat: number; lon: number }
-  | { type: 'detours'; id: number; profile: RouteProfile; candidates: DetourCandidate[] };
+  | { type: 'detours'; id: number; profile: RouteProfile; candidates: DetourCandidate[] }
+  | { type: 'reach'; id: number; lat: number; lon: number; bandsH: number[] };
 
 /** A science stop to price between two consecutive waypoints of the current route. */
 export interface DetourCandidate {
@@ -56,7 +59,17 @@ export type WorkerResponse =
     }
   | { type: 'sample'; id: number; elevations: number[] }
   | { type: 'inspect'; id: number; inspection: PointInspection }
-  | { type: 'detours'; id: number; detours: Array<DetourCost & { id: string }> };
+  | { type: 'detours'; id: number; detours: Array<DetourCost & { id: string }> }
+  | {
+      type: 'reach';
+      id: number;
+      width: number;
+      height: number;
+      rgba: ArrayBuffer | null;
+      /** Area (km²) within each band, cumulative. */
+      areaKm2: number[];
+      elapsedMs: number;
+    };
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 let terrain: PreparedTerrain | null = null;
@@ -129,6 +142,44 @@ scope.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         ...detourCost(t, msg.profile, c.from, c.to, c.stop),
       }));
       post({ type: 'detours', id: msg.id, detours });
+    } else if (msg.type === 'reach') {
+      const t0 = performance.now();
+      const spec = terrain.layers.spec;
+      const cell = locate(spec, msg.lat, msg.lon);
+      if (!cell) {
+        post({
+          type: 'reach',
+          id: msg.id,
+          width: 0,
+          height: 0,
+          rgba: null,
+          areaKm2: [],
+          elapsedMs: 0,
+        });
+        return;
+      }
+      const maxS = Math.max(...msg.bandsH) * 3600;
+      const rt = roundTripTimes(terrain, cell.row * spec.cols + cell.col, maxS);
+      const o = renderReach(terrain, rt, msg.bandsH);
+      const cellKm2 = (spec.cellSize * spec.cellSize) / 1e6; // equal-area to < 0.1 % over the grid
+      const areaKm2 = msg.bandsH.map((h) => {
+        let n = 0;
+        for (const s of rt) if (s <= h * 3600) n++;
+        return n * cellKm2;
+      });
+      const buffer = o.rgba.buffer as ArrayBuffer;
+      scope.postMessage(
+        {
+          type: 'reach',
+          id: msg.id,
+          width: o.width,
+          height: o.height,
+          rgba: buffer,
+          areaKm2,
+          elapsedMs: performance.now() - t0,
+        },
+        [buffer],
+      );
     }
   } catch (err) {
     post({

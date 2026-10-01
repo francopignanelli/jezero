@@ -52,6 +52,15 @@ export const LAYERS: LayerDef[] = [
       'Nearest-neighbour resampling of the 100 m product to the 5 m grid (no added detail). Colours stretch over the 2nd–98th percentile.',
     swatch: '#5ec962',
   },
+  {
+    id: 'reach',
+    group: 'terrain',
+    kind: 'overlay',
+    datasets: ['hirise-dtm-trn'],
+    derivation:
+      'Round-trip walking time from the first waypoint to every cell and back, over the same 5 m grid and 20° limit as the planner (Dijkstra, default speed model with the timeline factor). Grid paths are up to ~8 % longer than smoothed routes, so the area is conservative. Bands stop at the EVA limit minus ingress.',
+    swatch: '#3ff0c0',
+  },
   { id: 'coverage', group: 'terrain', kind: 'vector', datasets: ['hirise-dtm-trn'], swatch: '#6cc6e6' },
   { id: 'pois', group: 'science', kind: 'vector', datasets: ['m2020-mmgis'], swatch: '#b69cff' },
   { id: 'samples', group: 'surface', kind: 'vector', datasets: ['m2020-mmgis'], swatch: '#ff9ad5' },

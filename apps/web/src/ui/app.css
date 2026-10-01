@@ -1589,3 +1589,22 @@ details.samples > summary {
     background: #fff !important;
   }
 }
+
+.reach-bands {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 3px 12px;
+}
+.reach-bands .legend-row {
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.reach-bands .swatch {
+  width: 11px;
+  height: 11px;
+}
+.map-legend:has(.reach-bands) {
+  width: auto;
+  max-width: calc(100% - 24px);
+}

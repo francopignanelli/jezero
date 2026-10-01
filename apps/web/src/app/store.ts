@@ -18,7 +18,8 @@ export type LayerId =
   | 'samples'
   | 'pois'
   | 'ingenuity'
-  | 'sky';
+  | 'sky'
+  | 'reach';
 
 export interface WaypointEntry {
   id: string;
@@ -67,6 +68,9 @@ interface AppState {
   overlayRanges: Partial<Record<OverlayKind, [number, number]>>;
   /** Distance (m) along the selected route under the profile cursor, or null. */
   routeCursorM: number | null;
+  /** Round-trip reach overlay from the first waypoint (bands in hours, cumulative areas). */
+  reach: { bandsH: number[]; areaKm2: number[]; elapsedMs: number } | null;
+  setReach(r: { bandsH: number[]; areaKm2: number[]; elapsedMs: number } | null): void;
   setRouteCursor(d: number | null): void;
   setOverlayRange(kind: OverlayKind, range: [number, number]): void;
   setLoading(p: Partial<LoadingState>): void;
@@ -128,6 +132,7 @@ export const useApp = create<AppState>((set) => ({
     pois: true,
     ingenuity: false,
     sky: true,
+    reach: false,
   },
   waypoints: [],
   picking: false,
@@ -151,6 +156,8 @@ export const useApp = create<AppState>((set) => ({
   sceneReady: false,
   overlayRanges: {},
   routeCursorM: null,
+  reach: null,
+  setReach: (reach) => set({ reach }),
   setRouteCursor: (routeCursorM) => set({ routeCursorM }),
   setOverlayRange: (kind, range) =>
     set((s) => ({ overlayRanges: { ...s.overlayRanges, [kind]: range } })),

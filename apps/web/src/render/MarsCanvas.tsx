@@ -1,4 +1,4 @@
-import type { RouteResult } from '@copernico/domain';
+import { DEFAULT_EVA_PARAMS, type RouteResult } from '@copernico/domain';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type LayerId } from '../app/store';
@@ -30,6 +30,12 @@ const IMAGERY: Array<{ id: LayerId; credit: string }> = [
   },
 ];
 const OVERLAYS: OverlayKind[] = ['slope', 'elevation', 'thermalInertia'];
+/** Reach bands: every hour up to the EVA limit minus ingress (7.5 h with eva-params@1). */
+const REACH_MAX_H = DEFAULT_EVA_PARAMS.evaCapHours - DEFAULT_EVA_PARAMS.ingressHours;
+export const REACH_BANDS_H = [
+  ...Array.from({ length: Math.floor(REACH_MAX_H) }, (_, i) => i + 1),
+  ...(REACH_MAX_H % 1 ? [REACH_MAX_H] : []),
+];
 /** Crater-scale rectangle used to dim terrain outside route-planning coverage. */
 const CRATER_RECT: LonLatRect = { west: 77.0, south: 17.6, east: 78.58, north: 19.28 };
 /** Jezero centre and label (USGS Gazetteer). */
@@ -215,7 +221,8 @@ export function MarsCanvas() {
     const scene = sceneRef.current;
     if (!scene) return;
     for (const [id, visible] of Object.entries(layers)) {
-      if (!OVERLAYS.includes(id as OverlayKind)) scene.setLayerVisible(id, visible);
+      if (!OVERLAYS.includes(id as OverlayKind) && id !== 'reach')
+        scene.setLayerVisible(id, visible);
     }
     scene.setLayerVisible('roverLatest', layers.rover);
     scene.setSkyVisible(layers.sky);
@@ -303,6 +310,35 @@ export function MarsCanvas() {
       cancelled = true;
     };
   }, [result, profile]);
+
+  // Round-trip reach from the first waypoint, recomputed when the start moves.
+  const start = waypoints[0];
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene || !gridRect) return;
+    if (!layers.reach || !start) {
+      scene.removeLayer('reach');
+      useApp.getState().setReach(null);
+      return;
+    }
+    let cancelled = false;
+    void routingClient.reach(start.lat, start.lon, REACH_BANDS_H).then((r) => {
+      if (cancelled || !r.rgba || scene.isDestroyed()) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = r.width;
+      canvas.height = r.height;
+      canvas
+        .getContext('2d')
+        ?.putImageData(new ImageData(new Uint8ClampedArray(r.rgba), r.width, r.height), 0, 0);
+      void scene.setImageOverlay('reach', canvas, gridRect);
+      useApp
+        .getState()
+        .setReach({ bandsH: REACH_BANDS_H, areaKm2: r.areaKm2, elapsedMs: r.elapsedMs });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [layers.reach, start?.lat, start?.lon, start, gridRect]);
 
   // Inspected point marker.
   useEffect(() => {

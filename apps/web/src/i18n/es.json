@@ -74,7 +74,8 @@
       "samples": "Sitios de muestreo",
       "pois": "Puntos de interés científico",
       "ingenuity": "Vuelos de Ingenuity",
-      "sky": "Estrellas, planetas y Vía Láctea"
+      "sky": "Estrellas, planetas y Vía Láctea",
+      "reach": "Alcance ida y vuelta desde el inicio"
     },
     "close": "Cerrar capas"
   },
@@ -95,6 +96,12 @@
       "title": "Inercia térmica (J m⁻² K⁻¹ s⁻½)",
       "low": "< 100 posible material suelto",
       "high": "alta: roca o material consolidado"
+    },
+    "reach": {
+      "title": "Ida y vuelta desde el inicio (caminando)",
+      "needStart": "Agregá un punto de inicio en Planificar para ver hasta dónde puede ir y volver la tripulación.",
+      "computing": "Calculando el alcance…",
+      "band": "≤ {{h}} h · {{area}} km²"
     }
   },
   "provenance": {
