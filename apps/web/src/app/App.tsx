@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AssistantDock } from '../features/assistant/AssistantDock';
 import { EnvironmentPanel } from '../features/environment/EnvironmentPanel';
 import { ExplorePanel } from '../features/exploration/ExplorePanel';
+import { InspectorCard } from '../features/inspector/InspectorCard';
 import { LayersControl } from '../features/layers/LayersControl';
 import { MapLegend } from '../features/layers/Legends';
 import { MissionsPanel } from '../features/missions/MissionsPanel';
@@ -85,6 +86,7 @@ export function App() {
         <MarsCanvas />
         <LayersControl />
         <MapLegend />
+        <InspectorCard />
         {picking && (
           <div className="picking-banner" role="status">
             {t('route.picking')}

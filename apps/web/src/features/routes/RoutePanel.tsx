@@ -13,8 +13,8 @@ import {
 } from '../../lib/format';
 import { IconPin, IconUp, IconX } from '../../ui/icons';
 import { ElevationProfile } from './ElevationProfile';
-import { ensureGrid } from './ensureGrid';
-import { routingClient } from './routingClient';
+import { computeRoutes } from './compute';
+import { CORRIDOR_M, nearbyCandidates } from '../science/StopsNearRoute';
 
 function waypointName(t: TFunction, w: WaypointEntry, i: number, count: number): string {
   if (w.label) return w.label;
@@ -30,7 +30,7 @@ export function RoutePanel() {
   const [lat, setLat] = useState('');
   const [lon, setLon] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [elapsedMs, setElapsedMs] = useState<number | null>(null);
+  const elapsedMs = s.computeMs;
 
   useEffect(() => {
     if (!s.picking) return;
@@ -41,25 +41,12 @@ export function RoutePanel() {
 
   const compute = async () => {
     setError(null);
-    if (s.waypoints.length < 2) {
-      setError(t('route.needTwo'));
-      return;
-    }
-    if (s.mode !== 'jezero') s.setMode('jezero');
-    s.setComputing(true);
-    try {
-      if (!(await ensureGrid())) throw new Error(t('route.gridUnavailable'));
-      const { comparison, elapsedMs: ms } = await routingClient.plan(
-        s.waypoints.map((w) => ({ lat: w.lat, lon: w.lon })),
-        s.returnToStart,
-      );
-      s.setResult(comparison);
-      setElapsedMs(ms);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      s.setComputing(false);
-    }
+    setError(
+      await computeRoutes({
+        needTwo: t('route.needTwo'),
+        gridUnavailable: t('route.gridUnavailable'),
+      }),
+    );
   };
 
   const addCoordinates = (e: FormEvent) => {
@@ -361,6 +348,8 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
         </>
       )}
 
+      <NearbyStopsHint route={primary} />
+
       <h3>{t('route.unresolved')}</h3>
       <p className="lede">{t('route.unresolvedList')}</p>
       <p className="meta">{t('app.prototypeNotice')}</p>
@@ -393,5 +382,25 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
         {elapsedMs !== null && ` · ${Math.round(elapsedMs)} ms`}
       </p>
     </>
+  );
+}
+
+/** One line in the results pointing to science stops near the route (priced in Science). */
+function NearbyStopsHint({ route }: { route: RouteResult }) {
+  const { t, i18n } = useTranslation();
+  const waypoints = useApp((s) => s.waypoints);
+  const setTab = useApp((s) => s.setTab);
+  const n = nearbyCandidates(
+    route,
+    new Set(waypoints.flatMap((w) => (w.poiId ? [w.poiId] : []))),
+  ).length;
+  if (n === 0) return null;
+  return (
+    <p className="alert alert-info stops-hint">
+      {t('stops.summary', { count: n, distance: formatDistance(CORRIDOR_M, i18n.language) })}{' '}
+      <button type="button" className="link" onClick={() => setTab('science')}>
+        {t('stops.see')}
+      </button>
+    </p>
   );
 }

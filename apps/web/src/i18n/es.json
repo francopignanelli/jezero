@@ -214,7 +214,8 @@
     "investigate": "Qué investigar",
     "source": "Fuente",
     "sampleMeta": "Muestra {{n}} · sol {{sol}} · {{date}} · {{rock}}",
-    "corrected": "Posición corregida a partir del este/norte publicado"
+    "corrected": "Posición corregida a partir del este/norte publicado",
+    "samplesCount": "Muestras de Perseverance ({{n}})"
   },
   "environment": {
     "title": "Condiciones y hora",
@@ -292,5 +293,42 @@
       "failed": "no disponible"
     },
     "continue": "Continuar con lo que ya cargó"
+  },
+  "stops": {
+    "title": "Paradas científicas cerca de tu ruta",
+    "corridor": "a menos de {{distance}}",
+    "none": "No hay sitios científicos curados dentro del corredor de esta ruta.",
+    "pricing": "Calculando el desvío…",
+    "offRoute": "a {{distance}} de la ruta",
+    "maxSlope": "máx. {{slope}}",
+    "unreachable": "No alcanzable dentro del límite de pendiente",
+    "add": "Agregar parada",
+    "addAria": "Agregar {{name}} como parada y recalcular",
+    "method": "Desvío = el mismo planificador con la parada insertada en el tramo más cercano, menos ese tramo sin ella. Solo tiempo de caminata; no incluye el tiempo en la parada.",
+    "summary_one": "{{count}} parada científica a menos de {{distance}} de esta ruta",
+    "summary_other": "{{count}} paradas científicas a menos de {{distance}} de esta ruta",
+    "see": "Ver costo de los desvíos"
+  },
+  "inspector": {
+    "title": "Inspector de puntos",
+    "close": "Cerrar inspector",
+    "elevation": "Elevación (areoide)",
+    "slope": "Pendiente del terreno",
+    "ti": "Inercia térmica",
+    "toRoute": "Distancia a la ruta",
+    "imagery": "Mejor imagen acá",
+    "outside": "Fuera de la cobertura de rutas: no hay modelo de elevación de 1 m acá.",
+    "blocked": "No transitable: {{reason}}",
+    "reasons": {
+      "slope": "pendiente mayor al límite de 20°",
+      "excluded": "excluido por control de calidad",
+      "nodata": "sin datos de elevación"
+    },
+    "rough": "Rugoso a escala fina (pendientes de 2 m)",
+    "lowTi": "Inercia térmica baja: posible material suelto",
+    "addWaypoint": "Agregar como punto de ruta",
+    "hint": "Hacé clic en el terreno para inspeccionar un punto.",
+    "loading": "Leyendo la grilla…",
+    "gridPending": "Entrá a Jezero para leer la grilla de rutas."
   }
 }

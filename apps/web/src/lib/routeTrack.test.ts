@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arrowsAlong, buildTrack, pointAt, profileAt } from './routeTrack';
+import { arrowsAlong, buildTrack, nearestOnPolyline, pointAt, profileAt } from './routeTrack';
 
 // 1° of latitude on the Mars sphere = 59,274.7 m.
 const M_PER_DEG = 59_274.7;
@@ -43,5 +43,20 @@ describe('route track lookups', () => {
       slopeDeg: 8,
       elapsedS: 9,
     });
+  });
+});
+
+describe('nearest point on a polyline', () => {
+  it('measures the perpendicular ground distance to the nearest segment', () => {
+    const line = [
+      { lat: 18, lon: 77 },
+      { lat: 18 + 1000 / M_PER_DEG, lon: 77 },
+      { lat: 18 + 1000 / M_PER_DEG, lon: 77.02 },
+    ];
+    // 300 m east of the first segment's midpoint.
+    const k = Math.cos((18 * Math.PI) / 180) * M_PER_DEG;
+    const r = nearestOnPolyline(line, { lat: 18 + 500 / M_PER_DEG, lon: 77 + 300 / k });
+    expect(r.segmentIndex).toBe(0);
+    expect(r.distanceM).toBeCloseTo(300, 0);
   });
 });

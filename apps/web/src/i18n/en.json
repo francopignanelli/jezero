@@ -214,7 +214,8 @@
     "investigate": "What to investigate",
     "source": "Source",
     "sampleMeta": "Sample {{n}} · sol {{sol}} · {{date}} · {{rock}}",
-    "corrected": "Position corrected from published easting/northing"
+    "corrected": "Position corrected from published easting/northing",
+    "samplesCount": "Perseverance samples ({{n}})"
   },
   "environment": {
     "title": "Conditions and time",
@@ -292,5 +293,42 @@
       "failed": "unavailable"
     },
     "continue": "Continue with what has loaded"
+  },
+  "stops": {
+    "title": "Science stops near your route",
+    "corridor": "within {{distance}}",
+    "none": "No curated science sites lie within the corridor of this route.",
+    "pricing": "Pricing detour…",
+    "offRoute": "{{distance}} off route",
+    "maxSlope": "max {{slope}}",
+    "unreachable": "Not reachable within the slope limit",
+    "add": "Add stop",
+    "addAria": "Add {{name}} as a stop and recalculate",
+    "method": "Detour = the same planner with the stop inserted on the leg it is nearest to, minus that leg without it. Walking time only; time spent at the stop is not included.",
+    "summary_one": "{{count}} science stop within {{distance}} of this route",
+    "summary_other": "{{count}} science stops within {{distance}} of this route",
+    "see": "See detour costs"
+  },
+  "inspector": {
+    "title": "Point inspector",
+    "close": "Close inspector",
+    "elevation": "Elevation (areoid)",
+    "slope": "Terrain slope",
+    "ti": "Thermal inertia",
+    "toRoute": "Distance to route",
+    "imagery": "Best imagery here",
+    "outside": "Outside route-planning coverage: no 1 m elevation model here.",
+    "blocked": "Not walkable: {{reason}}",
+    "reasons": {
+      "slope": "slope beyond the 20° limit",
+      "excluded": "excluded by data QA",
+      "nodata": "no elevation data"
+    },
+    "rough": "Rough at fine scale (2 m slopes)",
+    "lowTi": "Low thermal inertia: possibly loose material",
+    "addWaypoint": "Add as waypoint",
+    "hint": "Click the terrain to inspect a point.",
+    "loading": "Reading the grid…",
+    "gridPending": "Enter Jezero to read the route-planning grid."
   }
 }

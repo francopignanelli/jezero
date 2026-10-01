@@ -1,6 +1,6 @@
-import type { RouteComparison, Waypoint } from '@copernico/domain';
+import type { PointInspection, RouteComparison, RouteProfile, Waypoint } from '@copernico/domain';
 import type { OverlayKind } from './overlays';
-import type { GridSummary, WorkerRequest, WorkerResponse } from './routing.worker';
+import type { DetourCandidate, GridSummary, WorkerRequest, WorkerResponse } from './routing.worker';
 
 type Pending = { resolve: (v: WorkerResponse) => void; reject: (e: Error) => void };
 
@@ -57,6 +57,23 @@ class RoutingClient {
     const msg = await this.request({ type: 'sample', id: 0, points });
     if (msg.type !== 'sample') throw new Error('unexpected worker response');
     return msg.elevations;
+  }
+
+  async inspect(lat: number, lon: number): Promise<PointInspection> {
+    const msg = await this.request({ type: 'inspect', id: 0, lat, lon });
+    if (msg.type !== 'inspect') throw new Error('unexpected worker response');
+    return msg.inspection;
+  }
+
+  async detours(profile: RouteProfile, candidates: DetourCandidate[]) {
+    const msg = await this.request({ type: 'detours', id: 0, profile, candidates });
+    if (msg.type !== 'detours') throw new Error('unexpected worker response');
+    return msg.detours;
+  }
+
+  /** True once the grid is loaded (inspection and detours need it). */
+  get isReady(): boolean {
+    return this.ready !== null;
   }
 
   private async request(req: Extract<WorkerRequest, { id: number }>): Promise<WorkerResponse> {

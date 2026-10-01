@@ -84,6 +84,13 @@ interface AppState {
   setGridStatus(s: GridStatus): void;
   setComputing(v: boolean): void;
   setResult(r: RouteComparison | null): void;
+  /** Worker compute time of the last result (ms). */
+  computeMs: number | null;
+  setComputeMs(ms: number | null): void;
+  /** Point picked with the inspector (click on the map outside waypoint picking). */
+  inspected: { lat: number; lon: number } | null;
+  setInspected(p: { lat: number; lon: number } | null): void;
+  insertWaypoint(index: number, w: Omit<WaypointEntry, 'id'>): void;
   selectPoi(id: string | null): void;
   setEvaStart(ms: number): void;
   flyTo(lat: number, lon: number): void;
@@ -161,6 +168,16 @@ export const useApp = create<AppState>((set) => ({
   setGridStatus: (gridStatus) => set({ gridStatus }),
   setComputing: (computing) => set({ computing }),
   setResult: (result) => set({ result }),
+  computeMs: null,
+  setComputeMs: (computeMs) => set({ computeMs }),
+  inspected: null,
+  setInspected: (inspected) => set({ inspected }),
+  insertWaypoint: (index, w) =>
+    set((s) => {
+      const list = [...s.waypoints];
+      list.splice(Math.max(0, Math.min(list.length, index)), 0, withId(w));
+      return { waypoints: list, result: null };
+    }),
   selectPoi: (selectedPoiId) => set({ selectedPoiId }),
   setEvaStart: (evaStartUtcMs) => set({ evaStartUtcMs }),
   flyTo: (lat, lon) => set({ flyRequest: { lat, lon, nonce: Date.now() } }),

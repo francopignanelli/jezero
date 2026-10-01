@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
 import { POIS } from '../../data/catalog';
@@ -9,6 +9,7 @@ import {
   type SampleSite,
 } from '../../data/surfaceData';
 import { formatCoordinate } from '../../lib/format';
+import { StopsNearRoute } from './StopsNearRoute';
 
 /** Route-planning coverage of the operational region (see data/build/regions/jezero/grid.json). */
 const COVERAGE = { west: 77.28, east: 77.48, south: 18.4, north: 18.52 };
@@ -23,6 +24,17 @@ export function SciencePanel() {
   const setMode = useApp((s) => s.setMode);
   const [rover, setRover] = useState<RoverSnapshot | null>(null);
   const [samples, setSamples] = useState<SampleSite[]>([]);
+  const selectedPoiId = useApp((s) => s.selectedPoiId);
+  const selectPoi = useApp((s) => s.selectPoi);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // A POI picked on the map opens its card here.
+  useEffect(() => {
+    if (!selectedPoiId) return;
+    listRef.current
+      ?.querySelector(`#poi-card-${selectedPoiId}`)
+      ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [selectedPoiId]);
 
   useEffect(() => {
     void loadRover().then(setRover);
@@ -42,6 +54,8 @@ export function SciencePanel() {
     <section aria-labelledby="science-title">
       <h2 id="science-title">{t('science.title')}</h2>
       <p className="lede">{t('science.intro')}</p>
+
+      <StopsNearRoute />
 
       {rover && (
         <div className="card">
@@ -73,66 +87,84 @@ export function SciencePanel() {
       )}
 
       <h3>{t('science.pois')}</h3>
-      {POIS.map((p) => {
-        const inside = inCoverage(p.lat, p.lon);
-        return (
-          <article key={p.id} className="card" aria-labelledby={`poi-${p.id}`}>
-            <div className="card-title">
-              <span id={`poi-${p.id}`}>{p.name}</span>
-              <span className={`tag ${inside ? '' : 'tag-out'}`}>
-                {inside ? t('science.inCoverage') : t('science.outCoverage')}
-              </span>
-            </div>
-            <p style={{ fontSize: 'var(--fs-sm)', margin: '6px 0' }}>
-              <strong>{t('science.why')}:</strong> {p.why[lang]}
-            </p>
-            <p style={{ fontSize: 'var(--fs-sm)', margin: '6px 0' }}>
-              <strong>{t('science.investigate')}:</strong> {p.investigate[lang]}
-            </p>
-            <p className="meta">
-              {formatCoordinate(p.lat, p.lon, i18n.language)} · {p.basis}
-            </p>
-            <p className="meta">
-              {t('science.source')}: {p.sources.join('; ')}
-            </p>
-            <div className="btn-row">
-              <button type="button" className="btn" onClick={() => show(p.lat, p.lon)}>
-                {t('science.flyTo')}
-              </button>
-              <button
-                type="button"
-                className="btn"
-                disabled={!inside}
-                onClick={() => addWaypoint({ lat: p.lat, lon: p.lon, label: p.name, poiId: p.id })}
-              >
-                {t('science.addStop')}
-              </button>
-            </div>
-          </article>
-        );
-      })}
+      <div ref={listRef}>
+        {POIS.map((p) => {
+          const inside = inCoverage(p.lat, p.lon);
+          return (
+            <details
+              key={p.id}
+              id={`poi-card-${p.id}`}
+              className="card poi"
+              open={selectedPoiId === p.id}
+              onToggle={(e) => {
+                const open = (e.currentTarget as HTMLDetailsElement).open;
+                if (open && selectedPoiId !== p.id) selectPoi(p.id);
+                if (!open && selectedPoiId === p.id) selectPoi(null);
+              }}
+            >
+              <summary className="card-title">
+                <span id={`poi-${p.id}`}>{p.name}</span>
+                <span className={`tag ${inside ? '' : 'tag-out'}`}>
+                  {inside ? t('science.inCoverage') : t('science.outCoverage')}
+                </span>
+              </summary>
+              <p style={{ fontSize: 'var(--fs-sm)', margin: '6px 0' }}>
+                <strong>{t('science.why')}:</strong> {p.why[lang]}
+              </p>
+              <p style={{ fontSize: 'var(--fs-sm)', margin: '6px 0' }}>
+                <strong>{t('science.investigate')}:</strong> {p.investigate[lang]}
+              </p>
+              <p className="meta">
+                {formatCoordinate(p.lat, p.lon, i18n.language)} · {p.basis}
+              </p>
+              <p className="meta">
+                {t('science.source')}: {p.sources.join('; ')}
+              </p>
+              <div className="btn-row">
+                <button type="button" className="btn" onClick={() => show(p.lat, p.lon)}>
+                  {t('science.flyTo')}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!inside}
+                  onClick={() =>
+                    addWaypoint({ lat: p.lat, lon: p.lon, label: p.name, poiId: p.id })
+                  }
+                >
+                  {t('science.addStop')}
+                </button>
+              </div>
+            </details>
+          );
+        })}
+      </div>
 
-      <h3>{t('science.samples')}</h3>
-      <table className="data">
-        <tbody>
-          {samples.map((s) => (
-            <tr key={s.sampleNumber}>
-              <th scope="row">{s.name}</th>
-              <td>
-                {t('science.sampleMeta', {
-                  n: s.sampleNumber,
-                  sol: s.sol,
-                  date: s.earthDate,
-                  rock: s.rockType,
-                })}
-                {s.positionCorrectedFromEastingNorthing && (
-                  <div className="meta">{t('science.corrected')}</div>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <details className="samples">
+        <summary>
+          <h3 style={{ display: 'inline' }}>{t('science.samplesCount', { n: samples.length })}</h3>
+        </summary>
+        <table className="data">
+          <tbody>
+            {samples.map((s) => (
+              <tr key={s.sampleNumber}>
+                <th scope="row">{s.name}</th>
+                <td>
+                  {t('science.sampleMeta', {
+                    n: s.sampleNumber,
+                    sol: s.sol,
+                    date: s.earthDate,
+                    rock: s.rockType,
+                  })}
+                  {s.positionCorrectedFromEastingNorthing && (
+                    <div className="meta">{t('science.corrected')}</div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
     </section>
   );
 }

@@ -55,6 +55,7 @@ export function MarsCanvas() {
   const flyRequest = useApp((s) => s.flyRequest);
   const sceneReady = useApp((s) => s.sceneReady);
   const routeCursorM = useApp((s) => s.routeCursorM);
+  const inspected = useApp((s) => s.inspected);
 
   // Create the scene once and load everything the first view needs before revealing it.
   useEffect(() => {
@@ -76,9 +77,19 @@ export function MarsCanvas() {
     media.addEventListener('change', onMotion);
     scene.setSunTime(useApp.getState().evaStartUtcMs);
 
-    scene.onPick((lat, lon) => {
+    scene.onPick((lat, lon, entityId) => {
       const s = useApp.getState();
-      if (s.picking) s.addWaypoint({ lat, lon });
+      if (s.picking) {
+        s.addWaypoint({ lat, lon });
+        return;
+      }
+      // A science marker opens its card; any other click in Jezero inspects the terrain there.
+      if (entityId?.startsWith('pois:')) {
+        s.selectPoi(entityId.slice('pois:'.length));
+        s.setTab('science');
+        return;
+      }
+      if (s.mode === 'jezero') s.setInspected({ lat, lon });
     });
 
     const sky = scene
@@ -289,6 +300,27 @@ export function MarsCanvas() {
       cancelled = true;
     };
   }, [result, profile]);
+
+  // Inspected point marker.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    if (!inspected) {
+      scene.clearGroup('inspect');
+      return;
+    }
+    void scene
+      .withTerrainHeights(
+        [{ id: 'inspect', lat: inspected.lat, lon: inspected.lon, color: '#ffd166', size: 12 }],
+        2,
+      )
+      .then((m) => scene.setMarkers('inspect', m));
+  }, [inspected]);
+
+  // Leaving Jezero closes the inspector.
+  useEffect(() => {
+    if (mode !== 'jezero') useApp.getState().setInspected(null);
+  }, [mode]);
 
   // Profile ↔ map: the distance under the profile cursor, shown as a marker on the 3D route.
   useEffect(() => {

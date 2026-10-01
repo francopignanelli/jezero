@@ -78,3 +78,35 @@ export function profileAt(profile: ElevationProfile, d: number): ProfileSample {
     elapsedS: profile.elapsedS[i]!,
   };
 }
+
+const M_PER_DEG = (Math.PI / 180) * 3_396_190;
+
+/**
+ * Shortest ground distance from `p` to a polyline and the index of the nearest segment. Uses a
+ * local equirectangular frame at `p` (errors ≪ 1 m over a few km).
+ */
+export function nearestOnPolyline(
+  points: ReadonlyArray<{ lat: number; lon: number }>,
+  p: { lat: number; lon: number },
+): { distanceM: number; segmentIndex: number } {
+  const k = Math.cos((p.lat * Math.PI) / 180) * M_PER_DEG;
+  const xy = (q: { lat: number; lon: number }) =>
+    [(q.lon - p.lon) * k, (q.lat - p.lat) * M_PER_DEG] as const;
+  let best = Number.POSITIVE_INFINITY;
+  let bestIndex = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const [ax, ay] = xy(points[i]!);
+    const [bx, by] = xy(points[i + 1]!);
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const f = len2 > 0 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
+    const d = Math.hypot(ax + f * dx, ay + f * dy);
+    if (d < best) {
+      best = d;
+      bestIndex = i;
+    }
+  }
+  if (points.length === 1) best = Math.hypot(...xy(points[0]!));
+  return { distanceM: best, segmentIndex: bestIndex };
+}

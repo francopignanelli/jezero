@@ -674,9 +674,12 @@ export class MarsScene {
 
   // ---------- interaction and camera ----------
 
-  onPick(callback: (lat: number, lon: number) => void): void {
+  /** Map clicks: the terrain position, plus the id of a picked entity (e.g. "pois:belva"). */
+  onPick(callback: (lat: number, lon: number, entityId?: string) => void): void {
     this.handler.setInputAction((e: ScreenSpaceEventHandler.PositionedEvent) => {
       const scene = this.widget.scene;
+      const picked = scene.pick(e.position) as { id?: unknown } | undefined;
+      const entityId = picked?.id instanceof Entity ? picked.id.id : undefined;
       const position = scene.pickPositionSupported ? scene.pickPosition(e.position) : undefined;
       const cart = position ?? scene.camera.pickEllipsoid(e.position, MARS_SPHERE);
       if (!cart) return;
@@ -684,6 +687,7 @@ export class MarsScene {
       callback(
         CesiumMath.toDegrees(c.latitude),
         normalizeLon360(CesiumMath.toDegrees(c.longitude)),
+        entityId,
       );
     }, ScreenSpaceEventType.LEFT_CLICK);
   }
