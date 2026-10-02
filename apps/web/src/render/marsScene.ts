@@ -18,6 +18,8 @@ import {
   ImageryLayer,
   Math as CesiumMath,
   Matrix4,
+  HeadingPitchRoll,
+  Transforms,
   NearFarScalar,
   PolylineDashMaterialProperty,
   PolylineGlowMaterialProperty,
@@ -122,10 +124,27 @@ export interface MarkerSpec {
   heightM: number;
   color: string;
   size?: number;
+  /** Hide the marker when the camera is closer than this (m), e.g. where a 3D model takes over. */
+  hideWithinM?: number;
 }
 
 export type LineStyle =
-  'route-primary' | 'route-alternative' | 'traverse' | 'traverse-muted' | 'boundary';
+  | 'route-primary'
+  | 'route-casing'
+  | 'route-band-mild'
+  | 'route-band-moderate'
+  | 'route-band-steep'
+  | 'route-alternative'
+  | 'traverse'
+  | 'traverse-muted'
+  | 'boundary';
+
+/** Slope-band colours of the route core (same as the slope legend). */
+const BAND_COLOURS = {
+  'route-band-mild': Color.fromCssColorString('#3ff0c0'),
+  'route-band-moderate': Color.fromCssColorString('#fde725'),
+  'route-band-steep': Color.fromCssColorString('#f89540'),
+} as const;
 
 export interface LineSpec {
   id: string;
@@ -180,6 +199,45 @@ function lineMaterials(style: LineStyle): LineLayer[] {
             color: COLOURS.route.withAlpha(0.7),
             outlineColor: COLOURS.outline.withAlpha(0.5),
             outlineWidth: 2.5,
+          }),
+        },
+      ];
+    case 'route-casing':
+      // Halo and dark casing only; the coloured core is drawn per slope band on top.
+      return [
+        {
+          width: 26,
+          material: new PolylineGlowMaterialProperty({
+            color: COLOURS.route.withAlpha(0.35),
+            glowPower: 0.12,
+            taperPower: 1,
+          }),
+        },
+        {
+          width: 10,
+          material: new PolylineOutlineMaterialProperty({
+            color: COLOURS.outline.withAlpha(0.9),
+            outlineWidth: 0,
+          }),
+          depthFail: new PolylineOutlineMaterialProperty({
+            color: COLOURS.outline.withAlpha(0.55),
+            outlineWidth: 0,
+          }),
+        },
+      ];
+    case 'route-band-mild':
+    case 'route-band-moderate':
+    case 'route-band-steep':
+      return [
+        {
+          width: 5,
+          material: new PolylineOutlineMaterialProperty({
+            color: BAND_COLOURS[style],
+            outlineWidth: 0,
+          }),
+          depthFail: new PolylineOutlineMaterialProperty({
+            color: BAND_COLOURS[style].withAlpha(0.7),
+            outlineWidth: 0,
           }),
         },
       ];
@@ -262,6 +320,8 @@ export class MarsScene {
   private readonly groups = new Map<string, Entity[]>();
   private readonly hiddenGroups = new Set<string>();
   private readonly lineSpecs = new Map<string, LineSpec[]>();
+  /** Where each placed model is (its centre, for camera close-ups). */
+  readonly modelTargets = new Map<string, { lat: number; lon: number; heightM: number }>();
   /** Lines without their own see-through style, and the material to use when looking down. */
   private readonly seeThrough = new Map<Entity, MaterialProperty>();
   private overhead = true;
@@ -595,7 +655,7 @@ export class MarsScene {
           disableDepthTestDistance: 3_000,
           scaleByDistance: new NearFarScalar(1.5e3, 1.25, 8e5, 0.55),
           // Surface detail belongs to the operational view; from orbit, the crater label stands in.
-          distanceDisplayCondition: new DistanceDisplayCondition(0, 450_000),
+          distanceDisplayCondition: new DistanceDisplayCondition(m.hideWithinM ?? 0, 450_000),
         },
       });
       g.push(entity);
@@ -795,6 +855,82 @@ export class MarsScene {
       scene.postRender.addEventListener(once);
       scene.requestRender();
     });
+  }
+
+  /**
+   * A glTF model on the surface (true scale, metres). From afar it is enlarged to stay at least
+   * ~44 px tall (Cesium minimumPixelSize) and it disappears beyond 40 km, where the marker and label
+   * stand in. `headingRad` is clockwise from north.
+   */
+  async setModel(
+    groupId: string,
+    m: { lat: number; lon: number; heightM: number; headingRad: number; url: string },
+  ): Promise<void> {
+    if (this.isDestroyed()) return;
+    this.clearGroup(groupId);
+    const position = toCartesian(m.lat, m.lon, m.heightM);
+    // The model's front (robotic arm) is glTF +Z; Cesium maps it so heading 0 faces east, hence −90°.
+    const orientation = Transforms.headingPitchRollQuaternion(
+      position,
+      new HeadingPitchRoll(m.headingRad - Math.PI / 2, 0, 0),
+      MARS_SPHERE,
+    );
+    const entity = new Entity({
+      id: `${groupId}:model`,
+      show: !this.hiddenGroups.has(groupId),
+      position,
+      orientation,
+      model: {
+        uri: m.url,
+        minimumPixelSize: 44,
+        maximumScale: 400,
+        distanceDisplayCondition: new DistanceDisplayCondition(0, 40_000),
+        shadows: 0,
+      },
+    });
+    this.group(groupId).push(entity);
+    this.widget.entities.add(entity);
+    this.modelTargets.set(groupId, { lat: m.lat, lon: m.lon, heightM: m.heightM + 1.1 });
+    // Let the camera come down to the model (it is ~3 m long).
+    this.constraints.addCloseUp({ lat: m.lat, lon: m.lon, radiusM: 150, minAboveTerrainM: 4 });
+    this.requestRender();
+  }
+
+  /**
+   * Close-up of a placed model: the camera position is computed explicitly (distance, compass
+   * direction it looks along, elevation angle), raised above the rendered terrain if needed, and
+   * aimed straight at the model, so the camera limits never push the model out of frame.
+   */
+  async flyToModel(
+    groupId: string,
+    rangeM = 16,
+    headingDeg = 210,
+    elevationDeg = 18,
+  ): Promise<void> {
+    const t = this.modelTargets.get(groupId);
+    if (!t || this.isDestroyed()) return;
+    const h = CesiumMath.toRadians(headingDeg);
+    const horizontal = rangeM * Math.cos(CesiumMath.toRadians(elevationDeg));
+    const mPerDeg = (Math.PI / 180) * MARS_SPHERE_RADIUS_M;
+    const lat = t.lat - (horizontal * Math.cos(h)) / mPerDeg;
+    const lon =
+      t.lon - (horizontal * Math.sin(h)) / (mPerDeg * Math.cos(CesiumMath.toRadians(t.lat)));
+    const [ground] = await this.sampleTerrain([{ lat, lon }]);
+    const height = Math.max(
+      t.heightM + rangeM * Math.sin(CesiumMath.toRadians(elevationDeg)),
+      (ground ?? t.heightM) + 6,
+    );
+    const pitch = -Math.atan2(height - t.heightM, horizontal);
+    return this.flight((done) =>
+      this.widget.camera.flyTo({
+        destination: toCartesian(lat, lon, height),
+        orientation: { heading: h, pitch, roll: 0 },
+        duration: this.reducedMotion ? 0 : 3,
+        easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+        complete: done,
+        cancel: done,
+      }),
+    );
   }
 
   setAnnotationsMuted(groupId: string, muted: boolean): void {

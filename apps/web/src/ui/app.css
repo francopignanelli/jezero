@@ -1861,3 +1861,32 @@ details.samples > summary {
     transition: none;
   }
 }
+
+.slope-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 12px 0 0;
+}
+.slope-chips {
+  display: inline-flex;
+  gap: 6px;
+}
+.chip {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+  color: #0b0e13;
+}
+.chip-mild {
+  background: #3ff0c0;
+}
+.chip-moderate {
+  background: #fde725;
+}
+.chip-steep {
+  background: #f89540;
+}

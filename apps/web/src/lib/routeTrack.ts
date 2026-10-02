@@ -123,3 +123,39 @@ export function distanceAtElapsed(profile: ElevationProfile, walkS: number): num
   const f = span > 0 ? (walkS - e[i]!) / span : 0;
   return profile.distanceM[i]! + (profile.distanceM[i + 1]! - profile.distanceM[i]!) * f;
 }
+
+export type SlopeBand = 'mild' | 'moderate' | 'steep';
+
+/**
+ * Splits the drawn route into runs of one slope band (from the profile, which samples the true
+ * path at ≤ 1 cell), as dense point lists along the track. Profile distances are mapped onto the
+ * track proportionally (the drawn track and the profile differ by well under 1 %).
+ */
+export function slopeRuns(
+  track: Track,
+  profile: ElevationProfile,
+  limits: { mild: number; moderate: number },
+  stepM = 8,
+): Array<{ band: SlopeBand; points: TrackPoint[] }> {
+  const n = profile.distanceM.length;
+  if (n < 2 || track.totalM === 0) return [];
+  const scale = track.totalM / Math.max(1e-9, profile.distanceM[n - 1]!);
+  const bandOf = (s: number): SlopeBand =>
+    s <= limits.mild ? 'mild' : s <= limits.moderate ? 'moderate' : 'steep';
+  const runs: Array<{ band: SlopeBand; from: number; to: number }> = [];
+  for (let i = 1; i < n; i++) {
+    const band = bandOf(profile.terrainSlopeDeg[i] ?? 0);
+    const from = profile.distanceM[i - 1]! * scale;
+    const to = profile.distanceM[i]! * scale;
+    const last = runs[runs.length - 1];
+    if (last && last.band === band) last.to = to;
+    else runs.push({ band, from, to });
+  }
+  return runs.map(({ band, from, to }) => {
+    const points: TrackPoint[] = [];
+    for (let d = from; d < to; d += stepM) points.push(pointAt(track, d));
+    points.push(pointAt(track, to));
+    if (points.length === 1) points.unshift(pointAt(track, from));
+    return { band, points };
+  });
+}

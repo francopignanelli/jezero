@@ -334,6 +334,8 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
             </div>
           </dl>
 
+          <SlopeColourToggle />
+
           <PlayButton />
 
           <MissionActions
@@ -500,6 +502,28 @@ function PlayButton() {
         {playing ? t('route.stopPlay') : t('route.play')}
       </button>
       <span className="meta">{t('route.playHint')}</span>
+    </div>
+  );
+}
+
+/** Colours the drawn route by slope band (same colours as the profile and the slope legend). */
+function SlopeColourToggle() {
+  const { t } = useTranslation();
+  const on = useApp((s) => s.routeSlopeColours);
+  const set = useApp((s) => s.setRouteSlopeColours);
+  return (
+    <div className="slope-toggle">
+      <label className="check">
+        <input type="checkbox" checked={on} onChange={(e) => set(e.target.checked)} />
+        {t('route.colourBySlope')}
+      </label>
+      {on && (
+        <span className="slope-chips" aria-hidden="true">
+          <i className="chip chip-mild">0–10°</i>
+          <i className="chip chip-moderate">10–15°</i>
+          <i className="chip chip-steep">15–20°</i>
+        </span>
+      )}
     </div>
   );
 }

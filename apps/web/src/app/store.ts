@@ -34,6 +34,16 @@ export interface WaypointEntry {
   dwellMin?: number;
 }
 
+/** Camera target for a fly-to: height of the target point (m), distance and pitch of the view. */
+export interface FlyOptions {
+  heightM?: number;
+  rangeM?: number;
+  pitchDeg?: number;
+  headingDeg?: number;
+  /** Aim at a placed 3D model instead of lat/lon/height (e.g. 'roverModel'). */
+  model?: string;
+}
+
 export type GridStatus = 'idle' | 'loading' | 'ready' | 'unavailable';
 
 export type LoadStep = 'pending' | 'done' | 'failed';
@@ -62,7 +72,7 @@ interface AppState {
   result: RouteComparison | null;
   selectedPoiId: string | null;
   evaStartUtcMs: number;
-  flyRequest: { lat: number; lon: number; nonce: number } | null;
+  flyRequest: ({ lat: number; lon: number; nonce: number } & FlyOptions) | null;
   loading: LoadingState;
   sceneReady: boolean;
   /** Value ranges of the computed overlays (for their map legends). */
@@ -78,6 +88,9 @@ interface AppState {
   glossary: { open: boolean; term: string | null };
   openGlossary(term?: string | null): void;
   closeGlossary(): void;
+  /** Draw the selected route coloured by slope band instead of one colour. */
+  routeSlopeColours: boolean;
+  setRouteSlopeColours(v: boolean): void;
   playRequest: number | null;
   /** Which CRISM browse composite is shown (carbonate/clay or mafic). */
   crismComposite: 'car' | 'maf';
@@ -125,7 +138,7 @@ interface AppState {
   setDwell(id: string, minutes: number): void;
   selectPoi(id: string | null): void;
   setEvaStart(ms: number): void;
-  flyTo(lat: number, lon: number): void;
+  flyTo(lat: number, lon: number, opts?: FlyOptions): void;
 }
 
 let nextId = 1;
@@ -180,6 +193,8 @@ export const useApp = create<AppState>((set) => ({
   glossary: { open: false, term: null },
   openGlossary: (term = null) => set({ glossary: { open: true, term } }),
   closeGlossary: () => set({ glossary: { open: false, term: null } }),
+  routeSlopeColours: false,
+  setRouteSlopeColours: (routeSlopeColours) => set({ routeSlopeColours }),
   playRequest: null,
   crismComposite: 'car',
   setCrismComposite: (crismComposite) => set({ crismComposite }),
@@ -239,7 +254,7 @@ export const useApp = create<AppState>((set) => ({
     }),
   selectPoi: (selectedPoiId) => set({ selectedPoiId }),
   setEvaStart: (evaStartUtcMs) => set({ evaStartUtcMs }),
-  flyTo: (lat, lon) => set({ flyRequest: { lat, lon, nonce: Date.now() } }),
+  flyTo: (lat, lon, opts = {}) => set({ flyRequest: { lat, lon, ...opts, nonce: Date.now() } }),
 }));
 
 // Development only: lets browser checks drive the app state directly.

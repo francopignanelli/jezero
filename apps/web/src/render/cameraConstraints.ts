@@ -40,13 +40,38 @@ function smoothstep(e0: number, e1: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
+/**
+ * A spot where the camera may come down close to the ground (e.g. around the 3D rover model):
+ * within `radiusM` the clearance is `minAboveTerrainM`, blending back to the zone clearance by 2×.
+ */
+export interface CloseUpSpot {
+  lat: number;
+  lon: number;
+  radiusM: number;
+  minAboveTerrainM: number;
+}
+
+/** Clearance above terrain (m) at a point, given the close-up spots and their distances. */
+export function clearanceAt(
+  zone: ExplorationZone,
+  spots: ReadonlyArray<CloseUpSpot & { distanceM: number }>,
+): number {
+  let c = zone.minAboveTerrainM;
+  for (const s of spots) {
+    const k = smoothstep(s.radiusM, 2 * s.radiusM, s.distanceM);
+    c = Math.min(c, s.minAboveTerrainM + (zone.minAboveTerrainM - s.minAboveTerrainM) * k);
+  }
+  return c;
+}
+
 /** Lowest allowed camera altitude (m above the reference sphere) at a ground distance from the zone. */
 export function altitudeFloor(
   zone: ExplorationZone,
   groundDistanceM: number,
   terrainHeightM: number,
+  clearanceM = zone.minAboveTerrainM,
 ): number {
-  const nearFloor = terrainHeightM + zone.minAboveTerrainM;
+  const nearFloor = terrainHeightM + clearanceM;
   const blend = smoothstep(zone.innerRadiusM, zone.outerRadiusM, groundDistanceM);
   return nearFloor + (zone.minAltitudeOutsideM - nearFloor) * blend;
 }
@@ -64,20 +89,31 @@ export function installCameraConstraints(scene: Scene, zone: ExplorationZone = J
 
   let suspended = false;
   const scratch = new Cartographic();
+  const spots: CloseUpSpot[] = [];
 
   const enforce = () => {
-    if (suspended) return;
     const camera = scene.camera;
     const carto = Cartographic.fromCartesian(camera.positionWC, scene.globe.ellipsoid, scratch);
     if (!carto) return;
     const lat = CesiumMath.toDegrees(carto.latitude);
     const lon = CesiumMath.toDegrees(carto.longitude);
+    const clearance = clearanceAt(
+      zone,
+      spots.map((s) => ({
+        ...s,
+        distanceM: greatCircleDistance({ lat, lon }, { lat: s.lat, lon: normalizeLon180(s.lon) }),
+      })),
+    );
+    // Cesium's own collision check (which runs before this, every frame) uses this value too: keep
+    // it current even during scripted flights, or it lifts the camera right after a close-up flight.
+    controller.minimumZoomDistance = clearance;
+    if (suspended) return;
     const distance = greatCircleDistance(
       { lat, lon },
       { lat: zone.lat, lon: normalizeLon180(zone.lon) },
     );
     const terrain = distance < zone.outerRadiusM ? scene.globe.getHeight(carto) : undefined;
-    const floor = altitudeFloor(zone, distance, terrain ?? UNKNOWN_TERRAIN_M);
+    const floor = altitudeFloor(zone, distance, terrain ?? UNKNOWN_TERRAIN_M, clearance);
     const target = Math.min(zone.maxAltitudeM, Math.max(floor, carto.height));
     if (Math.abs(target - carto.height) < 0.5) return;
     // Keep the view direction; only the altitude is limited (blocks the move instead of passing through).
@@ -97,6 +133,9 @@ export function installCameraConstraints(scene: Scene, zone: ExplorationZone = J
   return {
     suspend(value: boolean) {
       suspended = value;
+    },
+    addCloseUp(spot: CloseUpSpot) {
+      spots.push(spot);
     },
     dispose() {
       scene.preRender.removeEventListener(enforce);

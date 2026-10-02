@@ -7,6 +7,7 @@ import { explainComparison, explainMetrics, type ExplanationCode } from './expla
 import { computeMetrics, type RouteMetrics } from './metrics';
 import { pathToPoints, smoothPath } from './polyline';
 import { diagnoseDisconnection } from './reachability';
+import { roundCorners } from './display';
 import { BLOCK, type PreparedTerrain } from './terrain';
 
 /** Bumped whenever routing behaviour changes; stored with every saved mission. */
@@ -46,6 +47,11 @@ export interface RouteResult {
   status: 'ok' | 'no-route';
   profile: RouteProfile;
   points: RoutePoint[];
+  /**
+   * Drawing geometry: `points` with corners rounded where the curve stays on traversable cells
+   * (waypoints stay exact). Metrics always come from `points`.
+   */
+  displayPoints?: RoutePoint[];
   /** Index into `points` where each leg starts. */
   legStarts: number[];
   legs: LegSummary[];
@@ -145,13 +151,15 @@ export function planRoute(t: PreparedTerrain, request: RouteRequest): RouteResul
   }
 
   const metrics = computeMetrics(t, points);
+  const toRoutePoint = (p: XY): RoutePoint => {
+    const ll = eqcInverse(spec.projection, p.x, p.y);
+    return { lat: ll.lat, lon: ll.lon, elevationM: sampleBilinear(spec, t.layers.elevation, p) };
+  };
   return {
     ...base,
     status: 'ok',
-    points: points.map((p) => {
-      const ll = eqcInverse(spec.projection, p.x, p.y);
-      return { lat: ll.lat, lon: ll.lon, elevationM: sampleBilinear(spec, t.layers.elevation, p) };
-    }),
+    points: points.map(toRoutePoint),
+    displayPoints: roundCorners(t, points, 14, 5, new Set(legStarts)).map(toRoutePoint),
     legStarts,
     legs,
     metrics,

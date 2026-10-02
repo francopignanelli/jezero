@@ -103,3 +103,11 @@ These are local mast values that may include rover thermal influence.
    flag only.
 6. **Reproducibility.** The GDAL Docker base image is `ubuntu-small-latest` (a GDAL 3.14 dev
    build). Pin a stable tag or digest before the final data release.
+
+## 3D model: Perseverance rover
+
+- **Source:** `25042_Perseverance.glb`, NASA 3D Resources (NASA/JPL-Caltech), supplied by the owner on 2026-10-02. Kept unmodified in `data/raw/models/` (gitignored).
+- **Licence:** NASA media usage guidelines (UNVERIFIED for this specific file; NASA 3D Resources models are published for free public use).
+- **Scale:** metres, glTF Y-up. Assembled extent 2.70 × 2.23 × 4.11 m (the length includes the robotic arm), consistent with the published 3.0 × 2.7 × 2.2 m rover size.
+- **Build:** glTF-Transform `optimize` (WebP textures at 1024 px, meshopt geometry): 11.7 MB → 2.3 MB. Command in the README.
+- **Placement:** at the latest published MMGIS position (sol 1980), on the rendered terrain, facing along the last drive segment. It is drawn at true scale up close; from far away it is enlarged to stay at least 44 px tall and hidden beyond 40 km.

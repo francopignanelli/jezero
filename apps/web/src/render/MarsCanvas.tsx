@@ -16,7 +16,7 @@ import {
 import { ensureGrid } from '../features/routes/ensureGrid';
 import { routingClient } from '../features/routes/routingClient';
 import type { OverlayKind } from '../features/routes/overlays';
-import { arrowsAlong, buildTrack, pointAt, type Track } from '../lib/routeTrack';
+import { arrowsAlong, buildTrack, pointAt, slopeRuns, type Track } from '../lib/routeTrack';
 import type { Annotation } from './annotations';
 import { registerScene } from './sceneRegistry';
 import { MarsScene, type LineSpec, type LonLatRect } from './marsScene';
@@ -107,6 +107,7 @@ export function MarsCanvas() {
   const routeCursorM = useApp((s) => s.routeCursorM);
   const inspected = useApp((s) => s.inspected);
   const playRequest = useApp((s) => s.playRequest);
+  const slopeColours = useApp((s) => s.routeSlopeColours);
   const crismComposite = useApp((s) => s.crismComposite);
 
   // Create the scene once and load everything the first view needs before revealing it.
@@ -271,6 +272,7 @@ export function MarsCanvas() {
         scene.setLayerVisible(id, visible);
     }
     scene.setLayerVisible('roverLatest', layers.rover);
+    scene.setLayerVisible('roverModel', layers.rover);
     scene.setLayerVisible('viking-hd', layers.viking);
     scene.setLayerVisible('colour-wash', layers.viking && (layers.ctx || layers.hirise));
     scene.setSkyVisible(layers.sky);
@@ -326,14 +328,31 @@ export function MarsCanvas() {
           style,
           points: await drape(
             scene,
-            densify(route.points, 12),
+            densify(route.displayPoints ?? route.points, 12),
             style === 'route-primary' ? 2.5 : 3,
           ),
         })),
       );
       if (cancelled || scene.isDestroyed()) return;
-      scene.setLines('route', specs);
       const primary = specs.find((l) => l.style === 'route-primary');
+      if (primary && selected?.metrics && slopeColours) {
+        // Casing for the whole route, then one coloured core per slope-band run.
+        const runs = slopeRuns(buildTrack(primary.points), selected.metrics.profile, {
+          mild: DEFAULT_EVA_PARAMS.slopeBands[0]!.upToDeg,
+          moderate: DEFAULT_EVA_PARAMS.slopeBands[1]!.upToDeg,
+        });
+        scene.setLines('route', [
+          ...specs.filter((l) => l !== primary),
+          { id: 'primary-casing', style: 'route-casing', points: primary.points },
+          ...runs.map((r, i) => ({
+            id: `band${i}`,
+            style: `route-band-${r.band}` as const,
+            points: r.points,
+          })),
+        ]);
+      } else {
+        scene.setLines('route', specs);
+      }
       if (primary && selected?.metrics) {
         const track = buildTrack(primary.points);
         const profileTotal = selected.metrics.profile.distanceM.at(-1) ?? track.totalM;
@@ -357,7 +376,7 @@ export function MarsCanvas() {
     return () => {
       cancelled = true;
     };
-  }, [result, profile]);
+  }, [result, profile, slopeColours]);
 
   // Round-trip reach from the first waypoint, recomputed when the start moves.
   const start = waypoints[0];
@@ -480,8 +499,20 @@ export function MarsCanvas() {
 
   useEffect(() => {
     // Jezero surface is ~2.5 km below the reference sphere; look at the site from 1.8 km away.
+    if (flyRequest?.model) {
+      void sceneRef.current?.flyToModel(flyRequest.model, flyRequest.rangeM, flyRequest.headingDeg);
+      return;
+    }
     if (flyRequest)
-      void sceneRef.current?.flyToTarget(flyRequest.lat, flyRequest.lon, -2500, 1800, 0, -40, 3);
+      void sceneRef.current?.flyToTarget(
+        flyRequest.lat,
+        flyRequest.lon,
+        flyRequest.heightM ?? -2500,
+        flyRequest.rangeM ?? 1800,
+        flyRequest.headingDeg ?? 0,
+        flyRequest.pitchDeg ?? -40,
+        3,
+      );
   }, [flyRequest]);
 
   if (failed) {
@@ -606,10 +637,34 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
 
   if (rover) {
     const [latest] = await scene.withTerrainHeights(
-      [{ id: 'latest', lat: rover.latest.lat, lon: rover.latest.lon, color: '#f2b84b', size: 12 }],
+      [
+        {
+          id: 'latest',
+          lat: rover.latest.lat,
+          lon: rover.latest.lon,
+          color: '#f2b84b',
+          size: 12,
+          hideWithinM: 250, // the 3D model takes over up close
+        },
+      ],
       2,
     );
     scene.setMarkers('roverLatest', [latest!]);
+    // 3D Perseverance at its latest published position, facing along its last drive.
+    const [prev] = rover.waypoints.slice(-2);
+    const heading = prev
+      ? Math.atan2(
+          (rover.latest.lon - prev[2]) * Math.cos((rover.latest.lat * Math.PI) / 180),
+          rover.latest.lat - prev[1],
+        )
+      : 0;
+    void scene.setModel('roverModel', {
+      lat: rover.latest.lat,
+      lon: rover.latest.lon,
+      heightM: latest!.heightM - 2, // marker lift removed: wheels on the rendered terrain
+      headingRad: heading,
+      url: dataUrl(`models/perseverance.glb?v=${DATA_VERSION}`),
+    });
     scene.setAnnotations('rover', [
       {
         id: 'perseverance',
@@ -620,6 +675,7 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
         kind: 'rover',
         priority: 80,
         maxCameraDistanceM: 350_000,
+        minCameraDistanceM: 250,
       },
     ]);
   }

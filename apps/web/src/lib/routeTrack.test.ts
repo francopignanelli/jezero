@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  slopeRuns,
   arrowsAlong,
   buildTrack,
   distanceAtElapsed,
@@ -68,5 +69,21 @@ describe('nearest point on a polyline', () => {
     const r = nearestOnPolyline(line, { lat: 18 + 500 / M_PER_DEG, lon: 77 + 300 / k });
     expect(r.segmentIndex).toBe(0);
     expect(r.distanceM).toBeCloseTo(300, 0);
+  });
+});
+
+describe('slope runs', () => {
+  it('splits the track where the slope band changes and covers it end to end', () => {
+    const profile = {
+      distanceM: Float32Array.from([0, 250, 500, 750, 1000]),
+      elevationM: Float32Array.from([0, 0, 0, 0, 0]),
+      terrainSlopeDeg: Float32Array.from([2, 3, 12, 17, 4]),
+      elapsedS: Float32Array.from([0, 1, 2, 3, 4]),
+    };
+    const runs = slopeRuns(track, profile, { mild: 10, moderate: 15 });
+    expect(runs.map((r) => r.band)).toEqual(['mild', 'moderate', 'steep', 'mild']);
+    expect(runs[0]!.points[0]).toEqual(track.points[0]);
+    const end = runs.at(-1)!.points.at(-1)!;
+    expect(end.lat).toBeCloseTo(track.points[1]!.lat, 9);
   });
 });

@@ -48,6 +48,19 @@ describe('camera exploration funnel', () => {
   });
 });
 
+describe('close-up spots', async () => {
+  const { clearanceAt, JEZERO_ZONE: zone } = await import('./cameraConstraints');
+  const spot = { lat: 18.4369, lon: 77.232, radiusM: 150, minAboveTerrainM: 4 };
+  it('lowers the clearance near the spot and blends back to the zone value', () => {
+    expect(clearanceAt(zone, [{ ...spot, distanceM: 50 }])).toBe(4);
+    const mid = clearanceAt(zone, [{ ...spot, distanceM: 225 }]);
+    expect(mid).toBeGreaterThan(4);
+    expect(mid).toBeLessThan(zone.minAboveTerrainM);
+    expect(clearanceAt(zone, [{ ...spot, distanceM: 400 }])).toBe(zone.minAboveTerrainM);
+    expect(clearanceAt(zone, [])).toBe(zone.minAboveTerrainM);
+  });
+});
+
 describe('label occlusion by the planet', async () => {
   const { Cartesian3 } = await import('cesium');
   const { isBehindPlanet } = await import('./annotations');

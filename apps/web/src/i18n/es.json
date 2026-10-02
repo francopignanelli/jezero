@@ -187,7 +187,8 @@
     "play": "▶ Reproducir misión",
     "stopPlay": "■ Detener",
     "playHint": "Recorrido de 30 s por la ruta elegida; tocá el mapa para detenerlo.",
-    "playReduced": "Desactivado porque está activado el movimiento reducido."
+    "playReduced": "Desactivado porque está activado el movimiento reducido.",
+    "colourBySlope": "Colorear la ruta según la pendiente"
   },
   "metrics": {
     "distance": "Distancia",

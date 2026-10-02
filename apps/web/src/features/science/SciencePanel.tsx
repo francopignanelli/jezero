@@ -79,7 +79,17 @@ export function SciencePanel() {
           <button
             type="button"
             className="btn"
-            onClick={() => show(rover.latest.lat, rover.latest.lon)}
+            // Close-up of the 3D rover (target at its published elevation above the areoid).
+            onClick={() => {
+              setMode('jezero');
+              flyTo(rover.latest.lat, rover.latest.lon, {
+                heightM: rover.latest.elevationM,
+                model: 'roverModel',
+                rangeM: 16,
+                pitchDeg: -18,
+                headingDeg: 210,
+              });
+            }}
           >
             {t('science.flyTo')}
           </button>

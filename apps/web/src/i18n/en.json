@@ -187,7 +187,8 @@
     "play": "▶ Play mission",
     "stopPlay": "■ Stop",
     "playHint": "30 s fly-along of the selected route; touch the map to stop.",
-    "playReduced": "Disabled because reduced motion is on."
+    "playReduced": "Disabled because reduced motion is on.",
+    "colourBySlope": "Colour the route by slope"
   },
   "metrics": {
     "distance": "Distance",
