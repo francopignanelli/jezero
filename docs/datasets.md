@@ -101,8 +101,11 @@ These are local mast values that may include rover thermal influence.
    mast. There is no live weather.
 5. **Thermal inertia.** The 100 m source is much coarser than the 5 m grid. It is used as a soft
    flag only.
-6. **Reproducibility.** The GDAL Docker base image is `ubuntu-small-latest` (a GDAL 3.14 dev
-   build). Pin a stable tag or digest before the final data release.
+6. **Reproducibility.** The GDAL image is pinned (`ghcr.io/osgeo/gdal:ubuntu-small-3.13.3` by digest).
+7. **CTX holes.** The CTX ortho uses 0 as nodata, so a few fully shadowed pixels are transparent and
+   show the Viking colour underneath as small specks.
+8. **Rim terrain.** The MSR 1 m DTM is blended into the CTX DEM over 180 m at its box edges (it sits
+   ~1.5 m higher on average, with up to ~5 m steps at the edges).
 
 ## 3D model: Perseverance rover
 
@@ -111,3 +114,10 @@ These are local mast values that may include rover thermal influence.
 - **Scale:** metres, glTF Y-up. Assembled extent 2.70 × 2.23 × 4.11 m (the length includes the robotic arm), consistent with the published 3.0 × 2.7 × 2.2 m rover size.
 - **Build:** glTF-Transform `optimize` (WebP textures at 1024 px, meshopt geometry): 11.7 MB → 2.3 MB. Command in the README.
 - **Placement:** at the latest published MMGIS position (sol 1980), on the rendered terrain, facing along the last drive segment. It is drawn at true scale up close; from far away it is enlarged to stay at least 44 px tall and hidden beyond 40 km.
+
+## Real surface photo: Mastcam-Z PIA26699
+
+- **Source:** NASA Photojournal PIA26699, "Crocodile Bridge" (NASA/JPL-Caltech/ASU/MSSS), 980 Mastcam-Z images, sol 1717 (2025-12-18). The 10000 × 2278 JPEG (sha256 `ce98007f…1b70`) is converted to an 8192 px WebP (2.4 MB) for the viewer.
+- **Placement:** MMGIS stop at the end of the sol 1710 drive (18.427599°N, 77.235154°E); no drive is listed until sol 1756.
+- **Geometry:** 360° × 82° cylindrical mosaic. Level horizon measured at 19 % of the image height from the distant flat skyline (±1°), so elevation runs from +15.6° to −66.4°. Azimuth is not georeferenced.
+- **Colours reused:** mean ground (148, 100, 65) for the CTX/HiRISE tint; mean sky just above the horizon (222, 174, 124) and at +15° (177, 141, 101) for the 3D daytime sky gradient.

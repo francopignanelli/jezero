@@ -95,8 +95,8 @@
       "published": "2024-11-19 (acquired)",
       "coverage": {
         "west": 77.2257,
-        "east": 77.2384,
-        "south": 18.4311,
+        "east": 77.242,
+        "south": 18.4225,
         "north": 18.4427
       },
       "resolution": {
@@ -106,11 +106,76 @@
       "units": "DN stretched to 8 bit (0.5–99.5 %)",
       "crs": "Equirectangular, true scale at 15°, centre longitude 180°, local radius 3394.8398 km (from the PDS label; GDAL misreads the JP2 header)",
       "verticalDatum": null,
-      "uncertainty": "Uncontrolled RDR geometry (MRO pointing): horizontal offsets of metres to tens of metres relative to the controlled TRN products are possible. Draped on the coarser rim terrain (CTX).",
+      "uncertainty": "Uncontrolled RDR geometry (MRO pointing): horizontal offsets of metres to tens of metres relative to the controlled TRN products are possible. Draped on the MSR 1 m rim terrain.",
       "license": "NASA PDS (public); credit NASA/JPL/University of Arizona",
       "citation": "McEwen, A.S. et al. (2007) HiRISE, JGR 112, E05S02. Observation ESP_085859_1985, NASA/JPL/University of Arizona.",
       "role": [
         "operational-imagery"
+      ],
+      "expect": {}
+    },
+    {
+      "id": "msr-hirise-dtm",
+      "title": "USGS MSR HiRISE DTM mosaic v003 (1 m), crater rim around Perseverance",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "HiRISE",
+      "productId": "MSR_hirise_soc_003_DTM_MOLATopography_DeltaGeoid_1m_Eqc_latTs0_lon0_Blend40",
+      "publisher": "USGS Astrogeology Science Center",
+      "landingPage": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSR_TRN_HiRISE_soc_003_USGS_release_aug2024/",
+      "accessUrl": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSR_TRN_HiRISE_soc_003_USGS_release_aug2024/MSR_TRN_HiRISE_soc_003_USGS_release_aug2024_mosaics.zip",
+      "access": "download (one 676 MB entry of a 5.47 GB zip, fetched by HTTP range: scripts/data/fetch-zip-entry.ts)",
+      "published": "2024-08",
+      "coverage": {
+        "west": 77.06,
+        "east": 77.38,
+        "south": 18.14,
+        "north": 18.59
+      },
+      "resolution": {
+        "value": 1,
+        "unit": "m/px"
+      },
+      "units": "m (Float32, nodata −32767)",
+      "crs": "Equirectangular, true scale at 0°, centre longitude 0°, sphere R = 3,396,190 m",
+      "verticalDatum": "MOLA areoid (heights adjusted to MOLA topography, ΔGeoid)",
+      "uncertainty": "Stereo DTM mosaic blended with MOLA. On the rim box used here it sits 1.5 m above the CTX DEM on average (σ 3.8 m on 10 m means), with up to ~5 m mean steps along the box edges; it is blended into the CTX DEM over 180 m there. Rendering only: routes still use the operational 1 m model.",
+      "license": "USGS / NASA PDS (public)",
+      "citation": "USGS Astrogeology, MSR TRN HiRISE soc 003 mosaics (release August 2024), DTM MOLATopography DeltaGeoid 1 m.",
+      "role": [
+        "context-terrain"
+      ],
+      "expect": {}
+    },
+    {
+      "id": "mastcamz-pia26699",
+      "title": "Mastcam-Z 360° panorama “Crocodile Bridge” (PIA26699), sol 1717",
+      "mission": "Mars 2020",
+      "instrument": "Mastcam-Z",
+      "productId": "PIA26699",
+      "publisher": "NASA/JPL-Caltech/ASU/MSSS (NASA Photojournal)",
+      "landingPage": "https://www.jpl.nasa.gov/images/pia26699-nasas-perseverance-mars-rover-surveys-crocodile-bridge/",
+      "accessUrl": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia26/pia26699/PIA26699.jpg",
+      "access": "download (10000 × 2278 JPEG, sha256 ce98007f…1b70); shipped as an 8192 px WebP",
+      "published": "2025-12-18 (acquired)",
+      "coverage": {
+        "west": 77.235154,
+        "east": 77.235154,
+        "south": 18.427599,
+        "north": 18.427599
+      },
+      "resolution": {
+        "value": 0.0439453125,
+        "unit": "deg/px"
+      },
+      "units": "8-bit natural colour (as published)",
+      "crs": "Cylindrical 360° × 82° mosaic; level horizon estimated at 19 % of the height (±1°); azimuth not georeferenced",
+      "verticalDatum": null,
+      "uncertainty": "Position from the MMGIS sol 1710 stop (no drive listed until sol 1756). Compass direction unknown. The mean horizon and +15° sky colours sampled from it also set the 3D sky gradient and the ground tint (R:G:B 148:100:65).",
+      "license": "NASA media usage guidelines; credit NASA/JPL-Caltech/ASU/MSSS",
+      "citation": "NASA/JPL-Caltech/ASU/MSSS, PIA26699 (2025).",
+      "role": [
+        "rover",
+        "context-imagery"
       ],
       "expect": {}
     },

@@ -91,6 +91,9 @@ interface AppState {
   /** Draw the selected route coloured by slope band instead of one colour. */
   routeSlopeColours: boolean;
   setRouteSlopeColours(v: boolean): void;
+  /** Open 360° panorama id, or null. */
+  panoramaOpen: string | null;
+  setPanoramaOpen(id: string | null): void;
   playRequest: number | null;
   /** Which CRISM browse composite is shown (carbonate/clay or mafic). */
   crismComposite: 'car' | 'maf';
@@ -195,6 +198,8 @@ export const useApp = create<AppState>((set) => ({
   closeGlossary: () => set({ glossary: { open: false, term: null } }),
   routeSlopeColours: false,
   setRouteSlopeColours: (routeSlopeColours) => set({ routeSlopeColours }),
+  panoramaOpen: null,
+  setPanoramaOpen: (panoramaOpen) => set({ panoramaOpen }),
   playRequest: null,
   crismComposite: 'car',
   setCrismComposite: (crismComposite) => set({ crismComposite }),

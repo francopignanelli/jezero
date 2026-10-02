@@ -18,12 +18,19 @@ from quantized_mesh_encoder.extensions import VertexNormalsExtension
 from . import fetch
 from .frames import JEZERO_AOI, MARS_R, BBox, geographic_srs
 from .imagery import CRATER
-from .paths import BUILD, WORK, ensure
+from .paths import BUILD, RAW, WORK, ensure
 from .tiling import WORLD, Tile, tiles_covering
 
 gdal.UseExceptions()
 OUT = BUILD / "tiles" / "terrain"
 MARS_SPHERE = Ellipsoid(MARS_R, MARS_R)
+
+# Crater rim around Perseverance's recent positions (sols ~1710–1980), covered by the USGS MSR
+# HiRISE 1 m DTM (v003, 2024): detailed terrain for the rover close-up and its 360° panorama.
+RIM = BBox(west=77.2150, south=18.4180, east=77.2500, north=18.4500)
+# The MSR DTM sits ~1.5 m above the CTX DEM on average, with up to ~5 m steps along its edges
+# (measured on 10 m averages): it is blended in over this band so no wall appears at low angles.
+RIM_FEATHER_DEG = 0.003  # ≈ 180 m
 
 # (zmin, zmax, region, grid samples per side, max mesh error in m)
 LEVELS = [
@@ -32,7 +39,13 @@ LEVELS = [
     (10, 12, CRATER, 65, 5.0),
     (13, 14, JEZERO_AOI, 129, 1.0),
     (15, 16, JEZERO_AOI, 129, 0.5),
+    (13, 14, RIM, 129, 1.0),
+    (15, 16, RIM, 129, 0.5),
 ]
+
+
+def _intersects(a: BBox, b: BBox) -> bool:
+    return a.west < b.east and b.west < a.east and a.south < b.north and b.south < a.north
 
 
 def height_source(src, name: str, box: BBox, res_deg: float, src_nodata=None) -> gdal.Dataset:
@@ -57,6 +70,15 @@ def height_source(src, name: str, box: BBox, res_deg: float, src_nodata=None) ->
         ds.BuildOverviews("AVERAGE", [2, 4, 8, 16, 32])
         ds = None  # flush and close before reopening read-only
     return gdal.Open(str(dst))
+
+
+def edge_weight(b: BBox, n: int, box: BBox, feather_deg: float) -> np.ndarray:
+    """n×n weights (same grid as sample()): 0 outside `box`, rising linearly to 1 at feather_deg inside."""
+    lon = b.west + np.arange(n) / (n - 1) * (b.east - b.west)
+    lat = b.north - np.arange(n) / (n - 1) * (b.north - b.south)
+    dx = np.minimum(lon - box.west, box.east - lon)[None, :]
+    dy = np.minimum(lat - box.south, box.north - lat)[:, None]
+    return np.clip(np.minimum(dx, dy) / feather_deg, 0.0, 1.0)
 
 
 def sample(ds: gdal.Dataset, b: BBox, n: int) -> np.ndarray:
@@ -106,7 +128,9 @@ def encode_tile(heights: np.ndarray, b: BBox, max_error: float, path) -> None:
         )
 
 
-def build() -> dict:
+def build(only: BBox | None = None) -> dict:
+    """All terrain tiles, or (with `only`) just the tiles intersecting that box; layer.json always
+    lists the full availability."""
     fetch.download("mola-megdr-32")  # megt90n000fb.img, referenced by the PDS3 label below
     lbl = fetch.download("mola-megdr-32", url=_label_url(), name="megt90n000fb.lbl")
     ctx = fetch.download("ctx-dem-jpl")
@@ -114,30 +138,42 @@ def build() -> dict:
     if not local_dtm.exists():
         raise SystemExit("run the 'operational' step first (it produces the 1 m local DTM)")
 
+    msr = RAW / "msr-hirise" / "MSR_hirise_soc_003_DTM_MOLATopography_DeltaGeoid_1m_Eqc_latTs0_lon0_Blend40.tif"
+    if not msr.exists():
+        raise SystemExit("run: npx tsx scripts/data/fetch-zip-entry.ts (MSR HiRISE 1 m DTM)")
+    # Coarse to fine; a finer source overwrites wherever it has data (blended at its edges when it
+    # has a feather band).
     sources = [
-        height_source(str(lbl), "mola", WORLD, 1 / 32),
-        height_source(ctx, "ctx", CRATER, 20 / 59274.7),
-        height_source(local_dtm, "hirise", JEZERO_AOI, 1.25 / 59274.7),
+        (height_source(str(lbl), "mola", WORLD, 1 / 32), None),
+        (height_source(ctx, "ctx", CRATER, 20 / 59274.7), None),
+        (height_source(msr, "msr", RIM, 1.25 / 59274.7, -32767), (RIM, RIM_FEATHER_DEG)),
+        (height_source(local_dtm, "hirise", JEZERO_AOI, 1.25 / 59274.7), None),
     ]
-    available: list[list[dict]] = []
+    ranges: dict[int, list[dict]] = {}
     count = 0
     for zmin, zmax, region, n, max_error in LEVELS:
         for z in range(zmin, zmax + 1):
             tiles = tiles_covering(z, region)
             for tile in tiles:
                 b = tile.bounds
-                heights = sample(sources[0], b, n)
-                for finer in sources[1:]:
+                if only is not None and not _intersects(b, only):
+                    continue
+                heights = sample(sources[0][0], b, n)
+                for finer, feather in sources[1:]:
                     patch = sample(finer, b, n)
                     ok = np.isfinite(patch)
-                    heights[ok] = patch[ok]
+                    if feather is None:
+                        heights[ok] = patch[ok]
+                    else:
+                        w = edge_weight(b, n, *feather)
+                        heights[ok] = heights[ok] * (1 - w[ok]) + patch[ok] * w[ok]
                 if not np.isfinite(heights).all():
                     heights = np.where(np.isfinite(heights), heights, np.nanmean(heights))
                 encode_tile(heights, b, max_error, OUT / str(z) / str(tile.x) / f"{tile.tms_y}.terrain")
                 count += 1
             xs = [t.x for t in tiles]
             ys = [t.tms_y for t in tiles]
-            available.append([{"startX": min(xs), "startY": min(ys), "endX": max(xs), "endY": max(ys)}])
+            ranges.setdefault(z, []).append({"startX": min(xs), "startY": min(ys), "endX": max(xs), "endY": max(ys)})
             print(f"[terrain] z{z}: {len(tiles)} tiles")
     layer = {
         "tilejson": "2.1.0",
@@ -149,7 +185,7 @@ def build() -> dict:
         "tiles": ["{z}/{x}/{y}.terrain"],
         "projection": "EPSG:4326",
         "bounds": [-180, -90, 180, 90],
-        "available": available,
+        "available": [ranges[z] for z in sorted(ranges)],
         "extensions": ["octvertexnormals"],
         "copernico": {"crs": "IAU_2015:49900", "radiusM": MARS_R, "levels": [list(level[:2]) + [level[3], level[4]] for level in LEVELS]},
     }

@@ -1,0 +1,32 @@
+{
+  "panoramas": [
+    {
+      "id": "pia26699",
+      "title": "“Crocodile Bridge”, Jezero Crater rim",
+      "photojournal": "PIA26699",
+      "sourceUrl": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia26/pia26699/PIA26699.jpg",
+      "pageUrl": "https://www.jpl.nasa.gov/images/pia26699-nasas-perseverance-mars-rover-surveys-crocodile-bridge/",
+      "sourceSha256": "ce98007f3310c3b14c5ae748971b38c3aa018e3c317e0e58ecc459dbea8a1b70",
+      "file": "panoramas/pia26699_8k.webp",
+      "instrument": "Mars 2020 Mastcam-Z",
+      "credit": "NASA/JPL-Caltech/ASU/MSSS",
+      "images": 980,
+      "sol": 1717,
+      "date": "2025-12-18",
+      "colour": "natural colour (processed to approximate what the eye would see)",
+      "horizontalDeg": 360,
+      "verticalDeg": 82,
+      "horizonFraction": 0.19,
+      "elevationDeg": {
+        "top": 15.6,
+        "bottom": -66.4
+      },
+      "position": {
+        "lat": 18.427599,
+        "lon": 77.235154,
+        "basis": "MMGIS waypoint at the end of the sol 1710 drive; no drive is listed until sol 1756, so the rover was parked there on sol 1717."
+      },
+      "limitations": "The view direction is not georeferenced (no azimuth is published with the mosaic). The level horizon was estimated from the distant flat skyline at 19% of the image height (about ±1°), giving +15.6° to −66.4° of elevation; the sky above the photographed strip is a plain gradient extrapolated from its top rows, not imagery. Black areas are parts of the mosaic NASA left without data."
+    }
+  ]
+}

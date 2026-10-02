@@ -29,6 +29,7 @@ import {
   Resource,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
+  PostProcessStage,
   SingleTileImageryProvider,
   SkyAtmosphere,
   UrlTemplateImageryProvider,
@@ -46,6 +47,7 @@ import {
   type Mat3,
 } from '@copernico/domain';
 import { AnnotationLayer, type Annotation } from './annotations';
+import { tintImage, type Tint } from './tint';
 import { installCameraConstraints } from './cameraConstraints';
 import { SkyRenderer, type SkyQuality } from './sky';
 
@@ -110,6 +112,8 @@ export interface LayerGrade {
 export interface RasterLayerSpec {
   id: string;
   grade?: LayerGrade;
+  /** Multiplies greyscale tiles by this colour (approximate natural colour, full detail). */
+  tint?: Tint;
   url: string;
   rectangle: LonLatRect;
   minLevel: number;
@@ -327,6 +331,8 @@ export class MarsScene {
   private readonly seeThrough = new Map<Entity, MaterialProperty>();
   private overhead = true;
   private nearModel = false;
+  private haze: PostProcessStage;
+  private hazeStrength = 0;
   private handler: ScreenSpaceEventHandler;
   private sky: SkyRenderer | null = null;
   private terrain: TerrainProvider = new EllipsoidTerrainProvider({ ellipsoid: MARS_SPHERE });
@@ -376,7 +382,51 @@ export class MarsScene {
     sky.atmosphereLightIntensity = 14;
     sky.perFragmentAtmosphere = true;
     scene.skyAtmosphere = sky;
-    scene.postProcessStages.fxaa.enabled = true;
+
+    // Dust haze near the surface: terrain fades with distance toward the horizon sky colour of our
+    // sky layer, so distant ridges blend into the sky instead of ending in a hard edge. Horizontal
+    // extinction length ≈ dust scale height / optical depth ≈ 11 km / 0.4 ≈ 28 km (Perseverance
+    // measured τ ≈ 0.3–0.6 outside dust storms); a single constant, not a dust model, and in-scattered light = sky colour.
+    this.haze = new PostProcessStage({
+      fragmentShader: `
+        uniform sampler2D colorTexture;
+        uniform sampler2D depthTexture;
+        uniform vec3 hazeColor;
+        uniform float hazeScale;
+        uniform float strength;
+        in vec2 v_textureCoordinates;
+        void main() {
+          vec4 c = texture(colorTexture, v_textureCoordinates);
+          if (c.a == 0.0 || strength <= 0.0) { out_FragColor = c; return; }
+          // Raw (logarithmic) depth: czm_windowToEyeCoordinates undoes the log encoding itself, so
+          // czm_readDepth (which also undoes it) must not be used here.
+          float depth = texture(depthTexture, v_textureCoordinates).r;
+          if (depth >= 1.0) {
+            // Partly covered silhouette pixel (MSAA averages colour but keeps one depth sample):
+            // borrow the nearest covered neighbour's depth so the horizon edge is hazed too.
+            vec2 px = 1.0 / czm_viewport.zw;
+            depth = min(min(texture(depthTexture, v_textureCoordinates + vec2(px.x, 0.0)).r,
+                            texture(depthTexture, v_textureCoordinates - vec2(px.x, 0.0)).r),
+                        min(texture(depthTexture, v_textureCoordinates + vec2(0.0, px.y)).r,
+                            texture(depthTexture, v_textureCoordinates - vec2(0.0, px.y)).r));
+            if (depth >= 1.0) { out_FragColor = vec4(mix(c.rgb, hazeColor * c.a, strength), c.a); return; }
+          }
+          vec4 eye = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth);
+          float d = length(eye.xyz / eye.w);
+          float f = (1.0 - exp(-d / hazeScale)) * strength;
+          out_FragColor = vec4(mix(c.rgb, hazeColor * c.a, f), c.a);
+        }`,
+      uniforms: {
+        // Horizon colour of the sky layer (Mastcam-Z sample × the 0.85 daylight blend).
+        hazeColor: new Cartesian3(0.74, 0.58, 0.42),
+        hazeScale: 28_000,
+        strength: () => this.hazeStrength,
+      },
+    });
+    scene.postProcessStages.add(this.haze);
+    // MSAA (4×) smooths edges; FXAA is off because on a transparent canvas it leaves dark/light
+    // dashes along the horizon silhouette.
+    scene.postProcessStages.fxaa.enabled = false;
     if (scene.sun) scene.sun.show = false;
     if (scene.moon) scene.moon.show = false;
     scene.backgroundColor = new Color(0, 0, 0, 0);
@@ -397,6 +447,9 @@ export class MarsScene {
     this.annotations = new AnnotationLayer(container, scene);
     scene.preRender.addEventListener(() => {
       this.updateAtmosphere();
+      // Haze only near the ground (full below 8 km above the terrain, none above 60 km).
+      const hh = this.widget.camera.positionCartographic.height + 2_500;
+      this.hazeStrength = 1 - Math.min(1, Math.max(0, (hh - 8_000) / 52_000));
       this.fadeImageryTiers();
       this.updateLineOcclusion();
       this.updateCloseUpDeclutter();
@@ -574,9 +627,10 @@ export class MarsScene {
     const wash = this.rasters.get('colour-wash');
     const ctx = this.rasters.get('ctx');
     if (wash && ctx) {
-      // A little more colour near the ground, where the grey HiRISE/CTX fill the view.
+      // The tiers are already tinted; the wash adds regional colour variation, and less of it near
+      // the ground so the blurry 232 m colour does not dim the 25 cm–5 m detail.
       const nearGround = 1 - Math.min(1, Math.max(0, (h - 3_000) / 27_000));
-      const a = (0.45 + 0.15 * nearGround) * ctx.alpha;
+      const a = (0.35 - 0.2 * nearGround) * ctx.alpha;
       if (Math.abs(wash.alpha - a) > 0.01) wash.alpha = a;
     }
   }
@@ -599,6 +653,12 @@ export class MarsScene {
       tileWidth: 256,
       tileHeight: 256,
     });
+    if (spec.tint) {
+      const tint = spec.tint;
+      const request = provider.requestImage.bind(provider);
+      provider.requestImage = (x, y, level, req) =>
+        request(x, y, level, req)?.then((img) => tintImage(img, tint));
+    }
     this.addProvider(spec.id, provider, spec.minLevel);
     const layer = this.rasters.get(spec.id);
     if (layer && spec.grade) Object.assign(layer, spec.grade);
@@ -941,22 +1001,57 @@ export class MarsScene {
     const lat = t.lat - (horizontal * Math.cos(h)) / mPerDeg;
     const lon =
       t.lon - (horizontal * Math.sin(h)) / (mPerDeg * Math.cos(CesiumMath.toRadians(t.lat)));
-    const [ground] = await this.sampleTerrain([{ lat, lon }]);
-    const height = Math.max(
-      t.heightM + rangeM * Math.sin(CesiumMath.toRadians(elevationDeg)),
-      (ground ?? t.heightM) + 6,
-    );
-    const pitch = -Math.atan2(height - t.heightM, horizontal);
-    return this.flight((done) =>
-      this.widget.camera.flyTo({
+    const viewpoint = async () => {
+      const [ground] = await this.sampleTerrain([{ lat, lon }]);
+      const height = Math.max(
+        t.heightM + rangeM * Math.sin(CesiumMath.toRadians(elevationDeg)),
+        (ground ?? t.heightM) + 6,
+      );
+      return {
         destination: toCartesian(lat, lon, height),
-        orientation: { heading: h, pitch, roll: 0 },
+        pitch: -Math.atan2(height - t.heightM, horizontal),
+      };
+    };
+    const first = await viewpoint();
+    await this.flight((done) =>
+      this.widget.camera.flyTo({
+        destination: first.destination,
+        orientation: { heading: h, pitch: first.pitch, roll: 0 },
         duration: this.reducedMotion ? 0 : 3,
         easingFunction: EasingFunction.QUADRATIC_IN_OUT,
         complete: done,
         cancel: done,
       }),
     );
+    // A long flight ends before the detailed terrain arrives, and the clearance floor computed on
+    // the coarse tiles can lift the camera (straight up). Once tiles are loaded, re-place it, unless
+    // the user has since moved sideways or turned.
+    const camera = this.widget.camera;
+    const landed = {
+      lon: camera.positionCartographic.longitude,
+      lat: camera.positionCartographic.latitude,
+      heading: camera.heading,
+      pitch: camera.pitch,
+    };
+    await this.whenTilesLoaded(8_000);
+    if (this.isDestroyed()) return;
+    const now = camera.positionCartographic;
+    const movedM =
+      Math.hypot(now.latitude - landed.lat, (now.longitude - landed.lon) * Math.cos(now.latitude)) *
+      MARS_SPHERE_RADIUS_M;
+    if (
+      movedM > 1 ||
+      Math.abs(camera.heading - landed.heading) > 1e-3 ||
+      Math.abs(camera.pitch - landed.pitch) > 1e-3
+    )
+      return;
+    const settled = await viewpoint();
+    if (Cartesian3.distance(settled.destination, camera.positionWC) < 0.5) return;
+    camera.setView({
+      destination: settled.destination,
+      orientation: { heading: h, pitch: settled.pitch, roll: 0 },
+    });
+    this.requestRender();
   }
 
   setAnnotationsMuted(groupId: string, muted: boolean): void {

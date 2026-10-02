@@ -625,5 +625,15 @@
         "def": "Whether the Sun stays more than 10° above the horizon for the whole walk, so the crew works and returns in good light."
       }
     }
+  },
+  "panorama": {
+    "open": "Look around (360°, sol {{sol}})",
+    "loading": "Loading the panorama…",
+    "failed": "The panorama could not be displayed on this device.",
+    "close": "Close the panorama",
+    "canvasLabel": "360° panorama. Drag or use the arrow keys to look around; + and − zoom.",
+    "caption": "A real photo: {{images}} {{instrument}} images taken by Perseverance on sol {{sol}} ({{date}}) on the crater rim, in natural colour.",
+    "hint": "Drag to look around · scroll to zoom · Esc to close",
+    "limits": "Compass direction not georeferenced. Horizon estimated from the distant skyline (±1°); sky above the photo is a plain gradient, black areas have no data."
   }
 }

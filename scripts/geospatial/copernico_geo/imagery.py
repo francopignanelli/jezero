@@ -142,7 +142,8 @@ def build_viking_hd() -> dict:
 
 # Perseverance's latest published position (MMGIS, sol 1980) and the HiRISE observation covering it.
 ROVER = (18.436874, 77.232054)
-ROVER_BOX = BBox(west=77.2257, south=18.4311, east=77.2384, north=18.4427)
+# Covers the latest position (sol 1980) and the sol 1710–1756 stop of the "Crocodile Bridge" panorama.
+ROVER_BOX = BBox(west=77.2257, south=18.4225, east=77.2420, north=18.4427)
 # HiRISE RDR JP2 headers are misread by GDAL (CENTER_LATITUDE becomes the natural origin). The PDS
 # label defines Equirectangular with true scale at 15°, centre longitude 180°, local radius below.
 HIRISE_RDR_SRS = "+proj=eqc +lat_ts=15 +lat_0=0 +lon_0=180 +x_0=0 +y_0=0 +R=3394839.8133 +units=m +no_defs"

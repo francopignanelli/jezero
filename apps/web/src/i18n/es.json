@@ -625,5 +625,15 @@
         "def": "Si el Sol se mantiene a más de 10° sobre el horizonte durante toda la caminata, para que la tripulación trabaje y vuelva con buena luz."
       }
     }
+  },
+  "panorama": {
+    "open": "Mirar alrededor (360°, sol {{sol}})",
+    "loading": "Cargando la panorámica…",
+    "failed": "No se pudo mostrar la panorámica en este dispositivo.",
+    "close": "Cerrar la panorámica",
+    "canvasLabel": "Panorámica 360°. Arrastrá o usá las flechas para mirar alrededor; + y − hacen zoom.",
+    "caption": "Una foto real: {{images}} imágenes de {{instrument}} tomadas por Perseverance en el sol {{sol}} ({{date}}) en el borde del cráter, en color natural.",
+    "hint": "Arrastrá para mirar alrededor · rueda para zoom · Esc para cerrar",
+    "limits": "Dirección de brújula no georreferenciada. Horizonte estimado con el perfil lejano (±1°); el cielo sobre la foto es un degradado simple y las zonas negras no tienen datos."
   }
 }

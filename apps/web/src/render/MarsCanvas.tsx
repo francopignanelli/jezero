@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type LayerId } from '../app/store';
 import { DATA_VERSION, JEZERO_OPERATIONAL_VIEW, dataUrl } from '../config';
-import { POIS } from '../data/catalog';
+import { PANORAMAS, POIS } from '../data/catalog';
 import {
   loadCoverage,
   loadCrism,
@@ -19,7 +19,8 @@ import type { OverlayKind } from '../features/routes/overlays';
 import { arrowsAlong, buildTrack, pointAt, slopeRuns, type Track } from '../lib/routeTrack';
 import type { Annotation } from './annotations';
 import { registerScene } from './sceneRegistry';
-import { MarsScene, type LineSpec, type LonLatRect } from './marsScene';
+import type { Tint } from './tint';
+import { MarsScene, type LayerGrade, type LineSpec, type LonLatRect } from './marsScene';
 import { densify, simplify, type LatLonPoint } from './pathGeometry';
 
 /**
@@ -33,13 +34,23 @@ import { densify, simplify, type LatLonPoint } from './pathGeometry';
  * Colours remain illustrative, as the provenance card states.
  */
 const VIKING_GRADE = { saturation: 0.5, hue: 0.06, gamma: 1.05, brightness: 1.1, contrast: 1.1 };
+/** The colour wash only adds regional hue variation over the tinted CTX/HiRISE. */
+const WASH_GRADE = { saturation: 0.8, hue: 0.06, gamma: 1.0, brightness: 1.1, contrast: 1.0 };
+/**
+ * CTX and HiRISE are greyscale. They are multiplied by the average ground colour of the Mastcam-Z
+ * panorama PIA26699 (R:G:B ≈ 148:100:65, natural colour) so the surface reads as Mars without
+ * blurring the detail. Approximate colour; the brightness lift offsets the multiply.
+ */
+const GROUND_TINT: Tint = [1, 0.676, 0.439];
+const TINTED_GRADE: LayerGrade = { brightness: 1.25 };
 const IMAGERY: Array<{
   id: string;
   toggle: LayerId;
   credit: string;
   tiles?: string;
   rectangle?: LonLatRect;
-  grade?: typeof VIKING_GRADE;
+  grade?: LayerGrade;
+  tint?: Tint;
 }> = [
   {
     id: 'viking',
@@ -57,16 +68,22 @@ const IMAGERY: Array<{
     id: 'ctx',
     toggle: 'ctx',
     credit: 'NASA/JPL/MSSS/USGS CTX (Mars 2020 science investigation mosaic)',
+    tint: GROUND_TINT,
+    grade: TINTED_GRADE,
   },
   {
     id: 'hirise',
     toggle: 'hirise',
     credit: 'NASA/JPL/University of Arizona/USGS HiRISE (Mars 2020 TRN orthomosaic)',
+    tint: GROUND_TINT,
+    grade: TINTED_GRADE,
   },
   {
     id: 'hirise-rover',
     toggle: 'hirise',
     credit: 'NASA/JPL/University of Arizona HiRISE ESP_085859_1985 (2024-11-19)',
+    tint: GROUND_TINT,
+    grade: TINTED_GRADE,
   },
   {
     id: 'colour-wash',
@@ -74,7 +91,7 @@ const IMAGERY: Array<{
     tiles: 'viking-hd',
     credit: 'Colour from the Viking MDIM 2.1 mosaic over CTX/HiRISE (approximate)',
     rectangle: { west: 77.0, south: 17.6, east: 78.58, north: 19.28 },
-    grade: VIKING_GRADE,
+    grade: WASH_GRADE,
   },
 ];
 const OVERLAYS: OverlayKind[] = ['slope', 'elevation', 'thermalInertia'];
@@ -173,7 +190,7 @@ export function MarsCanvas() {
       const terrainOk = await scene.loadTerrain(dataUrl('tiles/terrain'), DATA_VERSION);
       setLoading({ terrain: terrainOk ? 'done' : 'failed' });
       let imageryOk = true;
-      for (const { id, toggle, credit, tiles, rectangle, grade } of IMAGERY) {
+      for (const { id, toggle, credit, tiles, rectangle, grade, tint } of IMAGERY) {
         const meta = await loadImageryLayer(tiles ?? id);
         if (scene.isDestroyed()) return;
         if (!meta) {
@@ -188,6 +205,7 @@ export function MarsCanvas() {
           maxLevel: meta.maxLevel,
           credit,
           ...(grade ? { grade } : {}),
+          ...(tint ? { tint } : {}),
         });
         scene.setLayerVisible(id, useApp.getState().layers[toggle]);
       }
@@ -697,6 +715,34 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
       },
     ]);
   }
+
+  // Real 360° panoramas, at the rover position where they were taken.
+  const panos = await scene.withTerrainHeights(
+    PANORAMAS.map((p) => ({
+      id: p.id,
+      lat: p.position.lat,
+      lon: p.position.lon,
+      color: '#ffffff',
+      size: 8,
+      hideWithinM: 0,
+    })),
+    2,
+  );
+  scene.setMarkers('panoramas', panos);
+  scene.setAnnotations(
+    'panoramas',
+    panos.map((p, i): Annotation => ({
+      id: p.id,
+      lat: p.lat,
+      lon: p.lon,
+      heightM: p.heightM,
+      text: `360° · sol ${PANORAMAS[i]!.sol}`,
+      kind: 'panorama',
+      priority: 90,
+      maxCameraDistanceM: 60_000,
+      onClick: () => useApp.getState().setPanoramaOpen(PANORAMAS[i]!.id),
+    })),
+  );
 
   if (samples) {
     scene.setMarkers(

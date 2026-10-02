@@ -1890,3 +1890,66 @@ details.samples > summary {
 .chip-steep {
   background: #f89540;
 }
+
+/* ---------- 360° panorama viewer ---------- */
+.pano {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: #0b0e13;
+}
+.pano-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+.pano-canvas:active {
+  cursor: grabbing;
+}
+.pano-canvas:focus {
+  outline: none;
+}
+.pano-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-muted);
+}
+.pano-caption {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 720px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: rgb(18 22 29 / 0.88);
+  backdrop-filter: blur(6px);
+}
+.pano-caption h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+.pano-caption p {
+  margin: 2px 0;
+  font-size: var(--fs-sm);
+}
+.pano-caption .popover-close {
+  position: static;
+}
+.annotation-action {
+  pointer-events: auto;
+  cursor: pointer;
+  border-color: #ffffff !important;
+}
+.annotation-action:hover {
+  background: rgb(232 112 64 / 0.85);
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
-import { POIS } from '../../data/catalog';
+import { PANORAMAS, POIS } from '../../data/catalog';
 import {
   loadRover,
   loadSamples,
@@ -21,6 +21,7 @@ export function SciencePanel() {
   const lang = i18n.language.startsWith('es') ? 'es' : 'en';
   const addWaypoint = useApp((s) => s.addWaypoint);
   const flyTo = useApp((s) => s.flyTo);
+  const openPanorama = useApp((s) => s.setPanoramaOpen);
   const setMode = useApp((s) => s.setMode);
   const [rover, setRover] = useState<RoverSnapshot | null>(null);
   const [samples, setSamples] = useState<SampleSite[]>([]);
@@ -85,15 +86,20 @@ export function SciencePanel() {
               flyTo(rover.latest.lat, rover.latest.lon, {
                 heightM: rover.latest.elevationM,
                 model: 'roverModel',
-                // Medium three-quarter front view (the rover faces ~157°): at ~40 m the 25 cm HiRISE
-                // ground still reads as terrain; closer, any orbital image is blurry next to a 3 m rover.
-                rangeM: 40,
+                // Three-quarter front view (the rover faces ~157°): at ~24 m the 3 m rover fills a
+                // useful part of the view and the 25 cm HiRISE ground still reads as terrain.
+                rangeM: 24,
                 headingDeg: 297,
               });
             }}
           >
             {t('science.flyTo')}
           </button>
+          {PANORAMAS[0] && (
+            <button type="button" className="btn" onClick={() => openPanorama(PANORAMAS[0]!.id)}>
+              {t('panorama.open', { sol: PANORAMAS[0].sol })}
+            </button>
+          )}
         </div>
       )}
 

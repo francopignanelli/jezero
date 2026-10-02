@@ -55,6 +55,9 @@ uniform float u_day;
 uniform vec3 u_up;
 const float PI = 3.141592653589793;
 const float BLACK_POINT = 0.035;
+const vec3 SKY_HORIZON = vec3(0.87, 0.68, 0.49);
+const vec3 SKY_15 = vec3(0.69, 0.55, 0.40);
+const vec3 SKY_ZENITH = vec3(0.45, 0.36, 0.27);
 void main() {
   vec3 dEye = normalize(vec3(v_ndc.x * u_tanHalf.x, v_ndc.y * u_tanHalf.y, -1.0));
   vec3 d = normalize(u_eyeToIcrf * dEye);
@@ -75,10 +78,12 @@ void main() {
   // Display black point: hides the sub-threshold speckle of unresolved faint stars so the Milky Way
   // reads as a band. Positions are unchanged; this is a tone choice like any exposure.
   mw = max(mw - BLACK_POINT, 0.0) / (1.0 - BLACK_POINT);
-  // Illustrative daytime Mars sky (dust-scattered light): brighter, warmer toward the horizon.
+  // Daytime Mars sky: the horizon and +15° colours are averages sampled from the Mastcam-Z
+  // panorama PIA26699 (natural colour, sol 1717); the zenith tone is extrapolated (illustrative).
   vec3 w = u_eyeToWorld * dEye;
   float h = clamp(dot(normalize(w), u_up), -1.0, 1.0);
-  vec3 sky = mix(vec3(0.62, 0.47, 0.33), vec3(0.20, 0.15, 0.12), smoothstep(0.0, 0.9, h));
+  vec3 sky = mix(SKY_HORIZON, SKY_15, smoothstep(0.0, 0.27, h));
+  sky = mix(sky, SKY_ZENITH, smoothstep(0.27, 1.0, h));
   outColor = vec4(mix(mw * (1.0 - u_day), sky, u_day), 1.0);
 }`;
 

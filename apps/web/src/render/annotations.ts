@@ -6,7 +6,7 @@ import { MARS_SPHERE_RADIUS_M, normalizeLon180 } from '@copernico/domain';
  * overlaps: every frame, labels are projected, hidden when behind Mars, and placed greedily by
  * priority, trying four positions around the anchor before hiding a label.
  */
-export type AnnotationKind = 'waypoint' | 'poi' | 'rover' | 'region';
+export type AnnotationKind = 'waypoint' | 'poi' | 'rover' | 'region' | 'panorama';
 
 export interface Annotation {
   id: string;
@@ -21,6 +21,8 @@ export interface Annotation {
   dedupeKey?: string;
   /** Short badge text (e.g. waypoint number). */
   badge?: string;
+  /** Makes the label a button (e.g. open a panorama). */
+  onClick?: () => void;
   /** Visible only when the camera is closer / farther than these distances (m). */
   maxCameraDistanceM?: number;
   minCameraDistanceM?: number;
@@ -96,6 +98,10 @@ export class AnnotationLayer {
         b.className = 'annotation-badge';
         b.textContent = a.badge;
         el.appendChild(b);
+      }
+      if (a.onClick) {
+        el.classList.add('annotation-action');
+        el.addEventListener('click', a.onClick);
       }
       const t = document.createElement('span');
       t.className = 'annotation-text';
