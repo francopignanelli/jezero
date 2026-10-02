@@ -5,6 +5,10 @@ import { MARS_SPHERE_RADIUS_M, normalizeLon180 } from '@copernico/domain';
  * Screen-space annotations rendered as DOM chips over the globe, so text is always crisp and never
  * overlaps: every frame, labels are projected, hidden when behind Mars, and placed greedily by
  * priority, trying four positions around the anchor before hiding a label.
+ *
+ * Places (POIs, the rover, panoramas) are pins: a dot exactly on the ground, a thin stem, and the
+ * label above at one of a few stem heights. The dot replaces a WebGL point, which terrain clips into
+ * a half-buried dome; dots stay visible when their label has no room.
  */
 export type AnnotationKind = 'waypoint' | 'poi' | 'rover' | 'region' | 'panorama';
 
@@ -30,11 +34,19 @@ export interface Annotation {
 
 interface Placed {
   el: HTMLElement;
+  /** Pins only. */
+  stem?: HTMLElement;
+  dot?: HTMLElement;
   anchor: Cartesian3;
   a: Annotation;
   width: number;
   height: number;
 }
+
+const PIN_KINDS: ReadonlySet<AnnotationKind> = new Set(['poi', 'rover', 'panorama']);
+/** Stem lengths tried in turn (px), so nearby pins stagger instead of hiding their labels. */
+const STEMS = [16, 38, 60, 84] as const;
+const DOT_PX = 10;
 
 const OFFSETS: ReadonlyArray<readonly [number, number, string]> = [
   [0, -14, 'above'],
@@ -89,8 +101,25 @@ export class AnnotationLayer {
   }
 
   set(group: string, items: Annotation[]): void {
-    for (const p of this.groups.get(group) ?? []) p.el.remove();
-    const placed = items.map((a) => {
+    for (const p of this.groups.get(group) ?? []) {
+      p.el.remove();
+      p.stem?.remove();
+      p.dot?.remove();
+    }
+    const placed = items.map((a): Placed => {
+      let stem: HTMLElement | undefined;
+      let dot: HTMLElement | undefined;
+      if (PIN_KINDS.has(a.kind)) {
+        stem = document.createElement('div');
+        stem.className = 'annotation-stem';
+        dot = document.createElement('div');
+        dot.className = `annotation-dot annotation-dot-${a.kind}`;
+        if (a.onClick) {
+          dot.classList.add('annotation-action');
+          dot.addEventListener('click', a.onClick);
+        }
+        this.root.append(stem, dot);
+      }
       const el = document.createElement('div');
       el.className = `annotation annotation-${a.kind}`;
       if (a.badge) {
@@ -110,6 +139,7 @@ export class AnnotationLayer {
       this.root.appendChild(el);
       return {
         el,
+        ...(stem && dot ? { stem, dot } : {}),
         a,
         anchor: Cartesian3.fromDegrees(
           normalizeLon180(a.lon),
@@ -160,6 +190,8 @@ export class AnnotationLayer {
     for (const [group, items] of this.groups) {
       for (const p of items) {
         p.el.style.visibility = 'hidden';
+        if (p.stem) p.stem.style.visibility = 'hidden';
+        if (p.dot) p.dot.style.visibility = 'hidden';
         if (this.hidden.has(group)) continue;
         const d = Cartesian3.distance(camera, p.anchor);
         if (p.a.maxCameraDistanceM !== undefined && d > p.a.maxCameraDistanceM) continue;
@@ -175,6 +207,8 @@ export class AnnotationLayer {
         }
         const isMuted = this.muted.has(group);
         p.el.classList.toggle('annotation-muted', isMuted);
+        p.dot?.classList.toggle('annotation-muted', isMuted);
+        p.stem?.classList.toggle('annotation-muted', isMuted);
         candidates.push({
           ...p,
           x: s.x,
@@ -191,10 +225,57 @@ export class AnnotationLayer {
     const overlaps = (r: [number, number, number, number]) =>
       taken.some((t) => r[0] < t[2] + 4 && r[2] + 4 > t[0] && r[1] < t[3] + 3 && r[3] + 3 > t[1]);
 
+    // Dots first, so labels never cover a place marker.
+    const pins = candidates.filter(
+      (c) =>
+        c.dot &&
+        !(
+          c.a.dedupeKey &&
+          candidates.some((o) => o !== c && !o.dot && o.a.dedupeKey === c.a.dedupeKey)
+        ),
+    );
+    for (const c of pins) {
+      const half = DOT_PX / 2;
+      taken.push([c.x - half, c.y - half, c.x + half, c.y + half]);
+      c.dot!.style.visibility = 'visible';
+      c.dot!.style.transform = `translate3d(${Math.round(c.x - half)}px, ${Math.round(c.y - half)}px, 0)`;
+    }
+
     for (const c of candidates) {
       if (c.a.dedupeKey) {
         if (shownKeys.has(c.a.dedupeKey)) continue;
         shownKeys.add(c.a.dedupeKey);
+      }
+      if (c.dot) {
+        if (!pins.includes(c)) continue;
+        for (const stem of STEMS) {
+          const left = c.x - c.width / 2;
+          const top = c.y - DOT_PX / 2 - stem - c.height;
+          const rect: [number, number, number, number] = [
+            left,
+            top,
+            left + c.width,
+            top + c.height,
+          ];
+          // The stem is an obstacle too: no label over another pin's stem, no stem through a label.
+          const stemRect: [number, number, number, number] = [
+            c.x - 1,
+            top + c.height + 2,
+            c.x + 1,
+            c.y - DOT_PX / 2 - 5, // clear of its own dot (overlaps() pads by 3 px)
+          ];
+          if (rect[0] < 0 || rect[1] < 0 || rect[2] > w || overlaps(rect) || overlaps(stemRect))
+            continue;
+          taken.push(rect, stemRect);
+          c.el.style.visibility = 'visible';
+          c.el.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
+          c.el.dataset.side = 'above';
+          c.stem!.style.visibility = 'visible';
+          c.stem!.style.height = `${stem}px`;
+          c.stem!.style.transform = `translate3d(${Math.round(c.x)}px, ${Math.round(top + c.height)}px, 0)`;
+          break;
+        }
+        continue;
       }
       for (const [dx, dy, side] of OFFSETS) {
         const left =

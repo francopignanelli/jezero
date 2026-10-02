@@ -26,13 +26,14 @@ export const JEZERO = { lat: 18.44, lon: 77.45 } as const;
  * Oblique operational view: look at the delta front from the south-east. Heights are metres
  * relative to the reference sphere; the Jezero floor is ~2.5 km below it.
  */
+/** Whole route-planning area in view with its surroundings and Perseverance (west of it). */
 export const JEZERO_OPERATIONAL_VIEW = {
-  lat: 18.455,
-  lon: 77.41,
+  lat: 18.452,
+  lon: 77.36,
   targetHeightM: -2500,
-  rangeM: 9000,
-  headingDeg: -35,
-  pitchDeg: -32,
+  rangeM: 21_000,
+  headingDeg: -30,
+  pitchDeg: -38,
 } as const;
 
 /**

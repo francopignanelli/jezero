@@ -563,7 +563,13 @@ export function MarsCanvas() {
 
   return (
     <div className="canvas-wrap" data-picking={picking} data-ready={sceneReady}>
-      <div ref={host} className="cesium-host" aria-label={t('explore.title')} role="application" />
+      <div
+        ref={host}
+        className="cesium-host"
+        data-mode={mode}
+        aria-label={t('explore.title')}
+        role="application"
+      />
     </div>
   );
 }
@@ -607,7 +613,10 @@ async function signalOnly(url: string): Promise<HTMLCanvasElement | null> {
   return canvas;
 }
 
-/** Semi-transparent mask over the crater with a clear window for the route-planning coverage. */
+/**
+ * Mask over the crater outside route-planning coverage: dark and soft-edged outside, with a faint
+ * warm light just inside the boundary, fading out toward the crater mosaic edge (no seam there).
+ */
 function coverageMask(outer: LonLatRect, inner: LonLatRect): HTMLCanvasElement {
   const w = 1024;
   const h = Math.round((w * (outer.north - outer.south)) / (outer.east - outer.west));
@@ -615,13 +624,36 @@ function coverageMask(outer: LonLatRect, inner: LonLatRect): HTMLCanvasElement {
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = 'rgba(6, 8, 12, 0.5)';
-  ctx.fillRect(0, 0, w, h);
   const x0 = ((inner.west - outer.west) / (outer.east - outer.west)) * w;
   const x1 = ((inner.east - outer.west) / (outer.east - outer.west)) * w;
   const y0 = ((outer.north - inner.north) / (outer.north - outer.south)) * h;
   const y1 = ((outer.north - inner.south) / (outer.north - outer.south)) * h;
-  ctx.clearRect(x0, y0, x1 - x0, y1 - y0);
+  const smooth = (e0: number, e1: number, v: number) => {
+    const t = Math.min(1, Math.max(0, (v - e0) / (e1 - e0)));
+    return t * t * (3 - 2 * t);
+  };
+  const edgeFade = 0.14 * Math.min(w, h);
+  const img = ctx.createImageData(w, h);
+  const d = img.data;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // Signed distance (px) to the coverage rectangle: > 0 outside, < 0 inside.
+      const ox = Math.max(x0 - x, x - x1, 0);
+      const oy = Math.max(y0 - y, y - y1, 0);
+      const outside = Math.hypot(ox, oy);
+      const inside = Math.min(x - x0, x1 - x, y - y0, y1 - y);
+      const i = (y * w + x) * 4;
+      if (outside > 0) {
+        const toEdge = Math.min(x, w - 1 - x, y, h - 1 - y);
+        const a = 0.7 * smooth(0, 10, outside) * smooth(0, edgeFade, toEdge);
+        d.set([10, 8, 7, Math.round(a * 255)], i);
+      } else {
+        const a = 0.16 * (1 - smooth(0, 40, inside));
+        d.set([255, 204, 150, Math.round(a * 255)], i);
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
   return canvas;
 }
 
@@ -685,7 +717,6 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
       ],
       2,
     );
-    scene.setMarkers('roverLatest', [latest!]);
     // 3D Perseverance at its latest published position, facing along its last drive.
     const [prev] = rover.waypoints.slice(-2);
     const heading = prev
@@ -709,9 +740,10 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
         heightM: latest!.heightM,
         text: `Perseverance · sol ${rover.latest.sol}`,
         kind: 'rover',
-        priority: 80,
+        priority: 95, // above the panorama pin next to it
         maxCameraDistanceM: 350_000,
-        minCameraDistanceM: 250,
+        minCameraDistanceM: 250, // the 3D model takes over up close
+        onClick: () => useApp.getState().setTab('science'),
       },
     ]);
   }
@@ -728,7 +760,6 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
     })),
     2,
   );
-  scene.setMarkers('panoramas', panos);
   scene.setAnnotations(
     'panoramas',
     panos.map((p, i): Annotation => ({
@@ -764,7 +795,6 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
     POIS.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, color: '#b69cff', size: 9 })),
     2,
   );
-  scene.setMarkers('pois', pois);
   scene.setAnnotations(
     'pois',
     pois.map((p, i): Annotation => ({
@@ -777,6 +807,11 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
       kind: 'poi',
       priority: 50 - i,
       maxCameraDistanceM: 140_000,
+      onClick: () => {
+        const s = useApp.getState();
+        s.selectPoi(p.id);
+        s.setTab('science');
+      },
     })),
   );
 

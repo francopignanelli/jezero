@@ -210,6 +210,8 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
 }
 
 export class SkyRenderer {
+  /** 0 at night … 1 in daylight at the camera's location (last render). */
+  daylight = 1;
   readonly canvas: HTMLCanvasElement;
   readonly labels: HTMLCanvasElement;
   private gl: WebGL2RenderingContext;
@@ -435,7 +437,8 @@ export class SkyRenderer {
     const sun = this.sunWorld();
     const sunUp = sun ? sun[0] * view.up[0] + sun[1] * view.up[1] + sun[2] * view.up[2] : -1;
     const lowAltitude = 1 - smoothstep(20_000, 80_000, view.heightM);
-    const day = smoothstep(-0.1, 0.15, sunUp) * lowAltitude;
+    this.daylight = smoothstep(-0.1, 0.15, sunUp);
+    const day = this.daylight * lowAltitude;
 
     let fade = 0;
     if (this.nextTexture) {

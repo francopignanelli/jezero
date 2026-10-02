@@ -73,33 +73,35 @@ export function SciencePanel() {
           <p className="lede">
             {t('science.roverLatest', { sol: rover.latest.sol, date: updated })}
           </p>
-          <p className="meta">
+          <p className="coord">
             {formatCoordinate(rover.latest.lat, rover.latest.lon, i18n.language)}
           </p>
           <p className="meta">{rover.provenance}</p>
-          <button
-            type="button"
-            className="btn"
-            // Close-up of the 3D rover (target at its published elevation above the areoid).
-            onClick={() => {
-              setMode('jezero');
-              flyTo(rover.latest.lat, rover.latest.lon, {
-                heightM: rover.latest.elevationM,
-                model: 'roverModel',
-                // Three-quarter front view (the rover faces ~157°): at ~24 m the 3 m rover fills a
-                // useful part of the view and the 25 cm HiRISE ground still reads as terrain.
-                rangeM: 24,
-                headingDeg: 297,
-              });
-            }}
-          >
-            {t('science.flyTo')}
-          </button>
-          {PANORAMAS[0] && (
-            <button type="button" className="btn" onClick={() => openPanorama(PANORAMAS[0]!.id)}>
-              {t('panorama.open', { sol: PANORAMAS[0].sol })}
+          <div className="btn-stack">
+            <button
+              type="button"
+              className="btn"
+              // Close-up of the 3D rover (target at its published elevation above the areoid).
+              onClick={() => {
+                setMode('jezero');
+                flyTo(rover.latest.lat, rover.latest.lon, {
+                  heightM: rover.latest.elevationM,
+                  model: 'roverModel',
+                  // Three-quarter front view (the rover faces ~157°): at ~24 m the 3 m rover fills a
+                  // useful part of the view and the 25 cm HiRISE ground still reads as terrain.
+                  rangeM: 24,
+                  headingDeg: 297,
+                });
+              }}
+            >
+              {t('science.flyTo')}
             </button>
-          )}
+            {PANORAMAS[0] && (
+              <button type="button" className="btn" onClick={() => openPanorama(PANORAMAS[0]!.id)}>
+                {t('panorama.open', { sol: PANORAMAS[0].sol })}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

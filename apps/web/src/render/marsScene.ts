@@ -6,6 +6,7 @@ import {
   Cartographic,
   CesiumTerrainProvider,
   CesiumWidget,
+  ColorMaterialProperty,
   Color,
   DirectionalLight,
   DistanceDisplayCondition,
@@ -164,7 +165,8 @@ export const COLOURS = {
   route: Color.fromCssColorString('#3ff0c0'),
   alternative: Color.fromCssColorString('#e8e2d6'),
   traverse: Color.fromCssColorString('#f2b84b'),
-  boundary: Color.fromCssColorString('#8fb4d6'),
+  boundary: Color.fromCssColorString('#ffc98f'),
+  boundaryCore: Color.fromCssColorString('#fff1de'),
   outline: Color.fromCssColorString('#0b0e13'),
 };
 
@@ -272,17 +274,41 @@ function lineMaterials(style: LineStyle): LineLayer[] {
       ];
     }
     case 'boundary':
+      // Warm lit edge: a wide soft glow under a thin bright core.
       return [
         {
-          width: 5,
+          width: 11,
           material: new PolylineGlowMaterialProperty({
             color: COLOURS.boundary.withAlpha(0.9),
-            glowPower: 0.3,
+            glowPower: 0.22,
             taperPower: 1,
           }),
         },
+        { width: 1.6, material: new ColorMaterialProperty(COLOURS.boundaryCore.withAlpha(0.95)) },
       ];
   }
+}
+
+/** Horizon sky colour of the sky layer in daylight (Mastcam-Z sample × the 0.85 daylight blend). */
+const HAZE_DAY = new Cartesian3(0.74, 0.58, 0.42);
+
+const dots = new Map<string, HTMLCanvasElement>();
+/** Filled marker disc with a light rim, drawn once per colour at 4× for crisp scaling. */
+function dotImage(colour: string): HTMLCanvasElement {
+  const cached = dots.get(colour);
+  if (cached) return cached;
+  const c = document.createElement('canvas');
+  c.width = c.height = 48;
+  const ctx = c.getContext('2d')!;
+  ctx.beginPath();
+  ctx.arc(24, 24, 20, 0, 2 * Math.PI);
+  ctx.fillStyle = colour;
+  ctx.fill();
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = 'rgba(243, 239, 233, 0.9)';
+  ctx.stroke();
+  dots.set(colour, c);
+  return c;
 }
 
 let chevron: HTMLCanvasElement | null = null;
@@ -333,6 +359,7 @@ export class MarsScene {
   private nearModel = false;
   private haze: PostProcessStage;
   private hazeStrength = 0;
+  private hazeTint = Cartesian3.clone(HAZE_DAY);
   private handler: ScreenSpaceEventHandler;
   private sky: SkyRenderer | null = null;
   private terrain: TerrainProvider = new EllipsoidTerrainProvider({ ellipsoid: MARS_SPHERE });
@@ -383,18 +410,34 @@ export class MarsScene {
     sky.perFragmentAtmosphere = true;
     scene.skyAtmosphere = sky;
 
-    // Dust haze near the surface: terrain fades with distance toward the horizon sky colour of our
-    // sky layer, so distant ridges blend into the sky instead of ending in a hard edge. Horizontal
-    // extinction length ≈ dust scale height / optical depth ≈ 11 km / 0.4 ≈ 28 km (Perseverance
-    // measured τ ≈ 0.3–0.6 outside dust storms); a single constant, not a dust model, and in-scattered light = sky colour.
+    // Dust haze: an exponential dust layer (scale height H = 11 km above the Jezero floor, vertical
+    // optical depth τ = 0.4; Perseverance measured τ ≈ 0.3–0.6 outside dust storms). Each pixel adds
+    // the extinction of its slant view ray beyond the vertical column above that ground point, which
+    // the orbital images already contain. So views from above stay crisp, long grazing rays (distant
+    // ridges, the horizon) fade into the horizon sky colour, and from orbit nothing changes. Single
+    // scattering is folded into one colour: a display model, not radiative transfer.
     this.haze = new PostProcessStage({
       fragmentShader: `
         uniform sampler2D colorTexture;
         uniform sampler2D depthTexture;
         uniform vec3 hazeColor;
-        uniform float hazeScale;
+        uniform float tau;
+        uniform float scaleHeight;
+        uniform float floorRadius;
         uniform float strength;
         in vec2 v_textureCoordinates;
+        float extraDepth(vec3 posEC) {
+          vec3 posWC = (czm_inverseView * vec4(posEC, 1.0)).xyz;
+          float hc = max(length(czm_viewerPositionWC) - floorRadius, 0.0);
+          float ht = max(length(posWC) - floorRadius, 0.0);
+          float ec = exp(-hc / scaleHeight);
+          float et = exp(-ht / scaleHeight);
+          float d = length(posEC);
+          float dh = hc - ht;
+          // ∫ ρ ds along the ray with height varying linearly from camera to point, ρ = e^(−z/H).
+          float slant = abs(dh) > 1.0 ? d * (et - ec) / dh : d * et / scaleHeight;
+          return max(tau * (slant - et), 0.0);
+        }
         void main() {
           vec4 c = texture(colorTexture, v_textureCoordinates);
           if (c.a == 0.0 || strength <= 0.0) { out_FragColor = c; return; }
@@ -412,14 +455,15 @@ export class MarsScene {
             if (depth >= 1.0) { out_FragColor = vec4(mix(c.rgb, hazeColor * c.a, strength), c.a); return; }
           }
           vec4 eye = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth);
-          float d = length(eye.xyz / eye.w);
-          float f = (1.0 - exp(-d / hazeScale)) * strength;
+          float f = (1.0 - exp(-extraDepth(eye.xyz / eye.w))) * strength;
           out_FragColor = vec4(mix(c.rgb, hazeColor * c.a, f), c.a);
         }`,
       uniforms: {
-        // Horizon colour of the sky layer (Mastcam-Z sample × the 0.85 daylight blend).
-        hazeColor: new Cartesian3(0.74, 0.58, 0.42),
-        hazeScale: 28_000,
+        // Horizon colour of the sky layer (Mastcam-Z sample × the 0.85 daylight blend), darkened at night.
+        hazeColor: () => this.hazeTint,
+        tau: 0.4,
+        scaleHeight: 11_000,
+        floorRadius: MARS_SPHERE_RADIUS_M - 2_500,
         strength: () => this.hazeStrength,
       },
     });
@@ -444,12 +488,19 @@ export class MarsScene {
       this.sky = null; // no WebGL2 for the sky: plain dark background
       scene.backgroundColor = Color.fromCssColorString('#020306');
     }
+    // Cinematic edge darkening (CSS), between the 3D canvases and the labels.
+    const vignette = document.createElement('div');
+    vignette.className = 'map-vignette';
+    container.appendChild(vignette);
     this.annotations = new AnnotationLayer(container, scene);
     scene.preRender.addEventListener(() => {
       this.updateAtmosphere();
       // Haze only near the ground (full below 8 km above the terrain, none above 60 km).
       const hh = this.widget.camera.positionCartographic.height + 2_500;
-      this.hazeStrength = 1 - Math.min(1, Math.max(0, (hh - 8_000) / 52_000));
+      // From high orbit the limb haze of the SkyAtmosphere takes over.
+      this.hazeStrength = 1 - Math.min(1, Math.max(0, (hh - 120_000) / 180_000));
+      const light = 0.12 + 0.88 * (this.sky?.daylight ?? 1);
+      Cartesian3.multiplyByScalar(HAZE_DAY, light, this.hazeTint);
       this.fadeImageryTiers();
       this.updateLineOcclusion();
       this.updateCloseUpDeclutter();
@@ -620,6 +671,16 @@ export class MarsScene {
       }
     };
     fade(this.rasters.get('ctx'), 160_000, 70_000);
+    // The outside-coverage mask frames the planning area from above; near the ground (e.g. the rover
+    // close-up on the rim, outside coverage) it would only darken the view.
+    const mask = this.rasters.get('coverageMask');
+    if (mask) {
+      const a = Math.min(1, Math.max(0, (h - 2_000) / 6_000));
+      if (Math.abs(mask.alpha - a) > 0.01) {
+        mask.alpha = a;
+        this.requestRender();
+      }
+    }
     fade(this.rasters.get('hirise'), 25_000, 12_000);
     fade(this.rasters.get('hirise-rover'), 25_000, 12_000);
     // Viking colour washed over the grey tiers (alpha blend ≈ colour from 232 m, detail from 5 m /
@@ -725,16 +786,19 @@ export class MarsScene {
     const g = this.group(groupId);
     const show = !this.hiddenGroups.has(groupId);
     for (const m of markers) {
+      const px = (m.size ?? 9) + 3;
       const entity = new Entity({
         id: `${groupId}:${m.id}`,
         show,
         position: toCartesian(m.lat, m.lon, m.heightM),
-        point: {
-          pixelSize: m.size ?? 9,
-          color: Color.fromCssColorString(m.color),
-          outlineColor: Color.fromCssColorString('#f3efe9').withAlpha(0.9),
-          outlineWidth: 1.5,
-          // Always on top only up close; from afar terrain hides points behind ridges.
+        // A billboard rather than a point: its eye offset pulls the disc toward the camera, so the
+        // terrain in front of its lower half no longer clips it into a half-buried dome.
+        billboard: {
+          image: dotImage(m.color),
+          width: px,
+          height: px,
+          eyeOffset: new Cartesian3(0, 0, -250),
+          // Always on top only up close; from afar terrain hides markers behind ridges.
           disableDepthTestDistance: 3_000,
           scaleByDistance: new NearFarScalar(1.5e3, 1.25, 8e5, 0.55),
           // Surface detail belongs to the operational view; from orbit, the crater label stands in.
