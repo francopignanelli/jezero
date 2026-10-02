@@ -83,6 +83,38 @@
       }
     },
     {
+      "id": "hirise-rdr-rover",
+      "title": "HiRISE RDR ESP_085859_1985 (RED, 25 cm), cropped around Perseverance on the crater rim",
+      "mission": "Mars Reconnaissance Orbiter",
+      "instrument": "HiRISE",
+      "productId": "ESP_085859_1985_RED",
+      "publisher": "University of Arizona HiRISE team / NASA PDS",
+      "landingPage": "https://www.uahirise.org/ESP_085859_1985",
+      "accessUrl": "https://hirise.lpl.arizona.edu/PDS/RDR/ESP/ORB_085800_085899/ESP_085859_1985/ESP_085859_1985_RED.JP2",
+      "access": "download",
+      "published": "2024-11-19 (acquired)",
+      "coverage": {
+        "west": 77.2257,
+        "east": 77.2384,
+        "south": 18.4311,
+        "north": 18.4427
+      },
+      "resolution": {
+        "value": 0.25,
+        "unit": "m/px"
+      },
+      "units": "DN stretched to 8 bit (0.5–99.5 %)",
+      "crs": "Equirectangular, true scale at 15°, centre longitude 180°, local radius 3394.8398 km (from the PDS label; GDAL misreads the JP2 header)",
+      "verticalDatum": null,
+      "uncertainty": "Uncontrolled RDR geometry (MRO pointing): horizontal offsets of metres to tens of metres relative to the controlled TRN products are possible. Draped on the coarser rim terrain (CTX).",
+      "license": "NASA PDS (public); credit NASA/JPL/University of Arizona",
+      "citation": "McEwen, A.S. et al. (2007) HiRISE, JGR 112, E05S02. Observation ESP_085859_1985, NASA/JPL/University of Arizona.",
+      "role": [
+        "operational-imagery"
+      ],
+      "expect": {}
+    },
+    {
       "id": "ctx-dem-jpl",
       "title": "Mars 2020 Science Investigation CTX DEM (20 m)",
       "mission": "Mars Reconnaissance Orbiter",

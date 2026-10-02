@@ -85,9 +85,10 @@ export function SciencePanel() {
               flyTo(rover.latest.lat, rover.latest.lon, {
                 heightM: rover.latest.elevationM,
                 model: 'roverModel',
-                rangeM: 16,
-                pitchDeg: -18,
-                headingDeg: 210,
+                // Medium three-quarter front view (the rover faces ~157°): at ~40 m the 25 cm HiRISE
+                // ground still reads as terrain; closer, any orbital image is blurry next to a 3 m rover.
+                rangeM: 40,
+                headingDeg: 297,
               });
             }}
           >

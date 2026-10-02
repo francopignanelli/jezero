@@ -64,6 +64,11 @@ const IMAGERY: Array<{
     credit: 'NASA/JPL/University of Arizona/USGS HiRISE (Mars 2020 TRN orthomosaic)',
   },
   {
+    id: 'hirise-rover',
+    toggle: 'hirise',
+    credit: 'NASA/JPL/University of Arizona HiRISE ESP_085859_1985 (2024-11-19)',
+  },
+  {
     id: 'colour-wash',
     toggle: 'viking',
     tiles: 'viking-hd',

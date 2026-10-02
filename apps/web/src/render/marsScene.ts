@@ -1,6 +1,7 @@
 import {
   ArcType,
   BoundingSphere,
+  Cartesian2,
   Cartesian3,
   Cartographic,
   CesiumTerrainProvider,
@@ -325,6 +326,7 @@ export class MarsScene {
   /** Lines without their own see-through style, and the material to use when looking down. */
   private readonly seeThrough = new Map<Entity, MaterialProperty>();
   private overhead = true;
+  private nearModel = false;
   private handler: ScreenSpaceEventHandler;
   private sky: SkyRenderer | null = null;
   private terrain: TerrainProvider = new EllipsoidTerrainProvider({ ellipsoid: MARS_SPHERE });
@@ -397,6 +399,7 @@ export class MarsScene {
       this.updateAtmosphere();
       this.fadeImageryTiers();
       this.updateLineOcclusion();
+      this.updateCloseUpDeclutter();
     });
     scene.postRender.addEventListener(() => {
       this.renderSky();
@@ -525,6 +528,23 @@ export class MarsScene {
     this.requestRender();
   }
 
+  /**
+   * Near a placed model the long, display-simplified rover traverse (drawn 1.5 m above the ground)
+   * would cut through the model as a thick zigzag, so it is hidden within ~400 m of any model.
+   */
+  private updateCloseUpDeclutter(): void {
+    const camera = this.widget.camera.positionWC;
+    let near = false;
+    for (const t of this.modelTargets.values()) {
+      if (Cartesian3.distance(camera, toCartesian(t.lat, t.lon, t.heightM)) < 400) near = true;
+    }
+    if (near === this.nearModel) return;
+    this.nearModel = near;
+    const show = !near && !this.hiddenGroups.has('rover');
+    for (const e of this.groups.get('rover') ?? []) if (e.polyline) e.show = show;
+    this.requestRender();
+  }
+
   /** Limb haze only when the planet is seen from above ~150 km; near the surface our sky layer draws the sky. */
   private updateAtmosphere(): void {
     const sky = this.widget.scene.skyAtmosphere;
@@ -548,12 +568,15 @@ export class MarsScene {
     };
     fade(this.rasters.get('ctx'), 160_000, 70_000);
     fade(this.rasters.get('hirise'), 25_000, 12_000);
+    fade(this.rasters.get('hirise-rover'), 25_000, 12_000);
     // Viking colour washed over the grey tiers (alpha blend ≈ colour from 232 m, detail from 5 m /
     // 25 cm). It follows the CTX fade so the globe and the crater blend without a seam.
     const wash = this.rasters.get('colour-wash');
     const ctx = this.rasters.get('ctx');
     if (wash && ctx) {
-      const a = 0.45 * ctx.alpha;
+      // A little more colour near the ground, where the grey HiRISE/CTX fill the view.
+      const nearGround = 1 - Math.min(1, Math.max(0, (h - 3_000) / 27_000));
+      const a = (0.45 + 0.15 * nearGround) * ctx.alpha;
       if (Math.abs(wash.alpha - a) > 0.01) wash.alpha = a;
     }
   }
@@ -886,6 +909,9 @@ export class MarsScene {
         maximumScale: 400,
         distanceDisplayCondition: new DistanceDisplayCondition(0, 40_000),
         shadows: 0,
+        // Warm, slightly stronger sunlight on the model; less of Cesium's Earth-sky reflections.
+        lightColor: new Color(3.1, 2.85, 2.55, 1),
+        imageBasedLightingFactor: new Cartesian2(0.5, 0.35),
       },
     });
     this.group(groupId).push(entity);
@@ -903,9 +929,9 @@ export class MarsScene {
    */
   async flyToModel(
     groupId: string,
-    rangeM = 16,
-    headingDeg = 210,
-    elevationDeg = 18,
+    rangeM = 40,
+    headingDeg = 297,
+    elevationDeg = 11,
   ): Promise<void> {
     const t = this.modelTargets.get(groupId);
     if (!t || this.isDestroyed()) return;

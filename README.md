@@ -47,6 +47,7 @@ npx tsx scripts/data/snapshot-rover.ts   # Perseverance traverse, samples, Ingen
 npx tsx scripts/data/snapshot-meda.ts    # MEDA per-sol summaries (sols 1740–1859)
 npx tsx scripts/data/snapshot-crism.ts   # CRISM MTRDR carbonate and mafic composites (~6 MB)
 npx tsx scripts/data/fetch-tiff-window.ts && scripts/geospatial/run.sh imagery-hd   # 232 m Viking colour near Jezero
+curl -o data/raw/hirise-rover/ESP_085859_1985_RED.JP2 https://hirise.lpl.arizona.edu/PDS/RDR/ESP/ORB_085800_085899/ESP_085859_1985/ESP_085859_1985_RED.JP2 && scripts/geospatial/run.sh imagery-rover   # 25 cm around the rover
 npx -y @gltf-transform/cli@4 optimize data/raw/models/25042_Perseverance.glb data/build/models/perseverance.glb --texture-compress webp --texture-size 1024 --compress meshopt   # 3D rover
 npx tsx scripts/data/build-sky.ts && scripts/geospatial/run.sh sky   # stars + Milky Way
 npx tsx scripts/data/validate-grid.ts    # grid vs PDS PLACES + guided-route check

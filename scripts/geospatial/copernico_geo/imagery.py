@@ -3,6 +3,7 @@
 Pyramids (data/build/tiles/imagery/<id>/{z}/{x}/{y}.webp):
   viking    global       z0–5   Viking colorized mosaic (925 m)
   viking-hd regional     z6–8   Viking MDIM 2.1 colorized (232 m) window around Jezero
+  hirise-rover rim       z13–18 HiRISE ESP_085859_1985 (25 cm, 2024-11-19) around Perseverance
   ctx      crater       z6–13  JPL CTX orthomosaic (5 m)
   hirise   operational  z12–16 USGS TRN HiRISE orthomosaic (read at 0.5 m)
 """
@@ -137,6 +138,52 @@ def build_viking_hd() -> dict:
         raise FileNotFoundError("run: npx tsx scripts/data/fetch-tiff-window.ts")
     return pyramid("viking-hd", geographic_mosaic(src, "viking-hd", VIKING_HD, 8, "average", 0), VIKING_HD, 6, 8,
                    {"datasetId": "viking-mdim21-232", "source": read_record(src)})
+
+
+# Perseverance's latest published position (MMGIS, sol 1980) and the HiRISE observation covering it.
+ROVER = (18.436874, 77.232054)
+ROVER_BOX = BBox(west=77.2257, south=18.4311, east=77.2384, north=18.4427)
+# HiRISE RDR JP2 headers are misread by GDAL (CENTER_LATITUDE becomes the natural origin). The PDS
+# label defines Equirectangular with true scale at 15°, centre longitude 180°, local radius below.
+HIRISE_RDR_SRS = "+proj=eqc +lat_ts=15 +lat_0=0 +lon_0=180 +x_0=0 +y_0=0 +R=3394839.8133 +units=m +no_defs"
+
+
+def build_hirise_rover() -> dict:
+    """25 cm HiRISE around Perseverance's current position on the crater rim (outside the TRN
+    mosaic): crop the downloaded RDR with the label's projection, stretch to 8 bit (0.5–99.5 %),
+    and tile with feathered edges so it blends into CTX."""
+    import math
+
+    from .paths import RAW
+
+    jp2 = RAW / "hirise-rover" / "ESP_085859_1985_RED.JP2"
+    if not jp2.exists():
+        raise FileNotFoundError("download ESP_085859_1985_RED.JP2 into data/raw/hirise-rover (see README)")
+    crop = ensure(WORK / "mosaics") / "hirise_rover_crop.tif"
+    if not crop.exists():
+        r = 3394839.8133
+        k = math.cos(math.radians(15))
+        x = lambda lon: r * k * math.radians(lon - 180)  # noqa: E731
+        y = lambda lat: r * math.radians(lat)  # noqa: E731
+        win = [x(ROVER_BOX.west) - 60, y(ROVER_BOX.north) + 60, x(ROVER_BOX.east) + 60, y(ROVER_BOX.south) - 60]
+        tmp = gdal.Translate("", str(jp2), format="MEM", projWin=win, outputSRS=HIRISE_RDR_SRS)
+        band = tmp.GetRasterBand(1)
+        arr = band.ReadAsArray().astype(np.float32)
+        valid = arr[arr > 0]
+        lo, hi = np.percentile(valid, [0.5, 99.5])
+        byte = np.clip((arr - lo) / max(1.0, hi - lo) * 254 + 1, 1, 255).astype(np.uint8)
+        byte[arr <= 0] = 0
+        out = gdal.GetDriverByName("GTiff").Create(str(crop), tmp.RasterXSize, tmp.RasterYSize, 1, gdal.GDT_Byte,
+                                                   options=["TILED=YES", "COMPRESS=DEFLATE"])
+        out.SetGeoTransform(tmp.GetGeoTransform())
+        out.SetProjection(tmp.GetProjection())
+        out.GetRasterBand(1).WriteArray(byte)
+        out.GetRasterBand(1).SetNoDataValue(0)
+        out = None
+        print(f"[imagery] hirise-rover crop {tmp.RasterXSize}×{tmp.RasterYSize} px, stretch {lo:.0f}–{hi:.0f}")
+    return pyramid("hirise-rover", geographic_mosaic(crop, "hirise-rover", ROVER_BOX, 18, "average", 0),
+                   ROVER_BOX, 13, 18, {"datasetId": "hirise-rdr-rover", "observation": "ESP_085859_1985",
+                                       "acquired": "2024-11-19T11:28:57Z"}, feather_deg=0.0018)
 
 
 def build() -> list[dict]:

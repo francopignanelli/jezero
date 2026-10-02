@@ -114,7 +114,10 @@ void main() {
   float r2 = dot(p, p);
   if (r2 > 1.0) discard;
   float core = exp(-r2 * 3.5);
-  outColor = vec4(v_color * core, core * v_alpha);
+  // Premultiplied alpha (blend ONE, ONE_MINUS_SRC_ALPHA): colour must carry the same factor, or
+  // faint stars render at full brightness and daylight can never hide them.
+  float a = core * v_alpha;
+  outColor = vec4(v_color * a, a);
 }`;
 
 const SUN_VS = `#version 300 es
