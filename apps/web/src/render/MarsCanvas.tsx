@@ -223,8 +223,21 @@ export function MarsCanvas() {
     const scene = sceneRef.current;
     if (!scene || !sceneReady) return;
     if (mode === 'jezero') {
-      const v = JEZERO_OPERATIONAL_VIEW;
-      void scene.flyToTarget(v.lat, v.lon, v.targetHeightM, v.rangeM, v.headingDeg, v.pitchDeg, 6);
+      // A fly-to requested together with entering Jezero (e.g. "Show on map") takes precedence over
+      // the default operational view, which would otherwise override it.
+      const fly = useApp.getState().flyRequest;
+      if (!fly || Date.now() - fly.nonce > 1500) {
+        const v = JEZERO_OPERATIONAL_VIEW;
+        void scene.flyToTarget(
+          v.lat,
+          v.lon,
+          v.targetHeightM,
+          v.rangeM,
+          v.headingDeg,
+          v.pitchDeg,
+          6,
+        );
+      }
       void ensureGrid().then((summary) => summary && setGridRect(summary.rectangle));
     } else {
       void scene.flyTo(18.44, 77.45, 9_500_000, 0, -90, 4);
