@@ -91,7 +91,7 @@ export function ElevationProfile({ profile }: { profile: Profile }) {
   };
 
   return (
-    <figure className="profile">
+    <figure className="profile" data-tour="profile">
       <div
         className="profile-slider"
         role="slider"

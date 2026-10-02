@@ -1,6 +1,7 @@
 import { m2020Sol, mars24, solarPosition } from '@copernico/domain';
 import { useTranslation } from 'react-i18next';
 import { JEZERO } from '../config';
+import { HelpMenu } from '../features/guide/HelpMenu';
 import { LANGUAGES } from '../i18n';
 import { formatHours } from '../lib/format';
 import { useApp } from './store';
@@ -47,6 +48,7 @@ export function TopBar() {
         <span>{t('status.ltstShort', { time: formatHours(sun.ltstHours) })}</span>
         <span className="hide-sm">{t('status.ls', { ls: s.lsDeg.toFixed(1) })}</span>
       </button>
+      <HelpMenu />
       <div className="lang-switch" role="group" aria-label="Language / Idioma">
         {LANGUAGES.map((lng) => (
           <button

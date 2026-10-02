@@ -5,6 +5,7 @@ import { useApp, type WaypointEntry } from '../../app/store';
 import { JEZERO } from '../../config';
 import { formatDuration, formatHours, formatUtc } from '../../lib/format';
 import { distanceAtElapsed } from '../../lib/routeTrack';
+import { Term } from '../guide/Glossary';
 
 const W = 340;
 const BAR_H = 14;
@@ -62,8 +63,10 @@ export function Timeline({
       : tl.segments.find((s) => s.startS <= tl.sunBelowAtS! && s.endS >= tl.sunBelowAtS!);
 
   return (
-    <section className="timeline" aria-labelledby="timeline-title">
-      <h3 id="timeline-title">{t('timeline.title')}</h3>
+    <section className="timeline" aria-labelledby="timeline-title" data-tour="timeline">
+      <h3 id="timeline-title">
+        <Term id="daylight">{t('timeline.title')}</Term>
+      </h3>
       <p className="timeline-summary">
         {t('timeline.summary', {
           start: ltst(tl.startUtcMs),

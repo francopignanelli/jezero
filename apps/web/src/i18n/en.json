@@ -414,5 +414,215 @@
     "evaTotal": "EVA total (with stops)",
     "daylightWarning": "Warning: the Sun drops below the daylight threshold during this EVA.",
     "sources": "Data sources and versions"
+  },
+  "welcome": {
+    "kicker": "NASA Space Apps · Martian map",
+    "title": "Plan a walk on Mars",
+    "lede": "Copernico combines data from five NASA missions to help future astronauts plan a safe walk on Mars, and do science along the way.",
+    "cards": {
+      "explore": {
+        "title": "Explore",
+        "body": "Fly from orbit into Jezero Crater, where Perseverance is exploring an ancient lake."
+      },
+      "plan": {
+        "title": "Plan",
+        "body": "Pick points and get the lower-risk route, its timing and a daylight check."
+      },
+      "science": {
+        "title": "Discover",
+        "body": "See science sites, mineral maps and what a crew could study on the way."
+      }
+    },
+    "tour": "Take the 2-minute tour",
+    "explore": "Explore on my own",
+    "later": "You can reopen the tour from the ? button at the top. Unsure about a word?",
+    "glossary": "Open the glossary"
+  },
+  "help": {
+    "label": "Help",
+    "tour": "Guided tour",
+    "glossary": "Glossary of terms",
+    "about": "What is Copernico?"
+  },
+  "tour": {
+    "stepOf": "Step {{n}} of {{total}}",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Finish",
+    "doIt": "Do it for me",
+    "working": "Working…",
+    "close": "Leave the tour",
+    "preparing": "Getting this part ready…",
+    "steps": {
+      "planet": {
+        "title": "This is Mars",
+        "body": "A 3D model of Mars built from NASA orbiter images and elevation data. Drag to turn it; scroll or pinch to zoom.\nThe stars, planets and Milky Way behind it are where they really are, as seen from Mars at the planned walk time.\nPress Next, or let the tour do a step for you with “Do it for me”. Esc leaves the tour at any time."
+      },
+      "panels": {
+        "title": "The menu",
+        "body": "These four buttons open the side panel: Explore (start here), Plan (your walk), Science (what to study) and Conditions (time, Sun and weather data). Click the open one again to hide the panel and see more map."
+      },
+      "jezero": {
+        "title": "Fly to Jezero Crater",
+        "body": "Jezero is a 45 km crater that held a lake about 3.5 billion years ago. NASA's Perseverance rover has explored it since 2021. This button flies you there."
+      },
+      "area": {
+        "title": "The planning area",
+        "body": "The outlined rectangle is the only place with 1-metre terrain detail (from the HiRISE camera). Routes are calculated only inside it.\nThe orange line is the real path Perseverance drove. Purple dots are science sites: click one to read about it. Click the ground anywhere to see its height and slope."
+      },
+      "guided": {
+        "title": "Plan a walk",
+        "body": "This loads a sample walk: from the landing site to the sample depot and the delta front, then back. You can also pick your own points on the map in the Plan panel."
+      },
+      "calculate": {
+        "title": "Calculate the route",
+        "body": "The planner checks every 5 m square of terrain, avoids slopes steeper than 20° and finds the path with the lowest estimated risk. It takes about half a second."
+      },
+      "results": {
+        "title": "Read the results",
+        "body": "Distance, estimated walking time, how much the path climbs, and the steepest slope on it.\n“Walk-back margin” is the time left before the 8-hour suit limit, always keeping enough time to walk back. Green means the plan fits."
+      },
+      "alternatives": {
+        "title": "Safer or shorter?",
+        "body": "Copernico computes two routes: the lower-risk one, which avoids steeper ground, and the shortest one. Switch between them here; “Why this route” below explains the difference in plain words."
+      },
+      "timeline": {
+        "title": "When to walk",
+        "body": "The walk on a clock: walking in green and time at each stop in amber. The yellow curve is the Sun's height in the sky; the line below says whether the crew is back before the Sun gets low."
+      },
+      "profile": {
+        "title": "Ups and downs",
+        "body": "Height along the route. Colours show slope: green gentle, yellow moderate, orange steep. Move the mouse over it, or use the arrow keys, and a white dot follows on the map."
+      },
+      "science": {
+        "title": "Science on the way",
+        "body": "Science sites close to your route, with the extra walking time each one would add. “Add stop” puts it in your plan and recalculates."
+      },
+      "layers": {
+        "title": "Map layers",
+        "body": "Turn on extra maps: slope classes, mineral signals from the CRISM spectrometer, how far a crew can go and come back, and more. The ⓘ next to each layer explains where its data comes from and its limits."
+      },
+      "play": {
+        "title": "Rehearse the walk",
+        "body": "“Play mission” flies the camera along the route in 30 seconds, like a preview of the walk. Touch the map to stop it."
+      },
+      "missions": {
+        "title": "Save and share",
+        "body": "Save the plan in this browser, copy a link that opens the same plan for anyone, or export it as GeoJSON, a spreadsheet (CSV) or a printable briefing."
+      },
+      "help": {
+        "title": "Help is always here",
+        "body": "Reopen this tour or the glossary of terms from this ? button.\nRemember: routes show lower estimated risk from orbital data, never guaranteed safety."
+      }
+    }
+  },
+  "glossary": {
+    "title": "Glossary",
+    "intro": "Every technical word in Copernico, in plain language.",
+    "search": "Search a word",
+    "none": "No term matches.",
+    "close": "Close the glossary",
+    "terms": {
+      "marswalk": {
+        "term": "Marswalk / EVA",
+        "def": "A walk outside the habitat or vehicle in a spacesuit. EVA means extravehicular activity."
+      },
+      "jezero": {
+        "term": "Jezero Crater",
+        "def": "A 45 km wide crater on Mars (18.4°N, 77.5°E) that held a lake about 3.5 billion years ago. A river delta of layered sediments remains on its western side."
+      },
+      "perseverance": {
+        "term": "Perseverance",
+        "def": "NASA's Mars 2020 rover. It landed in Jezero on 18 February 2021 and collects rock samples. The orange line on the map is the path it drove."
+      },
+      "sol": {
+        "term": "Sol",
+        "def": "A day on Mars: 24 hours 39 minutes 35 seconds. Sol numbers here count from Perseverance's landing day (sol 0)."
+      },
+      "ltst": {
+        "term": "LTST (local true solar time)",
+        "def": "Time of day at Jezero set by the real Sun: 12:00 LTST is when the Sun is highest. A Mars hour is 1/24 of a sol, about 61.6 Earth minutes."
+      },
+      "ls": {
+        "term": "Ls (solar longitude)",
+        "def": "Where Mars is on its orbit around the Sun, used as its season: 0° starts northern spring, 90° summer, 180° autumn and 270° winter."
+      },
+      "plannedEva": {
+        "term": "Planned EVA",
+        "def": "The start time of the walk you are planning. It sets the Sun's position, the scene lighting and the stars shown. Change it in Conditions."
+      },
+      "evaLimit": {
+        "term": "EVA limit and ingress",
+        "def": "The planning maximum for one walk (8 hours, from NASA lunar walk plans) and the time to get back inside (30 minutes). Both are assumptions for Mars."
+      },
+      "walkback": {
+        "term": "Walk-back margin",
+        "def": "At every point of the walk, the time left before the EVA limit after counting the time needed to walk back and get inside. If it is negative, the plan does not fit."
+      },
+      "slope": {
+        "term": "Slope and slope bands",
+        "def": "How steep the ground is, in degrees, measured over 10 m. Bands: up to 10° gentle, 10–15° moderate, 15–20° steep."
+      },
+      "slopeLimit": {
+        "term": "20° limit",
+        "def": "Ground steeper than 20° is treated as not walkable. The value comes from lunar walking experience and is an assumption for Mars."
+      },
+      "lowerRisk": {
+        "term": "Lower estimated risk vs shortest",
+        "def": "The lower-risk route accepts a little more distance to avoid steeper or rougher ground; the shortest route only respects the hard limits. Neither guarantees safety: small rocks and soft soil cannot be seen from orbit."
+      },
+      "coverage": {
+        "term": "Route-planning area",
+        "def": "The rectangle where a 1-metre elevation model from HiRISE exists. Routes are computed only inside it."
+      },
+      "elevation": {
+        "term": "Elevation (areoid)",
+        "def": "Height above Mars's “sea level”, the areoid: a reference surface from MOLA and gravity data. Jezero's floor is about 2,500 m below it."
+      },
+      "thermalInertia": {
+        "term": "Thermal inertia",
+        "def": "How quickly the ground heats up and cools down, measured from orbit by THEMIS. Low values suggest loose sand or dust; high values suggest rock."
+      },
+      "crism": {
+        "term": "CRISM (mineral indicators)",
+        "def": "A spectrometer on the Mars Reconnaissance Orbiter. Its maps show signals of minerals such as carbonates, clays and olivine. They are indicators: confirming a mineral needs its full spectrum."
+      },
+      "hirise": {
+        "term": "HiRISE",
+        "def": "The sharpest camera orbiting Mars, on the Mars Reconnaissance Orbiter. Copernico uses its 25 cm images and the 1 m terrain model made from them."
+      },
+      "ctx": {
+        "term": "CTX",
+        "def": "The Context Camera on the Mars Reconnaissance Orbiter, about 5 m per pixel. It gives the wider view of the crater."
+      },
+      "mola": {
+        "term": "MOLA",
+        "def": "The laser altimeter on Mars Global Surveyor. It measured the shape of the whole planet; Copernico uses it for global relief."
+      },
+      "viking": {
+        "term": "Viking colour mosaic",
+        "def": "A global colour map of Mars made from the Viking orbiters (1976–1980). The colours are enhanced, not exactly what the eye would see."
+      },
+      "meda": {
+        "term": "MEDA",
+        "def": "Perseverance's weather station. Copernico shows the latest released measurements with their date; no mission publishes live weather from Jezero."
+      },
+      "reach": {
+        "term": "Round-trip reach",
+        "def": "The area a crew can walk to from the start and still walk back within the time limit, in one-hour bands."
+      },
+      "detour": {
+        "term": "Detour cost",
+        "def": "The extra distance and walking time needed to visit a science site, compared with the same leg without it."
+      },
+      "dwell": {
+        "term": "Time at a stop",
+        "def": "Minutes the crew spends working at each stop (20 by default). You can change it for each stop in Plan."
+      },
+      "daylight": {
+        "term": "Daylight check",
+        "def": "Whether the Sun stays more than 10° above the horizon for the whole walk, so the crew works and returns in good light."
+      }
+    }
   }
 }

@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { AssistantDock } from '../features/assistant/AssistantDock';
 import { EnvironmentPanel } from '../features/environment/EnvironmentPanel';
 import { ExplorePanel } from '../features/exploration/ExplorePanel';
+import { Glossary } from '../features/guide/Glossary';
+import { Tour } from '../features/guide/Tour';
+import { Welcome } from '../features/guide/Welcome';
 import { InspectorCard } from '../features/inspector/InspectorCard';
 import { LayersControl } from '../features/layers/LayersControl';
 import { MapLegend } from '../features/layers/Legends';
@@ -52,6 +55,7 @@ export function App() {
               key={id}
               type="button"
               role="tab"
+              data-tour={`tab-${id}`}
               id={`tab-${id}`}
               aria-selected={tab === id}
               aria-controls="panel"
@@ -82,7 +86,7 @@ export function App() {
         </button>
         <Panel />
       </main>
-      <div className="canvas-area">
+      <div className="canvas-area" data-tour="map">
         <MarsCanvas />
         <LayersControl />
         <MapLegend />
@@ -97,6 +101,9 @@ export function App() {
         {FEATURES.assistant && <AssistantDock />}
       </div>
       <LoadingScreen />
+      <Welcome />
+      <Tour />
+      <Glossary />
     </div>
   );
 }

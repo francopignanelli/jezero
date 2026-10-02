@@ -35,6 +35,7 @@ export function LayersControl() {
         ref={button}
         type="button"
         className="map-button"
+        data-tour="layers"
         aria-expanded={open}
         aria-controls="layers-popover"
         onClick={() => (open ? close() : setOpen(true))}

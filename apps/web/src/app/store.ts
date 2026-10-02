@@ -70,6 +70,14 @@ interface AppState {
   /** Distance (m) along the selected route under the profile cursor, or null. */
   routeCursorM: number | null;
   /** Route fly-through: a request nonce, and whether it is running. */
+  /** Guide: first-run welcome, guided tour step (null = not running), glossary (term to focus). */
+  welcomeOpen: boolean;
+  setWelcomeOpen(open: boolean): void;
+  tourStep: number | null;
+  setTourStep(step: number | null): void;
+  glossary: { open: boolean; term: string | null };
+  openGlossary(term?: string | null): void;
+  closeGlossary(): void;
   playRequest: number | null;
   /** Which CRISM browse composite is shown (carbonate/clay or mafic). */
   crismComposite: 'car' | 'maf';
@@ -165,6 +173,13 @@ export const useApp = create<AppState>((set) => ({
   sceneReady: false,
   overlayRanges: {},
   routeCursorM: null,
+  welcomeOpen: false,
+  setWelcomeOpen: (welcomeOpen) => set({ welcomeOpen }),
+  tourStep: null,
+  setTourStep: (tourStep) => set({ tourStep }),
+  glossary: { open: false, term: null },
+  openGlossary: (term = null) => set({ glossary: { open: true, term } }),
+  closeGlossary: () => set({ glossary: { open: false, term: null } }),
   playRequest: null,
   crismComposite: 'car',
   setCrismComposite: (crismComposite) => set({ crismComposite }),

@@ -267,7 +267,11 @@ export function MissionActions({
   }, [printing]);
 
   return (
-    <section className="mission-actions" aria-label={t('missions.actions')}>
+    <section
+      className="mission-actions"
+      aria-label={t('missions.actions')}
+      data-tour="mission-actions"
+    >
       <label className="field">
         {t('missions.name')}
         <input

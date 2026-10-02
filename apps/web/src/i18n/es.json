@@ -414,5 +414,215 @@
     "evaTotal": "EVA total (con paradas)",
     "daylightWarning": "Atención: el Sol baja del umbral de luz diurna durante esta EVA.",
     "sources": "Fuentes de datos y versiones"
+  },
+  "welcome": {
+    "kicker": "NASA Space Apps · Mapa marciano",
+    "title": "Planificá una caminata en Marte",
+    "lede": "Copernico combina datos de cinco misiones de la NASA para ayudar a futuros astronautas a planificar una caminata segura en Marte, y a hacer ciencia en el camino.",
+    "cards": {
+      "explore": {
+        "title": "Explorá",
+        "body": "Volá desde la órbita hasta el cráter Jezero, donde Perseverance explora un antiguo lago."
+      },
+      "plan": {
+        "title": "Planificá",
+        "body": "Elegí puntos y obtené la ruta de menor riesgo, sus tiempos y un control de luz diurna."
+      },
+      "science": {
+        "title": "Descubrí",
+        "body": "Mirá sitios científicos, mapas de minerales y qué podría estudiar la tripulación en el camino."
+      }
+    },
+    "tour": "Hacer el recorrido de 2 minutos",
+    "explore": "Explorar por mi cuenta",
+    "later": "Podés volver a abrir el recorrido con el botón ? de arriba. ¿Dudas con alguna palabra?",
+    "glossary": "Abrir el glosario"
+  },
+  "help": {
+    "label": "Ayuda",
+    "tour": "Recorrido guiado",
+    "glossary": "Glosario de términos",
+    "about": "¿Qué es Copernico?"
+  },
+  "tour": {
+    "stepOf": "Paso {{n}} de {{total}}",
+    "next": "Siguiente",
+    "back": "Atrás",
+    "finish": "Terminar",
+    "doIt": "Hacelo por mí",
+    "working": "Trabajando…",
+    "close": "Salir del recorrido",
+    "preparing": "Preparando esta parte…",
+    "steps": {
+      "planet": {
+        "title": "Esto es Marte",
+        "body": "Un modelo 3D de Marte hecho con imágenes y datos de elevación de orbitadores de la NASA. Arrastrá para girarlo; usá la rueda o pellizcá para acercarte.\nLas estrellas, los planetas y la Vía Láctea del fondo están donde realmente están, vistos desde Marte a la hora planificada de la caminata.\nTocá Siguiente, o dejá que el recorrido haga un paso por vos con “Hacelo por mí”. Esc sale del recorrido cuando quieras."
+      },
+      "panels": {
+        "title": "El menú",
+        "body": "Estos cuatro botones abren el panel lateral: Explorar (empezá acá), Planificar (tu caminata), Ciencia (qué estudiar) y Condiciones (hora, Sol y datos del clima). Tocá de nuevo el que está abierto para ocultar el panel y ver más mapa."
+      },
+      "jezero": {
+        "title": "Volá al cráter Jezero",
+        "body": "Jezero es un cráter de 45 km que tuvo un lago hace unos 3.500 millones de años. El rover Perseverance de la NASA lo explora desde 2021. Este botón te lleva hasta ahí."
+      },
+      "area": {
+        "title": "El área de planificación",
+        "body": "El rectángulo marcado es el único lugar con detalle de terreno de 1 metro (de la cámara HiRISE). Las rutas solo se calculan adentro.\nLa línea naranja es el camino real que recorrió Perseverance. Los puntos violetas son sitios científicos: tocá uno para leer sobre él. Tocá el suelo en cualquier lugar para ver su altura y pendiente."
+      },
+      "guided": {
+        "title": "Planificá una caminata",
+        "body": "Esto carga una caminata de ejemplo: desde el sitio de aterrizaje hasta el depósito de muestras y el frente del delta, y la vuelta. También podés elegir tus propios puntos en el mapa desde el panel Planificar."
+      },
+      "calculate": {
+        "title": "Calculá la ruta",
+        "body": "El planificador revisa cada cuadrado de 5 m de terreno, evita pendientes de más de 20° y busca el camino de menor riesgo estimado. Tarda alrededor de medio segundo."
+      },
+      "results": {
+        "title": "Leé los resultados",
+        "body": "Distancia, tiempo estimado de caminata, cuánto sube el camino y la pendiente más fuerte.\nEl “margen de regreso” es el tiempo que queda antes del límite de 8 horas del traje, guardando siempre tiempo para volver. Verde significa que el plan entra."
+      },
+      "alternatives": {
+        "title": "¿Más segura o más corta?",
+        "body": "Copernico calcula dos rutas: la de menor riesgo, que evita el terreno más empinado, y la más corta. Cambiá entre ellas acá; “Por qué esta ruta”, más abajo, explica la diferencia con palabras simples."
+      },
+      "timeline": {
+        "title": "Cuándo caminar",
+        "body": "La caminata en un reloj: caminando en verde y el tiempo en cada parada en ámbar. La curva amarilla es la altura del Sol en el cielo; la línea de abajo dice si la tripulación vuelve antes de que el Sol baje."
+      },
+      "profile": {
+        "title": "Subidas y bajadas",
+        "body": "La altura a lo largo de la ruta. Los colores muestran la pendiente: verde suave, amarillo moderada, naranja empinada. Pasá el mouse por encima, o usá las flechas, y un punto blanco te sigue en el mapa."
+      },
+      "science": {
+        "title": "Ciencia en el camino",
+        "body": "Sitios científicos cerca de tu ruta, con el tiempo extra de caminata que suma cada uno. “Agregar parada” lo suma a tu plan y recalcula."
+      },
+      "layers": {
+        "title": "Capas del mapa",
+        "body": "Activá mapas extra: clases de pendiente, señales de minerales del espectrómetro CRISM, hasta dónde puede ir y volver la tripulación, y más. La ⓘ de cada capa explica de dónde vienen sus datos y sus límites."
+      },
+      "play": {
+        "title": "Ensayá la caminata",
+        "body": "“Reproducir misión” mueve la cámara a lo largo de la ruta en 30 segundos, como un adelanto de la caminata. Tocá el mapa para detenerlo."
+      },
+      "missions": {
+        "title": "Guardá y compartí",
+        "body": "Guardá el plan en este navegador, copiá un enlace que abre el mismo plan para cualquiera, o exportalo como GeoJSON, planilla (CSV) o un resumen para imprimir."
+      },
+      "help": {
+        "title": "La ayuda siempre está acá",
+        "body": "Volvé a abrir este recorrido o el glosario desde este botón ?.\nRecordá: las rutas muestran menor riesgo estimado con datos orbitales, nunca seguridad garantizada."
+      }
+    }
+  },
+  "glossary": {
+    "title": "Glosario",
+    "intro": "Cada palabra técnica de Copernico, en lenguaje simple.",
+    "search": "Buscá una palabra",
+    "none": "Ningún término coincide.",
+    "close": "Cerrar el glosario",
+    "terms": {
+      "marswalk": {
+        "term": "Caminata marciana / EVA",
+        "def": "Una caminata fuera del hábitat o del vehículo con traje espacial. EVA significa actividad extravehicular."
+      },
+      "jezero": {
+        "term": "Cráter Jezero",
+        "def": "Un cráter de 45 km de ancho en Marte (18,4°N, 77,5°E) que tuvo un lago hace unos 3.500 millones de años. Del lado oeste quedó un delta de río con sedimentos en capas."
+      },
+      "perseverance": {
+        "term": "Perseverance",
+        "def": "El rover Mars 2020 de la NASA. Aterrizó en Jezero el 18 de febrero de 2021 y junta muestras de roca. La línea naranja del mapa es el camino que recorrió."
+      },
+      "sol": {
+        "term": "Sol",
+        "def": "Un día en Marte: 24 horas 39 minutos 35 segundos. Acá los soles se cuentan desde el día del aterrizaje de Perseverance (sol 0)."
+      },
+      "ltst": {
+        "term": "LTST (hora solar verdadera local)",
+        "def": "La hora del día en Jezero según el Sol real: a las 12:00 LTST el Sol está en su punto más alto. Una hora marciana es 1/24 de sol, unos 61,6 minutos terrestres."
+      },
+      "ls": {
+        "term": "Ls (longitud solar)",
+        "def": "Dónde está Marte en su órbita alrededor del Sol; se usa como estación: 0° empieza la primavera del norte, 90° el verano, 180° el otoño y 270° el invierno."
+      },
+      "plannedEva": {
+        "term": "EVA planificada",
+        "def": "La hora de inicio de la caminata que estás planificando. Define la posición del Sol, la iluminación de la escena y las estrellas. Cambiala en Condiciones."
+      },
+      "evaLimit": {
+        "term": "Límite de EVA e ingreso",
+        "def": "El máximo planificado para una caminata (8 horas, de los planes de caminatas lunares de la NASA) y el tiempo para volver a entrar (30 minutos). Los dos son supuestos para Marte."
+      },
+      "walkback": {
+        "term": "Margen de regreso",
+        "def": "En cada punto de la caminata, el tiempo que queda antes del límite de EVA después de contar el tiempo para volver caminando y entrar. Si es negativo, el plan no entra."
+      },
+      "slope": {
+        "term": "Pendiente y clases de pendiente",
+        "def": "Qué tan empinado es el suelo, en grados, medido sobre 10 m. Clases: hasta 10° suave, 10–15° moderada, 15–20° empinada."
+      },
+      "slopeLimit": {
+        "term": "Límite de 20°",
+        "def": "El suelo con más de 20° se considera no caminable. El valor viene de la experiencia de caminatas lunares y es un supuesto para Marte."
+      },
+      "lowerRisk": {
+        "term": "Menor riesgo estimado vs. más corta",
+        "def": "La ruta de menor riesgo acepta un poco más de distancia para evitar terreno más empinado o rugoso; la más corta solo respeta los límites duros. Ninguna garantiza seguridad: desde la órbita no se ven rocas chicas ni suelo blando."
+      },
+      "coverage": {
+        "term": "Área de planificación",
+        "def": "El rectángulo donde existe un modelo de elevación de 1 metro de HiRISE. Las rutas solo se calculan adentro."
+      },
+      "elevation": {
+        "term": "Elevación (areoide)",
+        "def": "La altura sobre el “nivel del mar” de Marte, el areoide: una superficie de referencia hecha con datos de MOLA y de gravedad. El fondo de Jezero está unos 2.500 m por debajo."
+      },
+      "thermalInertia": {
+        "term": "Inercia térmica",
+        "def": "Qué tan rápido se calienta y se enfría el suelo, medido desde la órbita por THEMIS. Valores bajos sugieren arena o polvo sueltos; valores altos, roca."
+      },
+      "crism": {
+        "term": "CRISM (indicadores minerales)",
+        "def": "Un espectrómetro del Mars Reconnaissance Orbiter. Sus mapas muestran señales de minerales como carbonatos, arcillas y olivino. Son indicadores: confirmar un mineral requiere su espectro completo."
+      },
+      "hirise": {
+        "term": "HiRISE",
+        "def": "La cámara más nítida en órbita de Marte, en el Mars Reconnaissance Orbiter. Copernico usa sus imágenes de 25 cm y el modelo de terreno de 1 m hecho con ellas."
+      },
+      "ctx": {
+        "term": "CTX",
+        "def": "La Context Camera del Mars Reconnaissance Orbiter, de unos 5 m por píxel. Da la vista más amplia del cráter."
+      },
+      "mola": {
+        "term": "MOLA",
+        "def": "El altímetro láser del Mars Global Surveyor. Midió la forma de todo el planeta; Copernico lo usa para el relieve global."
+      },
+      "viking": {
+        "term": "Mosaico color Viking",
+        "def": "Un mapa color global de Marte hecho con los orbitadores Viking (1976–1980). Los colores están realzados, no son exactamente lo que vería el ojo."
+      },
+      "meda": {
+        "term": "MEDA",
+        "def": "La estación meteorológica de Perseverance. Copernico muestra las últimas mediciones publicadas con su fecha; ninguna misión publica el clima de Jezero en vivo."
+      },
+      "reach": {
+        "term": "Alcance ida y vuelta",
+        "def": "El área hasta donde la tripulación puede caminar desde el inicio y todavía volver dentro del límite de tiempo, en franjas de una hora."
+      },
+      "detour": {
+        "term": "Costo del desvío",
+        "def": "La distancia y el tiempo de caminata extra para visitar un sitio científico, comparado con el mismo tramo sin él."
+      },
+      "dwell": {
+        "term": "Tiempo en una parada",
+        "def": "Los minutos que la tripulación trabaja en cada parada (20 por defecto). Podés cambiarlo para cada parada en Planificar."
+      },
+      "daylight": {
+        "term": "Control de luz diurna",
+        "def": "Si el Sol se mantiene a más de 10° sobre el horizonte durante toda la caminata, para que la tripulación trabaje y vuelva con buena luz."
+      }
+    }
   }
 }

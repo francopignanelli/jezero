@@ -97,7 +97,7 @@ export function StopsNearRoute() {
   };
 
   return (
-    <section className="card stops" aria-labelledby="stops-title">
+    <section className="card stops" aria-labelledby="stops-title" data-tour="stops">
       <div className="card-title">
         <span id="stops-title">{t('stops.title')}</span>
         <span className="tag">

@@ -19,6 +19,7 @@ import {
   formatElevation,
 } from '../../lib/format';
 import { IconPin, IconUp, IconX } from '../../ui/icons';
+import { Term } from '../guide/Glossary';
 import { MissionActions, SavedMissions } from '../missions/MissionControls';
 import { ElevationProfile } from './ElevationProfile';
 import { Timeline } from './Timeline';
@@ -212,6 +213,7 @@ export function RoutePanel() {
         <button
           type="button"
           className="btn btn-primary"
+          data-tour="calculate"
           onClick={() => void compute()}
           disabled={s.computing || gridBlocked || s.waypoints.length < 2}
         >
@@ -253,7 +255,12 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
   return (
     <>
       <h3>{t('route.results')}</h3>
-      <div className="segmented" role="group" aria-label={t('route.profile')}>
+      <div
+        className="segmented"
+        role="group"
+        aria-label={t('route.profile')}
+        data-tour="alternatives"
+      >
         {(['lower-risk', 'shortest'] as const).map((p) => (
           <button
             key={p}
@@ -277,7 +284,7 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
         </div>
       ) : (
         <>
-          <dl className="metrics">
+          <dl className="metrics" data-tour="metrics">
             <div className="metric">
               <dt>{t('metrics.distance')}</dt>
               <dd>{formatDistance(m.horizontalDistanceM, locale)}</dd>
@@ -303,11 +310,15 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
               <dd>{formatElevation(m.elevationLossM, locale)}</dd>
             </div>
             <div className="metric">
-              <dt>{t('metrics.maxSlope')}</dt>
+              <dt>
+                <Term id="slope">{t('metrics.maxSlope')}</Term>
+              </dt>
               <dd>{formatDegrees(m.maxTerrainSlopeDeg, locale)}</dd>
             </div>
             <div className="metric">
-              <dt>{t('metrics.walkback')}</dt>
+              <dt>
+                <Term id="walkback">{t('metrics.walkback')}</Term>
+              </dt>
               <dd style={{ color: walkbackS >= 0 ? 'var(--ok)' : 'var(--danger)' }}>
                 {walkbackS >= 0
                   ? t('metrics.walkbackOk', { margin: formatDuration(walkbackS) })
@@ -470,7 +481,7 @@ function PlayButton() {
   const reduced =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   return (
-    <div className="play-row">
+    <div className="play-row" data-tour="play">
       <button
         type="button"
         className="btn btn-sm"
