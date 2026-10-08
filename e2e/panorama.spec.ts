@@ -37,3 +37,26 @@ test('a point of interest opens the real panorama taken there, with a measured c
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
 });
+
+test('walking from one panorama to another loads the next view (no black screen)', async ({
+  page,
+}) => {
+  await openApp(page);
+  await page.getByRole('tab', { name: 'Science' }).click();
+  await page.locator('summary', { hasText: 'Three Forks sample depot' }).click();
+  await page.getByRole('button', { name: 'Look around (360°, sol 670)' }).click();
+  await expect(page.getByRole('dialog', { name: 'Three Forks sample depot' })).toBeVisible();
+  await expect(page.locator('.pano-status')).toHaveCount(0, { timeout: 20_000 });
+  // The Wildcat Ridge label carries a "360°" chip that walks to the panorama taken there.
+  const chip = page
+    .locator('.pano-label', { hasText: 'Wildcat Ridge' })
+    .locator('.annotation-chip');
+  await expect(chip).toBeAttached({ timeout: 20_000 });
+  await chip.evaluate((el) => (el as HTMLElement).click());
+  await expect(page.getByRole('dialog', { name: 'Wildcat Ridge' })).toBeVisible();
+  await expect(page.locator('.pano-status')).toHaveCount(0, { timeout: 20_000 });
+  const lost = await page
+    .locator('.pano-canvas')
+    .evaluate((c) => (c as HTMLCanvasElement).getContext('webgl2')?.isContextLost() ?? true);
+  expect(lost).toBe(false);
+});

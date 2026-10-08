@@ -40,3 +40,23 @@ def test_positions_stay_inside_tile():
     assert positions[:, 0].min() >= TILE.west - 1e-6 and positions[:, 0].max() <= TILE.east + 1e-6
     assert positions[:, 1].min() >= TILE.south - 1e-6 and positions[:, 1].max() <= TILE.north + 1e-6
     assert np.allclose(positions[:, 2], -2570.0)
+
+
+def test_grid_normals_point_up_on_flat_ground_and_tilt_downhill():
+    import math
+
+    from copernico_geo.frames import MARS_R
+    from copernico_geo.terrain import grid_normals
+
+    n = 9
+    flat = np.zeros((n + 2, n + 2))
+    nrm = grid_normals(flat, TILE)
+    lat, lon = math.radians(TILE.north), math.radians(TILE.west)
+    up = np.array([math.cos(lat) * math.cos(lon), math.cos(lat) * math.sin(lon), math.sin(lat)])
+    assert np.allclose(nrm[0, 0], up, atol=1e-9)
+    assert np.allclose(np.linalg.norm(nrm, axis=-1), 1.0)
+    # Heights rising to the east by 10 %: the normal leans west (negative east component).
+    step_m = math.radians((TILE.east - TILE.west) / (n - 1)) * MARS_R * math.cos(math.radians(TILE.north))
+    ramp = np.tile(np.arange(n + 2) * 0.1 * step_m, (n + 2, 1))
+    east = np.array([-math.sin(lon), math.cos(lon), 0.0])
+    assert np.dot(grid_normals(ramp, TILE)[0, 0], east) < -0.09

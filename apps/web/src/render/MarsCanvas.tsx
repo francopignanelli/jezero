@@ -21,7 +21,7 @@ import type { Annotation } from './annotations';
 import { registerScene } from './sceneRegistry';
 import type { Tint } from './tint';
 import { MarsScene, type LayerGrade, type LineSpec, type LonLatRect } from './marsScene';
-import { densify, simplify, type LatLonPoint } from './pathGeometry';
+import { densify, removeSpikes, roundTrack, simplify, type LatLonPoint } from './pathGeometry';
 
 /**
  * Imagery tiers, bottom to top. `toggle` is the layer-panel switch that controls the tier. The
@@ -29,11 +29,11 @@ import { densify, simplify, type LatLonPoint } from './pathGeometry';
  * the greyscale CTX/HiRISE tiers (see marsScene.fadeImageryTiers).
  */
 /**
- * The Viking colorized mosaics exaggerate blue in dark basaltic regions; a mild grade (less
- * saturation, slightly warmer and brighter) reads closer to Mars as seen in natural-colour images.
- * Colours remain illustrative, as the provenance card states.
+ * Grade for the Viking colorized mosaics: warmer (hue toward orange) and moderately saturated, with a
+ * little more contrast so albedo features read as in true-colour views of Mars from orbit, without the
+ * exaggerated blue of the raw colorization. Colours remain illustrative, as the provenance card states.
  */
-const VIKING_GRADE = { saturation: 0.5, hue: 0.06, gamma: 1.05, brightness: 1.1, contrast: 1.1 };
+const VIKING_GRADE = { saturation: 0.82, hue: 0.09, gamma: 1.0, brightness: 1.08, contrast: 1.18 };
 /** The colour wash only adds regional hue variation over the tinted CTX/HiRISE. */
 const WASH_GRADE = { saturation: 0.8, hue: 0.06, gamma: 1.0, brightness: 1.1, contrast: 1.0 };
 /**
@@ -698,9 +698,32 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
     // One continuous, display-simplified line in sol order instead of 556 overlapping drive segments.
     const drives = [...traverse.features].sort((a, b) => a.properties.sol - b.properties.sol);
     const path = drives.flatMap((f) => f.geometry.coordinates.map(([lon, lat]) => ({ lat, lon })));
-    const clean = simplify(path, 2.5);
+    // Display only, two levels of detail: up close the track (re-localization spikes removed,
+    // simplified to 6 m, corners rounded within 8 m); beyond 15 km a cleaner line (15 m / 20 m),
+    // whose offsets are under ~1.5 px there. Both are cut into ~2 km pieces because Cesium judges a
+    // line's display distance from its bounding-sphere centre, and the whole track is ~40 km long.
+    const base = removeSpikes(path, 25);
+    const [nearPts, farPts] = await Promise.all([
+      drape(scene, densify(roundTrack(simplify(base, 6), 8), 20), 1.5),
+      drape(scene, densify(roundTrack(simplify(base, 15), 20), 50), 3),
+    ]);
+    const pieces = <T,>(pts: T[], n: number) =>
+      Array.from({ length: Math.ceil((pts.length - 1) / n) }, (_, i) =>
+        pts.slice(i * n, i * n + n + 1),
+      );
     scene.setLines('rover', [
-      { id: 'traverse', style: 'traverse', points: await drape(scene, densify(clean, 20), 1.5) },
+      ...pieces(nearPts, 100).map((points, i) => ({
+        id: `traverse-${i}`,
+        style: 'traverse' as const,
+        points,
+        farM: 15_000,
+      })),
+      ...pieces(farPts, 40).map((points, i) => ({
+        id: `traverse-far-${i}`,
+        style: 'traverse' as const,
+        points,
+        nearM: 15_000,
+      })),
     ]);
   }
 

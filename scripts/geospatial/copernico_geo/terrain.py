@@ -7,13 +7,18 @@ z13–16. Output: data/build/tiles/terrain/{layer.json,{z}/{x}/{tmsY}.terrain} (
 from __future__ import annotations
 
 import json
+import math
+from struct import pack
 
+import attr
 import numpy as np
 from osgeo import gdal
 from pydelatin import Delatin
 from quantized_mesh_encoder import encode
+from quantized_mesh_encoder.constants import EXTENSION_HEADER
 from quantized_mesh_encoder.ellipsoid import Ellipsoid
 from quantized_mesh_encoder.extensions import VertexNormalsExtension
+from quantized_mesh_encoder.normals import oct_encode
 
 from . import fetch
 from .frames import JEZERO_AOI, MARS_R, BBox, geographic_srs
@@ -112,10 +117,57 @@ def mesh_tile(heights: np.ndarray, b: BBox, max_error: float) -> tuple[np.ndarra
     return positions, triangles
 
 
-def encode_tile(heights: np.ndarray, b: BBox, max_error: float, path) -> None:
+@attr.s(kw_only=True)
+class SurfaceNormalsExtension(VertexNormalsExtension):
+    """Octahedral vertex normals supplied by the caller instead of averaged from the TIN faces."""
+
+    normals: np.ndarray = attr.ib(validator=attr.validators.instance_of(np.ndarray))
+
+    def encode(self) -> bytes:
+        encoded = oct_encode(self.normals.astype(np.float32)).tobytes("C")
+        return (pack(EXTENSION_HEADER["extensionId"], self.id.value)
+                + pack(EXTENSION_HEADER["extensionLength"], len(encoded)) + encoded)
+
+
+def grid_normals(ext: np.ndarray, b: BBox) -> np.ndarray:
+    """Unit surface normals (Mars-fixed Cartesian) at the n×n grid nodes of a tile, from central
+    differences on an (n+2)×(n+2) height grid that has one extra ring of samples outside the tile.
+
+    Normals averaged from the TIN faces (the encoder default) change abruptly across big coarse
+    triangles and at tile edges, which lit the globe as large flat facets with straight seams. These
+    come from the same global height field on the same global grid nodes, so neighbouring tiles agree
+    on their shared edge, and their smoothing scale follows the tile's sample spacing."""
+    n = ext.shape[0] - 2
+    step = math.radians((b.east - b.west) / (n - 1))
+    lat = np.radians(b.north - np.arange(n) * (b.north - b.south) / (n - 1))[:, None]
+    lon = np.radians(b.west + np.arange(n) * (b.east - b.west) / (n - 1))[None, :]
+    de = (ext[1:-1, 2:] - ext[1:-1, :-2]) / (2 * step * MARS_R * np.maximum(np.cos(lat), 1e-3))
+    dn = (ext[:-2, 1:-1] - ext[2:, 1:-1]) / (2 * step * MARS_R)
+    inv = 1 / np.sqrt(de * de + dn * dn + 1)
+    ue, un, uu = -de * inv, -dn * inv, inv  # local east, north, up components
+    sl, cl, sf, cf = np.sin(lon), np.cos(lon), np.sin(lat), np.cos(lat)
+    x = -sl * ue - sf * cl * un + cf * cl * uu
+    y = cl * ue - sf * sl * un + cf * sl * uu
+    z = cf * un + sf * uu
+    return np.stack([x, y, z], axis=-1)
+
+
+def _fill_ring(ext: np.ndarray) -> np.ndarray:
+    """Outer-ring samples beyond the data (poles, ±180°) take the adjacent inner value."""
+    for src, dst in ((1, 0), (-2, -1)):
+        ext[dst] = np.where(np.isfinite(ext[dst]), ext[dst], ext[src])
+        ext[:, dst] = np.where(np.isfinite(ext[:, dst]), ext[:, dst], ext[:, src])
+    return np.where(np.isfinite(ext), ext, np.nanmean(ext))
+
+
+def encode_tile(heights: np.ndarray, b: BBox, max_error: float, path, normal_grid: np.ndarray) -> None:
     positions, triangles = mesh_tile(heights, b, max_error)
     indices = np.ascontiguousarray(triangles).flatten()
-    normals = VertexNormalsExtension(positions=positions, indices=indices, ellipsoid=MARS_SPHERE)
+    n = heights.shape[0]
+    col = np.rint((positions[:, 0] - b.west) / (b.east - b.west) * (n - 1)).astype(int)
+    row = np.rint((b.north - positions[:, 1]) / (b.north - b.south) * (n - 1)).astype(int)
+    normals = SurfaceNormalsExtension(positions=positions, indices=indices, ellipsoid=MARS_SPHERE,
+                                      normals=normal_grid[np.clip(row, 0, n - 1), np.clip(col, 0, n - 1)])
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "wb") as f:
         encode(
@@ -158,18 +210,24 @@ def build(only: BBox | None = None) -> dict:
                 b = tile.bounds
                 if only is not None and not _intersects(b, only):
                     continue
-                heights = sample(sources[0][0], b, n)
+                # One extra ring of samples outside the tile, for the surface normals.
+                step = (b.east - b.west) / (n - 1)
+                eb = BBox(west=b.west - step, south=b.south - step, east=b.east + step, north=b.north + step)
+                ext = sample(sources[0][0], eb, n + 2)
                 for finer, feather in sources[1:]:
-                    patch = sample(finer, b, n)
+                    patch = sample(finer, eb, n + 2)
                     ok = np.isfinite(patch)
                     if feather is None:
-                        heights[ok] = patch[ok]
+                        ext[ok] = patch[ok]
                     else:
-                        w = edge_weight(b, n, *feather)
-                        heights[ok] = heights[ok] * (1 - w[ok]) + patch[ok] * w[ok]
+                        w = edge_weight(eb, n + 2, *feather)
+                        ext[ok] = ext[ok] * (1 - w[ok]) + patch[ok] * w[ok]
+                heights = ext[1:-1, 1:-1].copy()
                 if not np.isfinite(heights).all():
                     heights = np.where(np.isfinite(heights), heights, np.nanmean(heights))
-                encode_tile(heights, b, max_error, OUT / str(z) / str(tile.x) / f"{tile.tms_y}.terrain")
+                normal_grid = grid_normals(_fill_ring(ext.copy()), b)
+                encode_tile(heights, b, max_error, OUT / str(z) / str(tile.x) / f"{tile.tms_y}.terrain",
+                            normal_grid)
                 count += 1
             xs = [t.x for t in tiles]
             ys = [t.tms_y for t in tiles]

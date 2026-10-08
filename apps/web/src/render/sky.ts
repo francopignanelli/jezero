@@ -1,6 +1,7 @@
 import {
   apply,
   icrfToMarsFixed,
+  MARS_SPHERE_RADIUS_M,
   mul,
   raDecToVector,
   solarSystemFromMars,
@@ -53,7 +54,14 @@ uniform float u_mix;
 uniform float u_gain;
 uniform float u_day;
 uniform vec3 u_up;
+uniform float u_camDist; // camera distance from the planet centre, in planet radii
+uniform vec3 u_sun;      // unit sun direction, world frame
+uniform float u_glow;    // limb glow strength (seen from orbit only)
 const float PI = 3.141592653589793;
+// Dusty limb glow, as orbital images show it. Real dust and haze layers reach ~40–60 km and the dust
+// scale height is ~11 km, which would be under a pixel at globe scale: the widths here (≈40 km and
+// ≈170 km) are a display exaggeration, the colour is the Mastcam-Z horizon sky.
+const vec3 GLOW_COLOUR = vec3(0.95, 0.64, 0.40);
 const float BLACK_POINT = 0.035;
 const vec3 SKY_HORIZON = vec3(0.87, 0.68, 0.49);
 const vec3 SKY_15 = vec3(0.69, 0.55, 0.40);
@@ -84,7 +92,23 @@ void main() {
   float h = clamp(dot(normalize(w), u_up), -1.0, 1.0);
   vec3 sky = mix(SKY_HORIZON, SKY_15, smoothstep(0.0, 0.27, h));
   sky = mix(sky, SKY_ZENITH, smoothstep(0.27, 1.0, h));
-  outColor = vec4(mix(mw * (1.0 - u_day), sky, u_day), 1.0);
+  vec3 colour = mix(mw * (1.0 - u_day), sky, u_day);
+  if (u_glow > 0.0) {
+    vec3 wn = normalize(w);
+    vec3 cam = u_up * u_camDist;
+    float b = dot(cam, wn);
+    float alt = sqrt(max(dot(cam, cam) - b * b, 0.0)) - 1.0; // closest-approach altitude (radii)
+    // Below the reference sphere too: the limb is terrain (up to ~8 km lower), and the opaque globe
+    // hides the glow wherever terrain is, so no dark gap is left between the two.
+    if (b < 0.0) {
+      vec3 tangent = cam - b * wn;
+      float lit = smoothstep(-0.2, 0.35, dot(normalize(tangent), u_sun));
+      float h = max(alt, 0.0);
+      float g = 0.45 * exp(-h / 0.014) + 0.22 * exp(-h / 0.06);
+      colour += GLOW_COLOUR * g * lit * u_glow;
+    }
+  }
+  outColor = vec4(colour, 1.0);
 }`;
 
 const STAR_VS = `#version 300 es
@@ -471,9 +495,18 @@ export class SkyRenderer {
         glMat(eyeToWorld),
       );
       gl.uniform2f(gl.getUniformLocation(this.skyProgram, 'u_tanHalf'), tanHalf[0], tanHalf[1]);
-      gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_gain'), 0.5);
+      gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_gain'), 0.4);
       gl.uniform1f(gl.getUniformLocation(this.skyProgram, 'u_day'), day * 0.85);
       gl.uniform3f(gl.getUniformLocation(this.skyProgram, 'u_up'), ...view.up);
+      gl.uniform1f(
+        gl.getUniformLocation(this.skyProgram, 'u_camDist'),
+        1 + view.heightM / MARS_SPHERE_RADIUS_M,
+      );
+      gl.uniform3f(gl.getUniformLocation(this.skyProgram, 'u_sun'), ...(sun ?? [0, 0, 1]));
+      gl.uniform1f(
+        gl.getUniformLocation(this.skyProgram, 'u_glow'),
+        smoothstep(150_000, 600_000, view.heightM),
+      );
       gl.bindVertexArray(this.quad);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }

@@ -136,8 +136,25 @@ def build_viking_hd() -> dict:
     src = RAW / "viking-mdim21-232" / "viking_hd_window.vrt"
     if not src.exists():
         raise FileNotFoundError("run: npx tsx scripts/data/fetch-tiff-window.ts")
-    return pyramid("viking-hd", geographic_mosaic(src, "viking-hd", VIKING_HD, 8, "average", 0), VIKING_HD, 6, 8,
-                   {"datasetId": "viking-mdim21-232", "source": read_record(src)})
+    from .relief import shade_mosaic
+
+    mosaic = shade_mosaic(geographic_mosaic(src, "viking-hd", VIKING_HD, 8, "average", 0), "viking-hd", 2.0, False)
+    return pyramid("viking-hd", mosaic, VIKING_HD, 6, 8,
+                   {"datasetId": "viking-mdim21-232", "source": read_record(src), "relief": RELIEF_NOTE})
+
+
+RELIEF_NOTE = ("MOLA shaded relief multiplied in (copernico_geo/relief.py): light from the NW at 35°, "
+               "vertical exaggeration ×4 (925 m globe) / ×2 (232 m), strength 0.65. Display only.")
+
+
+def build_viking_globe() -> dict:
+    """925 m Viking colour globe with MOLA shaded relief."""
+    from .relief import shade_mosaic
+
+    viking = fetch.download("viking-color-925")
+    mosaic = shade_mosaic(geographic_mosaic(viking, "viking", WORLD, 5, "average"), "viking", 4.0, True)
+    return pyramid("viking", mosaic, WORLD, 0, 5,
+                   {"datasetId": "viking-color-925", "source": read_record(viking), "relief": RELIEF_NOTE})
 
 
 # Perseverance's latest published position (MMGIS, sol 1980) and the HiRISE observation covering it.
@@ -189,11 +206,7 @@ def build_hirise_rover() -> dict:
 
 def build() -> list[dict]:
     layers = []
-    viking = fetch.download("viking-color-925")
-    layers.append(
-        pyramid("viking", geographic_mosaic(viking, "viking", WORLD, 5, "average"), WORLD, 0, 5,
-                {"datasetId": "viking-color-925", "source": read_record(viking)})
-    )
+    layers.append(build_viking_globe())
     ctx = fetch.download("ctx-ortho-jpl")
     layers.append(
         pyramid("ctx", geographic_mosaic(ctx, "ctx", CRATER, 13, "average", 0), CRATER, 6, 13,

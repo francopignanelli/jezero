@@ -15,6 +15,7 @@ def main(argv: list[str]) -> int:
     sub.add_parser("operational", help="build the Jezero routing grid and coverage outline")
     sub.add_parser("imagery", help="build imagery tile pyramids")
     sub.add_parser("imagery-hd", help="regional 232 m Viking colour pyramid around Jezero")
+    sub.add_parser("imagery-relief", help="Viking globe + 232 m window with MOLA shaded relief")
     sub.add_parser("terrain-rim", help="rebuild terrain tiles over the crater rim with the MSR 1 m DTM")
     sub.add_parser("imagery-rover", help="25 cm HiRISE around Perseverance's current position")
     pano = sub.add_parser("panoramas", help="360° viewer images + compass/horizon measured from the skyline")
@@ -56,6 +57,12 @@ def main(argv: list[str]) -> int:
 
         built = build_panoramas(only=args.only)
         print(f"[panorama] {len(built)} panoramas")
+        return 0
+    if args.cmd == "imagery-relief":
+        from .imagery import build_viking_globe, build_viking_hd
+
+        for layer in (build_viking_globe(), build_viking_hd()):
+            print(f"[imagery] {layer['id']}: {layer['tiles']} tiles (with relief)")
         return 0
     if args.cmd == "imagery-rover":
         from .imagery import build_hirise_rover

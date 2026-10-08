@@ -85,3 +85,66 @@ export function rectangleRing(r: {
     { lat: r.south, lon: r.west },
   ];
 }
+
+/**
+ * Removes out-and-back spikes (display only): a vertex whose two neighbours lie within 30° of the
+ * same direction (the path turns back on itself) and within `maxSpikeM`, as tactical
+ * re-localizations leave in a rover track.
+ */
+export function removeSpikes<T extends LatLonPoint>(points: readonly T[], maxSpikeM: number): T[] {
+  const out = [...points];
+  let changed = true;
+  while (changed && out.length > 2) {
+    changed = false;
+    for (let i = 1; i < out.length - 1; i++) {
+      const [ax, ay] = toLocal(out[i - 1]!, out[i]!);
+      const [bx, by] = toLocal(out[i + 1]!, out[i]!);
+      const la = Math.hypot(ax, ay);
+      const lb = Math.hypot(bx, by);
+      if (la === 0 || lb === 0) {
+        out.splice(i, 1); // duplicate vertex
+        changed = true;
+        break;
+      }
+      const cos = (ax * bx + ay * by) / (la * lb);
+      if (cos < Math.cos((30 * Math.PI) / 180) || Math.max(la, lb) > maxSpikeM) continue;
+      out.splice(i, 1);
+      changed = true;
+      break;
+    }
+  }
+  return out;
+}
+
+/**
+ * Rounds corners by Chaikin corner cutting with the cut limited to `maxCutM` from each vertex, so the
+ * displayed line never departs from the true track by more than about that distance. Display only.
+ */
+export function roundTrack(
+  points: readonly LatLonPoint[],
+  maxCutM: number,
+  iterations = 3,
+): LatLonPoint[] {
+  let pts: LatLonPoint[] = points.map((p) => ({ lat: p.lat, lon: p.lon }));
+  for (let it = 0; it < iterations && pts.length > 2; it++) {
+    const next: LatLonPoint[] = [pts[0]!];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i]!;
+      const b = pts[i + 1]!;
+      const [dx, dy] = toLocal(b, a);
+      const len = Math.hypot(dx, dy);
+      if (len === 0) continue;
+      const f = Math.min(0.25, maxCutM / len);
+      const at = (t: number) => ({
+        lat: a.lat + (b.lat - a.lat) * t,
+        lon: a.lon + (b.lon - a.lon) * t,
+      });
+      if (i > 0) next.push(at(f));
+      if (i < pts.length - 2) next.push(at(1 - f));
+    }
+    next.push(pts.at(-1)!);
+    pts = next;
+    maxCutM /= 2; // later passes refine the curve within the first cut
+  }
+  return pts;
+}

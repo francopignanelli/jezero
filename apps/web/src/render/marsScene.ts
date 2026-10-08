@@ -32,7 +32,6 @@ import {
   ScreenSpaceEventType,
   PostProcessStage,
   SingleTileImageryProvider,
-  SkyAtmosphere,
   UrlTemplateImageryProvider,
   sampleTerrainMostDetailed,
   type ImageryProvider,
@@ -156,6 +155,9 @@ export interface LineSpec {
   id: string;
   points: Array<{ lat: number; lon: number; heightM: number }>;
   style: LineStyle;
+  /** Shown only while the camera is between these distances (m), for level-of-detail versions. */
+  nearM?: number;
+  farM?: number;
 }
 
 const toCartesian = (lat: number, lon: number, h: number): Cartesian3 =>
@@ -165,6 +167,7 @@ export const COLOURS = {
   route: Color.fromCssColorString('#3ff0c0'),
   alternative: Color.fromCssColorString('#e8e2d6'),
   traverse: Color.fromCssColorString('#f2b84b'),
+  traverseCore: Color.fromCssColorString('#e8901c'), // deep amber: the glow lifts the centre toward gold
   boundary: Color.fromCssColorString('#ffc98f'),
   boundaryCore: Color.fromCssColorString('#fff1de'),
   outline: Color.fromCssColorString('#0b0e13'),
@@ -261,14 +264,20 @@ function lineMaterials(style: LineStyle): LineLayer[] {
       ];
     case 'traverse':
     case 'traverse-muted': {
+      // A bright amber core with a soft glow over a faint dark casing: clear on light and dark ground
+      // and through the distance haze (a thin core alone turned olive at overview scale).
       const a = style === 'traverse' ? 1 : 0.35;
       return [
         {
-          width: style === 'traverse' ? 3 : 2,
-          material: new PolylineOutlineMaterialProperty({
-            color: COLOURS.traverse.withAlpha(0.9 * a),
-            outlineColor: COLOURS.outline.withAlpha(0.7 * a),
-            outlineWidth: 1,
+          width: style === 'traverse' ? 5 : 3.5,
+          material: new ColorMaterialProperty(COLOURS.outline.withAlpha(0.35 * a)),
+        },
+        {
+          width: style === 'traverse' ? 7 : 4,
+          material: new PolylineGlowMaterialProperty({
+            color: COLOURS.traverseCore.withAlpha(a),
+            glowPower: 0.28,
+            taperPower: 1,
           }),
         },
       ];
@@ -397,19 +406,6 @@ export class MarsScene {
     globe.maximumScreenSpaceError = 1.5;
     globe.tileCacheSize = 400;
     scene.fog.enabled = false;
-    // Thin, dusty Mars atmosphere seen at the limb from orbit: scale height ~11 km, scattering
-    // coefficients with red > green > blue (dust-dominated, the reverse of Earth's Rayleigh sky).
-    // Shown only from altitude (see updateAtmosphere); illustrative, not a radiative-transfer model.
-    const sky = new SkyAtmosphere(MARS_SPHERE);
-    sky.atmosphereRayleighCoefficient = new Cartesian3(19.9e-6, 13.6e-6, 5.75e-6);
-    sky.atmosphereMieCoefficient = new Cartesian3(21e-6, 21e-6, 21e-6);
-    sky.atmosphereRayleighScaleHeight = 11_000;
-    sky.atmosphereMieScaleHeight = 11_000;
-    sky.atmosphereMieAnisotropy = 0.76;
-    sky.atmosphereLightIntensity = 14;
-    sky.perFragmentAtmosphere = true;
-    scene.skyAtmosphere = sky;
-
     // Dust haze: an exponential dust layer (scale height H = 11 km above the Jezero floor, vertical
     // optical depth τ = 0.4; Perseverance measured τ ≈ 0.3–0.6 outside dust storms). Each pixel adds
     // the extinction of its slant view ray beyond the vertical column above that ground point, which
@@ -494,7 +490,6 @@ export class MarsScene {
     container.appendChild(vignette);
     this.annotations = new AnnotationLayer(container, scene);
     scene.preRender.addEventListener(() => {
-      this.updateAtmosphere();
       // Haze only near the ground (full below 8 km above the terrain, none above 60 km).
       const hh = this.widget.camera.positionCartographic.height + 2_500;
       // From high orbit the limb haze of the SkyAtmosphere takes over.
@@ -649,17 +644,6 @@ export class MarsScene {
     this.requestRender();
   }
 
-  /** Limb haze only when the planet is seen from above ~150 km; near the surface our sky layer draws the sky. */
-  private updateAtmosphere(): void {
-    const sky = this.widget.scene.skyAtmosphere;
-    if (!sky) return;
-    const show = this.widget.camera.positionCartographic.height > 150_000;
-    if (sky.show !== show) {
-      sky.show = show;
-      this.requestRender();
-    }
-  }
-
   private fadeImageryTiers(): void {
     const h = this.widget.camera.positionCartographic.height + 2_500; // above the Jezero floor
     const fade = (layer: ImageryLayer | undefined, far: number, near: number) => {
@@ -681,8 +665,9 @@ export class MarsScene {
         this.requestRender();
       }
     }
-    fade(this.rasters.get('hirise'), 25_000, 12_000);
-    fade(this.rasters.get('hirise-rover'), 25_000, 12_000);
+    // HiRISE only once it fills the view: half-loaded 25 cm–0.5 m tiles over CTX read as patches.
+    fade(this.rasters.get('hirise'), 12_000, 6_000);
+    fade(this.rasters.get('hirise-rover'), 12_000, 6_000);
     // Viking colour washed over the grey tiers (alpha blend ≈ colour from 232 m, detail from 5 m /
     // 25 cm). It follows the CTX fade so the globe and the crater blend without a seam.
     const wash = this.rasters.get('colour-wash');
@@ -829,7 +814,10 @@ export class MarsScene {
             positions,
             width,
             arcType: ArcType.NONE, // vertices are already dense and draped on the rendered terrain
-            distanceDisplayCondition: new DistanceDisplayCondition(0, 300_000),
+            distanceDisplayCondition: new DistanceDisplayCondition(
+              line.nearM ?? 0,
+              line.farM ?? 300_000,
+            ),
             material,
             ...(depthFail
               ? { depthFailMaterial: depthFail }

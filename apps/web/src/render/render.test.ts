@@ -1,7 +1,7 @@
 import { greatCircleDistance } from '@copernico/domain';
 import { describe, expect, it } from 'vitest';
 import { altitudeFloor, JEZERO_ZONE } from './cameraConstraints';
-import { densify, simplify } from './pathGeometry';
+import { densify, removeSpikes, roundTrack, simplify } from './pathGeometry';
 
 describe('route display geometry', () => {
   const route = [
@@ -70,5 +70,47 @@ describe('label occlusion by the planet', async () => {
     expect(isBehindPlanet(camera, new Cartesian3(R - 2_500, 0, 0))).toBe(false); // sub-camera point
     expect(isBehindPlanet(camera, new Cartesian3(-(R - 2_500), 0, 0))).toBe(true); // antipode
     expect(isBehindPlanet(camera, new Cartesian3(0, R, 0))).toBe(true); // just past the limb (occluder is inside R)
+  });
+});
+
+describe('rover track display', () => {
+  const M = 3_396_190 * (Math.PI / 180); // metres per degree
+  const at = (eastM: number, northM: number) => ({
+    lat: 18.45 + northM / M,
+    lon: 77.4 + eastM / (M * Math.cos((18.45 * Math.PI) / 180)),
+  });
+  /** Distance (m) from p to the polyline. */
+  const toLine = (p: { lat: number; lon: number }, line: Array<{ lat: number; lon: number }>) => {
+    let best = Infinity;
+    for (let i = 1; i < line.length; i++) {
+      const a = line[i - 1]!;
+      const b = line[i]!;
+      const ax = 0,
+        ay = 0;
+      const bx = (b.lon - a.lon) * M * Math.cos((18.45 * Math.PI) / 180),
+        by = (b.lat - a.lat) * M;
+      const px = (p.lon - a.lon) * M * Math.cos((18.45 * Math.PI) / 180),
+        py = (p.lat - a.lat) * M;
+      const t = Math.max(
+        0,
+        Math.min(1, ((px - ax) * bx + (py - ay) * by) / (bx * bx + by * by || 1)),
+      );
+      best = Math.min(best, Math.hypot(px - t * bx, py - t * by));
+    }
+    return best;
+  };
+  it('removes short out-and-back spikes but keeps real turns', () => {
+    const track = [at(0, 0), at(100, 0), at(110, 4), at(101, 0.5), at(200, 0), at(200, 100)];
+    const cleaned = removeSpikes(track, 20);
+    expect(cleaned).toHaveLength(5); // the 10 m spike is gone, the 90° corner at (200, 0) stays
+    expect(cleaned.at(-2)).toEqual(at(200, 0));
+  });
+  it('rounds corners within the stated distance of the true track', () => {
+    const track = [at(0, 0), at(300, 0), at(300, 300), at(0, 300)];
+    const round = roundTrack(track, 8);
+    expect(round.length).toBeGreaterThan(track.length);
+    expect(round[0]).toEqual(track[0]);
+    expect(round.at(-1)).toEqual(track.at(-1));
+    expect(Math.max(...round.map((p) => toLine(p, track)))).toBeLessThan(8);
   });
 });

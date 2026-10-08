@@ -460,6 +460,9 @@ export function PanoramaViewer() {
   return (
     <div className="pano" role="dialog" aria-modal="true" aria-labelledby="pano-title">
       <canvas
+        // A fresh canvas per panorama: the previous one's WebGL context is released on cleanup, and
+        // getContext() on the same element would hand back that lost context (a black view).
+        key={pano.id}
         ref={canvasRef}
         className="pano-canvas"
         tabIndex={0}
