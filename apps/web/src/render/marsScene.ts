@@ -434,20 +434,39 @@ export class MarsScene {
           float slant = abs(dh) > 1.0 ? d * (et - ec) / dh : d * et / scaleHeight;
           return max(tau * (slant - et), 0.0);
         }
+        const vec3 LUMA = vec3(0.3, 0.59, 0.11);
         void main() {
-          vec4 c = texture(colorTexture, v_textureCoordinates);
-          if (c.a == 0.0 || strength <= 0.0) { out_FragColor = c; return; }
+          vec2 uv = v_textureCoordinates;
+          vec4 c = texture(colorTexture, uv);
+          if (c.a == 0.0) { out_FragColor = c; return; }
           // Raw (logarithmic) depth: czm_windowToEyeCoordinates undoes the log encoding itself, so
           // czm_readDepth (which also undoes it) must not be used here.
-          float depth = texture(depthTexture, v_textureCoordinates).r;
+          float depth = texture(depthTexture, uv).r;
+          vec2 px = 1.0 / czm_viewport.zw;
+          float dE = texture(depthTexture, uv + vec2(px.x, 0.0)).r;
+          float dW = texture(depthTexture, uv - vec2(px.x, 0.0)).r;
+          float dN = texture(depthTexture, uv + vec2(0.0, px.y)).r;
+          float dS = texture(depthTexture, uv - vec2(0.0, px.y)).r;
+          if (max(max(depth, dE), max(max(dW, dN), dS)) >= 1.0) {
+            // Silhouette pixel against the (transparent) background. Cesium's MSAA resolve leaves
+            // its colour scaled by the sample coverage but writes alpha = 1, which drew a dark
+            // stair-step line along the planet's limb over the sky. Coverage is recovered as the
+            // pixel's brightness relative to its brightest covered neighbour, and restored as the
+            // alpha of the (already coverage-weighted, i.e. premultiplied) colour.
+            float ref = dot(c.rgb, LUMA);
+            for (int i = -1; i <= 1; i++) {
+              for (int j = -1; j <= 1; j++) {
+                vec2 o = vec2(float(i), float(j)) * px;
+                if (texture(depthTexture, uv + o).r < 1.0) ref = max(ref, dot(texture(colorTexture, uv + o).rgb, LUMA));
+              }
+            }
+            c.a = clamp(dot(c.rgb, LUMA) / max(ref, 1e-3), 0.0, 1.0) * c.a;
+          }
+          if (strength <= 0.0) { out_FragColor = c; return; }
           if (depth >= 1.0) {
             // Partly covered silhouette pixel (MSAA averages colour but keeps one depth sample):
             // borrow the nearest covered neighbour's depth so the horizon edge is hazed too.
-            vec2 px = 1.0 / czm_viewport.zw;
-            depth = min(min(texture(depthTexture, v_textureCoordinates + vec2(px.x, 0.0)).r,
-                            texture(depthTexture, v_textureCoordinates - vec2(px.x, 0.0)).r),
-                        min(texture(depthTexture, v_textureCoordinates + vec2(0.0, px.y)).r,
-                            texture(depthTexture, v_textureCoordinates - vec2(0.0, px.y)).r));
+            depth = min(min(dE, dW), min(dN, dS));
             if (depth >= 1.0) { out_FragColor = vec4(mix(c.rgb, hazeColor * c.a, strength), c.a); return; }
           }
           vec4 eye = czm_windowToEyeCoordinates(gl_FragCoord.xy, depth);

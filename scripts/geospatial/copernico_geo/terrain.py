@@ -102,16 +102,32 @@ def sample(ds: gdal.Dataset, b: BBox, n: int) -> np.ndarray:
     return mem.ReadAsArray().astype(np.float64)
 
 
+def curvature_drop(b: BBox, n: int) -> np.ndarray:
+    """Drop (m) of the sphere below the plane tangent at the tile centre, at the n×n grid nodes."""
+    lat0, lon0 = math.radians((b.south + b.north) / 2), math.radians((b.west + b.east) / 2)
+    lat = np.radians(b.north - np.arange(n) * (b.north - b.south) / (n - 1))[:, None]
+    lon = np.radians(b.west + np.arange(n) * (b.east - b.west) / (n - 1))[None, :]
+    cos_theta = np.sin(lat0) * np.sin(lat) + np.cos(lat0) * np.cos(lat) * np.cos(lon - lon0)
+    return MARS_R * (1 - np.clip(cos_theta, -1, 1))
+
+
 def mesh_tile(heights: np.ndarray, b: BBox, max_error: float) -> tuple[np.ndarray, np.ndarray]:
-    """TIN for a tile as (lon, lat, height) positions and counter-clockwise triangle indices."""
+    """TIN for a tile as (lon, lat, height) positions and counter-clockwise triangle indices.
+
+    Mesh triangles are flat in 3D, so a big triangle over flat ground is a chord cutting inside the
+    sphere (a 22° chord sags ~65 km). Simplifying heights alone made the globe's silhouette a polygon
+    with dips. The TIN is therefore built on heights minus the sphere's drop below the tile's
+    tangent plane, so the error budget also bounds that sag; the vertices keep their real heights."""
     n = heights.shape[0]
-    tin = Delatin(heights.astype(np.float32), max_error=max_error)
+    tin = Delatin((heights - curvature_drop(b, n)).astype(np.float32), max_error=max_error)
     # pydelatin vertices are (x, y, height) with x = column and y counted from the BOTTOM row
     # (verified: tests/test_terrain.py). Our array's row 0 is north, so y grows northwards.
     vertices = tin.vertices.astype(np.float64)
+    col = np.rint(vertices[:, 0]).astype(int)
+    row = (n - 1) - np.rint(vertices[:, 1]).astype(int)
     lon = b.west + vertices[:, 0] / (n - 1) * (b.east - b.west)
     lat = b.south + vertices[:, 1] / (n - 1) * (b.north - b.south)
-    positions = np.column_stack([lon, lat, vertices[:, 2]]).astype(np.float32)
+    positions = np.column_stack([lon, lat, heights[row, col]]).astype(np.float32)
     # Triangles are counter-clockwise in that y-up frame, as Cesium expects (it culls clockwise faces).
     triangles = tin.triangles.astype(np.uint32)
     return positions, triangles

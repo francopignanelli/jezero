@@ -60,3 +60,25 @@ def test_grid_normals_point_up_on_flat_ground_and_tilt_downhill():
     ramp = np.tile(np.arange(n + 2) * 0.1 * step_m, (n + 2, 1))
     east = np.array([-math.sin(lon), math.cos(lon), 0.0])
     assert np.dot(grid_normals(ramp, TILE)[0, 0], east) < -0.09
+
+
+def test_flat_tile_triangles_do_not_cut_inside_the_sphere():
+    """A coarse global tile over flat ground must be split until each triangle's chord stays within
+    the error budget of the sphere (otherwise the globe's limb becomes a jagged polygon)."""
+    import math
+
+    from copernico_geo.frames import MARS_R
+
+    big = BBox(west=0.0, south=0.0, east=22.5, north=22.5)  # a z3 tile
+    max_error = 150.0
+    positions, triangles = mesh_tile(np.zeros((65, 65)), big, max_error)
+
+    def xyz(p):
+        lon, lat = math.radians(p[0]), math.radians(p[1])
+        return np.array([math.cos(lat) * math.cos(lon), math.cos(lat) * math.sin(lon), math.sin(lat)]) * MARS_R
+
+    worst = 0.0
+    for t in triangles.reshape(-1, 3):
+        centroid = sum(xyz(positions[i]) for i in t) / 3
+        worst = max(worst, MARS_R - np.linalg.norm(centroid))
+    assert worst < 2 * max_error
