@@ -618,7 +618,7 @@ async function signalOnly(url: string): Promise<HTMLCanvasElement | null> {
  * warm light just inside the boundary, fading out toward the crater mosaic edge (no seam there).
  */
 function coverageMask(outer: LonLatRect, inner: LonLatRect): HTMLCanvasElement {
-  const w = 1024;
+  const w = 2048; // ≈ 46 m per pixel over the crater mosaic
   const h = Math.round((w * (outer.north - outer.south)) / (outer.east - outer.west));
   const canvas = document.createElement('canvas');
   canvas.width = w;
@@ -645,10 +645,11 @@ function coverageMask(outer: LonLatRect, inner: LonLatRect): HTMLCanvasElement {
       const i = (y * w + x) * 4;
       if (outside > 0) {
         const toEdge = Math.min(x, w - 1 - x, y, h - 1 - y);
-        const a = 0.7 * smooth(0, 10, outside) * smooth(0, edgeFade, toEdge);
+        // Dark from ≈ 90 m outside the line: a wider ramp made the terrain just outside look included.
+        const a = 0.7 * smooth(0, 2, outside) * smooth(0, edgeFade, toEdge);
         d.set([10, 8, 7, Math.round(a * 255)], i);
       } else {
-        const a = 0.16 * (1 - smooth(0, 40, inside));
+        const a = 0.16 * (1 - smooth(0, 50, inside));
         d.set([255, 204, 150, Math.round(a * 255)], i);
       }
     }
