@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
-import { PANORAMAS, POIS } from '../../data/catalog';
+import { PANORAMAS, POIS, panoramaForPoi } from '../../data/catalog';
 import {
   loadRover,
   loadSamples,
@@ -10,6 +10,9 @@ import {
 } from '../../data/surfaceData';
 import { formatCoordinate } from '../../lib/format';
 import { StopsNearRoute } from './StopsNearRoute';
+
+/** The latest panorama in the rover's current area (crater rim, sol 1717). */
+const roverPano = PANORAMAS.find((p) => p.id === 'crocodile-bridge');
 
 /** Route-planning coverage of the operational region (see data/build/regions/jezero/grid.json). */
 const COVERAGE = { west: 77.28, east: 77.48, south: 18.4, north: 18.52 };
@@ -96,9 +99,9 @@ export function SciencePanel() {
             >
               {t('science.flyTo')}
             </button>
-            {PANORAMAS[0] && (
-              <button type="button" className="btn" onClick={() => openPanorama(PANORAMAS[0]!.id)}>
-                {t('panorama.open', { sol: PANORAMAS[0].sol })}
+            {roverPano && (
+              <button type="button" className="btn" onClick={() => openPanorama(roverPano.id)}>
+                {t('panorama.open', { sol: roverPano.sols[0] })}
               </button>
             )}
           </div>
@@ -143,6 +146,15 @@ export function SciencePanel() {
                 <button type="button" className="btn" onClick={() => show(p.lat, p.lon)}>
                   {t('science.flyTo')}
                 </button>
+                {panoramaForPoi(p.id) && (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => openPanorama(panoramaForPoi(p.id)!.id)}
+                  >
+                    {t('panorama.open', { sol: panoramaForPoi(p.id)!.sols[0] })}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn"

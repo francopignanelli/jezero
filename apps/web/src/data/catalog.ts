@@ -45,24 +45,43 @@ export const GUIDED_MISSION = (poisJson as { guidedMission: { id: string; waypoi
 /** NASA missions represented in the layers (missions, not instruments). */
 export const MISSIONS = [...new Set(DATASETS.filter((d) => !d.role.includes('sky-reference')).map((d) => d.mission))];
 
-/** Real Mastcam-Z panoramas, placed where they were taken (data/catalog/panoramas.json). */
+/** Measured by scripts/geospatial/run.sh panoramas (skyline matched to the terrain horizon). */
+export interface PanoramaGeometry {
+  /** Compass azimuth (° from north) of the image's left edge, and whether azimuth grows to the right. */
+  azimuthAtLeftDeg: number;
+  direction: 1 | -1;
+  horizonFraction: number;
+  elevationDeg: { top: number; bottom: number };
+  /** Azimuth covered by the full image width (a few mosaics overlap themselves slightly). */
+  spanDeg: number;
+  verticalScale: number;
+  /** Mast tilt left in the mosaic: photo elevation = true elevation + tilt·cos(azimuth − toward). */
+  tiltDeg: number;
+  tiltTowardAzimuthDeg: number;
+  medianResidualDeg: number;
+  inlierFraction: number;
+  groundM: number;
+}
+
+/** Real Mastcam-Z 360° mosaics, placed where they were taken (data/catalog/panoramas.json). */
 export interface Panorama {
   id: string;
   title: string;
-  photojournal: string;
-  pageUrl: string;
+  poiId?: string;
+  /** Source label, e.g. "PIA26699" or "ASU Mastcam-Z 360° #23". */
+  reference: string;
+  sourceUrl: string;
   file: string;
-  instrument: string;
-  credit: string;
-  images: number;
-  sol: number;
+  sols: [number, number];
   date: string;
-  horizontalDeg: number;
-  verticalDeg: number;
-  /** Level horizon as a fraction of the image height from the top (estimated). */
-  horizonFraction: number;
-  elevationDeg: { top: number; bottom: number };
   position: { lat: number; lon: number; basis: string };
-  limitations: string;
+  geometry?: PanoramaGeometry;
 }
-export const PANORAMAS: Panorama[] = (panoramasJson as { panoramas: Panorama[] }).panoramas;
+export const PANORAMA_CREDIT = 'NASA/JPL-Caltech/ASU/MSSS';
+/** Only panoramas whose viewing geometry was measured reliably are offered in the app. */
+export const PANORAMA_MAX_RESIDUAL_DEG = 0.15;
+export const PANORAMAS: Panorama[] = (panoramasJson as unknown as { panoramas: Panorama[] }).panoramas.filter(
+  (p) => p.geometry && p.geometry.medianResidualDeg <= PANORAMA_MAX_RESIDUAL_DEG,
+);
+export const panoramaForPoi = (poiId: string): Panorama | undefined =>
+  PANORAMAS.find((p) => p.poiId === poiId);

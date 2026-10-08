@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type LayerId } from '../app/store';
 import { DATA_VERSION, JEZERO_OPERATIONAL_VIEW, dataUrl } from '../config';
-import { PANORAMAS, POIS } from '../data/catalog';
+import { PANORAMAS, POIS, panoramaForPoi } from '../data/catalog';
 import {
   loadCoverage,
   loadCrism,
@@ -748,9 +748,11 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
     ]);
   }
 
-  // Real 360° panoramas, at the rover position where they were taken.
+  // Real 360° panoramas, at the rover position where they were taken. One at a POI becomes a "360°"
+  // chip on that POI's pin; the others get their own pin.
+  const standalone = PANORAMAS.filter((p) => !p.poiId);
   const panos = await scene.withTerrainHeights(
-    PANORAMAS.map((p) => ({
+    standalone.map((p) => ({
       id: p.id,
       lat: p.position.lat,
       lon: p.position.lon,
@@ -767,11 +769,11 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
       lat: p.lat,
       lon: p.lon,
       heightM: p.heightM,
-      text: `360° · sol ${PANORAMAS[i]!.sol}`,
+      text: `360° · ${standalone[i]!.title}`,
       kind: 'panorama',
       priority: 90,
       maxCameraDistanceM: 60_000,
-      onClick: () => useApp.getState().setPanoramaOpen(PANORAMAS[i]!.id),
+      onClick: () => useApp.getState().setPanoramaOpen(standalone[i]!.id),
     })),
   );
 
@@ -807,6 +809,14 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
       kind: 'poi',
       priority: 50 - i,
       maxCameraDistanceM: 140_000,
+      ...(panoramaForPoi(p.id)
+        ? {
+            chip: {
+              text: '360°',
+              onClick: () => useApp.getState().setPanoramaOpen(panoramaForPoi(p.id)!.id),
+            },
+          }
+        : {}),
       onClick: () => {
         const s = useApp.getState();
         s.selectPoi(p.id);

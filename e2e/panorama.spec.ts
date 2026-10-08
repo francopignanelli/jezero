@@ -21,3 +21,19 @@ test('360° panorama: opens from the rover card, loads the local image, closes w
   await expect(dialog).toHaveCount(0);
   expect(external).toEqual([]);
 });
+
+test('a point of interest opens the real panorama taken there, with a measured compass', async ({
+  page,
+}) => {
+  await openApp(page);
+  await page.getByRole('tab', { name: 'Science' }).click();
+  await page.locator('summary', { hasText: 'Three Forks sample depot' }).click();
+  await page.getByRole('button', { name: 'Look around (360°, sol 670)' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Three Forks sample depot' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('ASU Mastcam-Z 360° #23');
+  await expect(dialog).toContainText('Compass and horizon measured');
+  await expect(page.locator('.pano-tick-major').first()).toBeAttached();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+});

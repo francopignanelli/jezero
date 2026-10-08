@@ -8,7 +8,7 @@ import {
   M2020_EQC,
 } from './equirectangular';
 import { planetocentricToPlanetographic, planetographicToPlanetocentric } from './latitude';
-import { greatCircleDistance } from './sphere';
+import { elevationAngleDeg, greatCircleDistance, initialBearingDeg } from './sphere';
 
 /** PDS PLACES best_tactical.csv (Release 16) localizations: [lat °N, lon °E, northing m, easting m]. */
 const PLACES_FIXTURES = [
@@ -120,5 +120,25 @@ describe('regression: USGS TRN lat_ts = 0 projection', () => {
     expect(naive / truth - 1).toBeGreaterThan(0.05);
     // The correction used throughout the domain package removes the error.
     expect((naive * eqcEastWestScale(IAU2015_49910_EQC, lat)) / truth).toBeCloseTo(1, 6);
+  });
+});
+
+describe('bearing and elevation on the Mars sphere', () => {
+  it('gives the cardinal bearings', () => {
+    const o = { lat: 18.45, lon: 77.4 };
+    expect(initialBearingDeg(o, { lat: 18.46, lon: 77.4 })).toBeCloseTo(0, 6);
+    expect(initialBearingDeg(o, { lat: 18.44, lon: 77.4 })).toBeCloseTo(180, 6);
+    expect(initialBearingDeg(o, { lat: 18.45, lon: 77.41 })).toBeCloseTo(90, 2);
+    expect(initialBearingDeg(o, { lat: 18.45, lon: 77.39 })).toBeCloseTo(270, 2);
+  });
+  it('matches the flat-ground slope up close and includes the curvature drop far away', () => {
+    // 100 m up at 1 km: atan((100 − d²/2R) / d), the curvature drop being 0.147 m.
+    const approx = (Math.atan((100 - 1000 ** 2 / (2 * 3_396_190)) / 1000) * 180) / Math.PI;
+    expect(elevationAngleDeg(1000, 0, 100)).toBeCloseTo(approx, 2);
+    // Same height at 20 km: the drop d²/2R ≈ 58.9 m gives ≈ −0.1687° (half the arc angle).
+    expect(elevationAngleDeg(20_000, 0, 0)).toBeCloseTo(
+      -((20_000 / 3_396_190) * 180) / Math.PI / 2,
+      6,
+    );
   });
 });

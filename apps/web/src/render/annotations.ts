@@ -27,6 +27,8 @@ export interface Annotation {
   badge?: string;
   /** Makes the label a button (e.g. open a panorama). */
   onClick?: () => void;
+  /** A small action inside the label (e.g. "360°" opens the panorama taken there). */
+  chip?: { text: string; onClick: () => void };
   /** Visible only when the camera is closer / farther than these distances (m). */
   maxCameraDistanceM?: number;
   minCameraDistanceM?: number;
@@ -136,6 +138,18 @@ export class AnnotationLayer {
       t.className = 'annotation-text';
       t.textContent = a.text;
       el.appendChild(t);
+      if (a.chip) {
+        const chip = document.createElement('span');
+        chip.className = 'annotation-chip';
+        chip.textContent = a.chip.text;
+        const action = a.chip.onClick;
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          action();
+        });
+        el.classList.add('annotation-action');
+        el.appendChild(chip);
+      }
       this.root.appendChild(el);
       return {
         el,

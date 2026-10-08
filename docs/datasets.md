@@ -115,9 +115,10 @@ These are local mast values that may include rover thermal influence.
 - **Build:** glTF-Transform `optimize` (WebP textures at 1024 px, meshopt geometry): 11.7 MB → 2.3 MB. Command in the README.
 - **Placement:** at the latest published MMGIS position (sol 1980), on the rendered terrain, facing along the last drive segment. It is drawn at true scale up close; from far away it is enlarged to stay at least 44 px tall and hidden beyond 40 km.
 
-## Real surface photo: Mastcam-Z PIA26699
+## Real surface photos: Mastcam-Z 360° panoramas
 
-- **Source:** NASA Photojournal PIA26699, "Crocodile Bridge" (NASA/JPL-Caltech/ASU/MSSS), 980 Mastcam-Z images, sol 1717 (2025-12-18). The 10000 × 2278 JPEG (sha256 `ce98007f…1b70`) is converted to an 8192 px WebP (2.4 MB) for the viewer.
-- **Placement:** MMGIS stop at the end of the sol 1710 drive (18.427599°N, 77.235154°E); no drive is listed until sol 1756.
-- **Geometry:** 360° × 82° cylindrical mosaic. Level horizon measured at 19 % of the image height from the distant flat skyline (±1°), so elevation runs from +15.6° to −66.4°. Azimuth is not georeferenced.
-- **Colours reused:** mean ground (148, 100, 65) for the CTX/HiRISE tint; mean sky just above the horizon (222, 174, 124) and at +15° (177, 141, 101) for the 3D daytime sky gradient.
+- **Sources:** 11 natural-colour mosaics from the ASU Mastcam-Z 360° collection (#1, #3, #8, #20, #21, #23, #25, #37, #39, #41, #42) plus Photojournal PIA26699 (“Crocodile Bridge”). Free public use with credit NASA/JPL-Caltech/ASU/MSSS. Originals (113–477 MB each) stay in `data/raw/panoramas` with sha256 in `data/catalog/panoramas.json`; the app ships 8192 px WebPs (≈2–3 MB each).
+- **Placement:** the MMGIS waypoint of the first sol of each mosaic (`scripts/data/fetch-panoramas.ts`). Several match the curated POIs exactly (Rochette, Comet Geyser, Witch Hazel Hill), a useful cross-check.
+- **Measured geometry** (`scripts/geospatial/run.sh panoramas`): the skyline is traced on a 0.05°/px copy and matched to the horizon computed from our terrain (1 m HiRISE/MSR, 20 m CTX, MOLA; Mars sphere curvature) from the Mastcam-Z position (ground + 2 m). Fitted per mosaic: compass azimuth of the left edge, column direction, vertical scale, horizon row and mast tilt. Results for the 10 panoramas shown: median residual 0.021–0.080°, vertical scale 0.96–1.01 (the mosaics are equal-angle cylinders, as assumed). Diagnostic overlays: `data/work/panoramas/*_skyline.png`.
+- **Excluded:** Bunsen Peak (median residual 0.24°, vertical scale 0.93: not trustworthy) and Lookout Hill (#41, a Gigapan mosaic with no plausible fit; its projection is not a simple equal-angle cylinder).
+- **In the app:** places within 8 km (and other panoramas within 6 km) are labelled at their true direction and elevation, dimmed when terrain hides them (line of sight sampled on the rendered terrain); panoramas link to each other.

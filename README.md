@@ -49,8 +49,7 @@ npx tsx scripts/data/snapshot-crism.ts   # CRISM MTRDR carbonate and mafic compo
 npx tsx scripts/data/fetch-tiff-window.ts && scripts/geospatial/run.sh imagery-hd   # 232 m Viking colour near Jezero
 curl -o data/raw/hirise-rover/ESP_085859_1985_RED.JP2 https://hirise.lpl.arizona.edu/PDS/RDR/ESP/ORB_085800_085899/ESP_085859_1985/ESP_085859_1985_RED.JP2 && scripts/geospatial/run.sh imagery-rover   # 25 cm around the rover
 npx tsx scripts/data/fetch-zip-entry.ts && scripts/geospatial/run.sh terrain-rim   # MSR 1 m DTM on the crater rim (676 MB)
-curl -o data/raw/panoramas/PIA26699.jpg https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia26/pia26699/PIA26699.jpg   # Mastcam-Z 360°
-docker run --rm -v "$PWD:/work" --entrypoint gdal_translate copernico-geo -q -of WEBP -co QUALITY=86 -outsize 8192 0 -r average /work/data/raw/panoramas/PIA26699.jpg /work/data/build/panoramas/pia26699_8k.webp
+npx tsx scripts/data/fetch-panoramas.ts && scripts/geospatial/run.sh panoramas   # real Mastcam-Z 360° views (~2.4 GB originals): placed by sol, compass/horizon measured
 npx -y @gltf-transform/cli@4 optimize data/raw/models/25042_Perseverance.glb data/build/models/perseverance.glb --texture-compress webp --texture-size 1024 --compress meshopt   # 3D rover
 npx tsx scripts/data/build-sky.ts && scripts/geospatial/run.sh sky   # stars + Milky Way
 npx tsx scripts/data/validate-grid.ts    # grid vs PDS PLACES + guided-route check

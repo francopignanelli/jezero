@@ -632,8 +632,10 @@
     "failed": "No se pudo mostrar la panorámica en este dispositivo.",
     "close": "Cerrar la panorámica",
     "canvasLabel": "Panorámica 360°. Arrastrá o usá las flechas para mirar alrededor; + y − hacen zoom.",
-    "caption": "Una foto real: {{images}} imágenes de {{instrument}} tomadas por Perseverance en el sol {{sol}} ({{date}}) en el borde del cráter, en color natural.",
+    "caption": "Un mosaico de fotos reales de la Mastcam-Z de Perseverance, sol {{sols}} ({{date}}), en color natural.",
     "hint": "Arrastrá para mirar alrededor · rueda para zoom · Esc para cerrar",
-    "limits": "Dirección de brújula no georreferenciada. Horizonte estimado con el perfil lejano (±1°); el cielo sobre la foto es un degradado simple y las zonas negras no tienen datos."
+    "measured": "Brújula y horizonte medidos comparando el perfil del horizonte con el modelo de terreno (error mediano {{residual}}°). El cielo sobre la foto es un degradado simple; las zonas negras no tienen datos.",
+    "walkTo": "360° {{name}} · {{distance}}",
+    "behindTerrain": "detrás del relieve"
   }
 }

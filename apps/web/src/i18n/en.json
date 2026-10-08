@@ -632,8 +632,10 @@
     "failed": "The panorama could not be displayed on this device.",
     "close": "Close the panorama",
     "canvasLabel": "360° panorama. Drag or use the arrow keys to look around; + and − zoom.",
-    "caption": "A real photo: {{images}} {{instrument}} images taken by Perseverance on sol {{sol}} ({{date}}) on the crater rim, in natural colour.",
+    "caption": "A real photo mosaic by Perseverance's Mastcam-Z, sol {{sols}} ({{date}}), in natural colour.",
     "hint": "Drag to look around · scroll to zoom · Esc to close",
-    "limits": "Compass direction not georeferenced. Horizon estimated from the distant skyline (±1°); sky above the photo is a plain gradient, black areas have no data."
+    "measured": "Compass and horizon measured by matching the skyline to the terrain model (median error {{residual}}°). The sky above the photo is a plain gradient; black areas have no data.",
+    "walkTo": "360° {{name}} · {{distance}}",
+    "behindTerrain": "behind terrain"
   }
 }

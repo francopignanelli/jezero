@@ -17,6 +17,8 @@ def main(argv: list[str]) -> int:
     sub.add_parser("imagery-hd", help="regional 232 m Viking colour pyramid around Jezero")
     sub.add_parser("terrain-rim", help="rebuild terrain tiles over the crater rim with the MSR 1 m DTM")
     sub.add_parser("imagery-rover", help="25 cm HiRISE around Perseverance's current position")
+    pano = sub.add_parser("panoramas", help="360° viewer images + compass/horizon measured from the skyline")
+    pano.add_argument("--only", help="one panorama id")
     sub.add_parser("terrain", help="build quantized-mesh terrain tiles (needs 'operational')")
     sub.add_parser("all", help="operational, imagery, terrain")
     sub.add_parser("sky", help="convert the Milky Way PNG from scripts/data/build-sky.ts to WebP")
@@ -48,6 +50,12 @@ def main(argv: list[str]) -> int:
         from .terrain import RIM, build as build_terrain
 
         build_terrain(only=RIM)
+        return 0
+    if args.cmd == "panoramas":
+        from .panorama import build as build_panoramas
+
+        built = build_panoramas(only=args.only)
+        print(f"[panorama] {len(built)} panoramas")
         return 0
     if args.cmd == "imagery-rover":
         from .imagery import build_hirise_rover

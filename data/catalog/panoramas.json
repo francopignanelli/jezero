@@ -1,32 +1,466 @@
 {
+  "notes": "Real Mastcam-Z 360° mosaics, placed at the rover position on their sol (MMGIS traverse in data/build/rover/rover.json, filled by scripts/data/fetch-panoramas.ts). 'geometry' is measured by scripts/geospatial/run.sh panoramas (skyline matched to the terrain horizon) and must not be edited by hand. ASU collection: free public use with credit NASA/JPL-Caltech/ASU/MSSS (https://mastcamz.asu.edu/mastcam-zs-360-panorama-collection/).",
   "panoramas": [
     {
-      "id": "pia26699",
-      "title": "“Crocodile Bridge”, Jezero Crater rim",
-      "photojournal": "PIA26699",
-      "sourceUrl": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia26/pia26699/PIA26699.jpg",
-      "pageUrl": "https://www.jpl.nasa.gov/images/pia26699-nasas-perseverance-mars-rover-surveys-crocodile-bridge/",
-      "sourceSha256": "ce98007f3310c3b14c5ae748971b38c3aa018e3c317e0e58ecc459dbea8a1b70",
-      "file": "panoramas/pia26699_8k.webp",
-      "instrument": "Mars 2020 Mastcam-Z",
-      "credit": "NASA/JPL-Caltech/ASU/MSSS",
-      "images": 980,
-      "sol": 1717,
-      "date": "2025-12-18",
-      "colour": "natural colour (processed to approximate what the eye would see)",
-      "horizontalDeg": 360,
-      "verticalDeg": 82,
-      "horizonFraction": 0.19,
-      "elevationDeg": {
-        "top": 15.6,
-        "bottom": -66.4
+      "id": "butler-landing",
+      "title": "Octavia E. Butler Landing",
+      "poiId": "landing-site",
+      "reference": "ASU Mastcam-Z 360° #1",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Butler_Landing_1_Sols03-11_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Butler_Landing_1_Sols03-11_L0_natural.jpg",
+      "file": "panoramas/butler-landing_8k.webp",
+      "sols": [
+        3,
+        11
+      ],
+      "date": "2021-02-21",
+      "position": {
+        "lat": 18.444627,
+        "lon": 77.450886,
+        "basis": "MMGIS start of the first logged drive (sol 13); the rover had not driven before it."
       },
+      "sourceSha256": "2d164dc5e628fef70b8aa9538faecc0b88974a5f19b51657d5ed6777a59585dc",
+      "sourceBytes": 171536424,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 132.4,
+        "direction": 1,
+        "horizonFraction": 0.1006,
+        "elevationDeg": {
+          "top": 10.14,
+          "bottom": -90.67
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 1.0081,
+        "tiltDeg": 0.11,
+        "tiltTowardAzimuthDeg": 166.0,
+        "medianResidualDeg": 0.021,
+        "inlierFraction": 0.863,
+        "columnsUsed": 7200,
+        "groundM": -2569.9,
+        "medianHorizonDistanceKm": 18.2
+      }
+    },
+    {
+      "id": "van-zyl",
+      "title": "Van Zyl Overlook",
+      "reference": "ASU Mastcam-Z 360° #3",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Van_Zyl_Sols53-64_L0_natural_2x.jpg",
+      "sourceFile": "Mastcam-Z_360_Van_Zyl_Sols53-64_L0_natural_2x.jpg",
+      "file": "panoramas/van-zyl_8k.webp",
+      "sols": [
+        53,
+        64
+      ],
+      "date": "2021-04-14",
+      "position": {
+        "lat": 18.444752,
+        "lon": 77.45214,
+        "basis": "MMGIS waypoint at the end of the sol 52 drive; the next drive is on sol 65."
+      },
+      "sourceSha256": "7dbef5317db6a8518b899a61453a22229281239ccc52fdfa09c3aa01b08b40fd",
+      "sourceBytes": 317460816,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 0.95,
+        "direction": 1,
+        "horizonFraction": 0.091,
+        "elevationDeg": {
+          "top": 6.72,
+          "bottom": -67.14
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 0.9592,
+        "tiltDeg": 0.229,
+        "tiltTowardAzimuthDeg": 168.6,
+        "medianResidualDeg": 0.028,
+        "inlierFraction": 1.0,
+        "columnsUsed": 7200,
+        "groundM": -2569.1,
+        "medianHorizonDistanceKm": 18.5
+      }
+    },
+    {
+      "id": "seitah-1",
+      "title": "First view into Séítah from Artuby Ridge",
+      "poiId": "rochette",
+      "reference": "ASU Mastcam-Z 360° #8",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Seitah_1_Sols181-182_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Seitah_1_Sols181-182_L0_natural.jpg",
+      "file": "panoramas/seitah-1_8k.webp",
+      "sols": [
+        181,
+        182
+      ],
+      "date": "2021-08-23",
+      "position": {
+        "lat": 18.430739,
+        "lon": 77.444366,
+        "basis": "MMGIS waypoint at the end of the sol 180 drive; the next drive is on sol 199."
+      },
+      "sourceSha256": "4495513559b2f62463d8cbdcb4838eea314016b5f0ce4358c54415821ccabf02",
+      "sourceBytes": 116664988,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 134.3,
+        "direction": 1,
+        "horizonFraction": 0.1344,
+        "elevationDeg": {
+          "top": 9.92,
+          "bottom": -63.88
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 0.984,
+        "tiltDeg": 0.168,
+        "tiltTowardAzimuthDeg": 272.8,
+        "medianResidualDeg": 0.024,
+        "inlierFraction": 1.0,
+        "columnsUsed": 7200,
+        "groundM": -2574.5,
+        "medianHorizonDistanceKm": 15.4
+      }
+    },
+    {
+      "id": "wildcat-ridge",
+      "title": "Wildcat Ridge",
+      "poiId": "wildcat-ridge",
+      "reference": "ASU Mastcam-Z 360° #20",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Wildcat_Ridge_Sols518-534_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Wildcat_Ridge_Sols518-534_L0_natural.jpg",
+      "file": "panoramas/wildcat-ridge_8k.webp",
+      "sols": [
+        518,
+        534
+      ],
+      "date": "2022-08-05",
+      "position": {
+        "lat": 18.458647,
+        "lon": 77.405925,
+        "basis": "MMGIS waypoint at the end of the sol 502 drive; the next drive is on sol 535."
+      },
+      "sourceSha256": "ed3376c6a26b1bdf88fea6dbc7572e1449fe2ee6bc64ca4bcb38159296c3b1e0",
+      "sourceBytes": 152538988,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 180.2,
+        "direction": 1,
+        "horizonFraction": 0.2176,
+        "elevationDeg": {
+          "top": 24.88,
+          "bottom": -89.47
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 0.9943,
+        "tiltDeg": 0.209,
+        "tiltTowardAzimuthDeg": 276.8,
+        "medianResidualDeg": 0.039,
+        "inlierFraction": 0.864,
+        "columnsUsed": 7200,
+        "groundM": -2523.2,
+        "medianHorizonDistanceKm": 0.5
+      }
+    },
+    {
+      "id": "enchanted-lake",
+      "title": "Enchanted Lake",
+      "poiId": "enchanted-lake",
+      "reference": "ASU Mastcam-Z 360° #21",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Enchanted_Lake_Sols566-586_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Enchanted_Lake_Sols566-586_L0_natural.jpg",
+      "file": "panoramas/enchanted-lake_8k.webp",
+      "sols": [
+        566,
+        586
+      ],
+      "date": "2022-09-23",
+      "position": {
+        "lat": 18.450726,
+        "lon": 77.40144,
+        "basis": "MMGIS waypoint at the end of the sol 565 drive; the next drive is on sol 592."
+      },
+      "sourceSha256": "9b172e20d70304b7b5945860901d7b4441b0fcf706184ffe8b467b6a030eb2a1",
+      "sourceBytes": 139603828,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 20.05,
+        "direction": 1,
+        "horizonFraction": 0.1811,
+        "elevationDeg": {
+          "top": 14.9,
+          "bottom": -67.36
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 0.9911,
+        "tiltDeg": 0.208,
+        "tiltTowardAzimuthDeg": 183.0,
+        "medianResidualDeg": 0.046,
+        "inlierFraction": 0.938,
+        "columnsUsed": 7200,
+        "groundM": -2526.5,
+        "medianHorizonDistanceKm": 0.9
+      }
+    },
+    {
+      "id": "three-forks",
+      "title": "Three Forks sample depot",
+      "poiId": "three-forks",
+      "reference": "ASU Mastcam-Z 360° #23",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Three_Forks_Depot_1_Sol670_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Three_Forks_Depot_1_Sol670_L0_natural.jpg",
+      "file": "panoramas/three-forks_8k.webp",
+      "sols": [
+        670,
+        670
+      ],
+      "date": "2023-01-08",
+      "position": {
+        "lat": 18.452813,
+        "lon": 77.408244,
+        "basis": "MMGIS waypoint at the end of the sol 670 drive; the next drive is on sol 674."
+      },
+      "sourceSha256": "9edce719ca30c8a0696f7c26edf772cc91a54701574bad6a04dc1a486439fab2",
+      "sourceBytes": 132112769,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 190.7,
+        "direction": 1,
+        "horizonFraction": 0.1472,
+        "elevationDeg": {
+          "top": 12.89,
+          "bottom": -74.65
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 0.9947,
+        "tiltDeg": 0.203,
+        "tiltTowardAzimuthDeg": 342.3,
+        "medianResidualDeg": 0.026,
+        "inlierFraction": 0.943,
+        "columnsUsed": 7200,
+        "groundM": -2545.1,
+        "medianHorizonDistanceKm": 7.7
+      }
+    },
+    {
+      "id": "belva",
+      "title": "Belva crater",
+      "poiId": "belva",
+      "reference": "ASU Mastcam-Z 360° #25",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Belva_Sols789-791_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Belva_Sols789-791_L0_natural.jpg",
+      "file": "panoramas/belva_8k.webp",
+      "sols": [
+        789,
+        791
+      ],
+      "date": "2023-05-10",
+      "position": {
+        "lat": 18.482727,
+        "lon": 77.368632,
+        "basis": "MMGIS waypoint at the end of the sol 784 drive; the next drive is on sol 793."
+      },
+      "sourceSha256": "ee7fca217e1235db357aa81960b2ba2cc54dc1095727bbf7e1687508fca2ce3e",
+      "sourceBytes": 129071887,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 15.3,
+        "direction": 1,
+        "horizonFraction": 0.1379,
+        "elevationDeg": {
+          "top": 11.07,
+          "bottom": -69.22
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 1.0036,
+        "tiltDeg": 0.142,
+        "tiltTowardAzimuthDeg": 230.9,
+        "medianResidualDeg": 0.034,
+        "inlierFraction": 0.941,
+        "columnsUsed": 7200,
+        "groundM": -2421.5,
+        "medianHorizonDistanceKm": 5.7
+      }
+    },
+    {
+      "id": "bunsen-peak",
+      "title": "Bunsen Peak, margin unit",
+      "poiId": "comet-geyser",
+      "reference": "ASU Mastcam-Z 360° #37",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Bunsen_Peak_Z34_Sols1074-1082_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Bunsen_Peak_Z34_Sols1074-1082_L0_natural.jpg",
+      "file": "panoramas/bunsen-peak_8k.webp",
+      "sols": [
+        1074,
+        1082
+      ],
+      "date": "2024-02-26",
+      "position": {
+        "lat": 18.491821,
+        "lon": 77.327217,
+        "basis": "MMGIS waypoint at the end of the sol 1068 drive; the next drive is on sol 1084."
+      },
+      "sourceSha256": "4563a8b229f747ae6342eb93f6ebe606ed9aa75f869a91e5ed79bc8e2609fb57",
+      "sourceBytes": 113277322,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 191.0,
+        "direction": 1,
+        "horizonFraction": 0.1779,
+        "elevationDeg": {
+          "top": 14.36,
+          "bottom": -66.35
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 0.9277,
+        "tiltDeg": 0.047,
+        "tiltTowardAzimuthDeg": 343.8,
+        "medianResidualDeg": 0.238,
+        "inlierFraction": 0.638,
+        "columnsUsed": 7200,
+        "groundM": -2383.0,
+        "medianHorizonDistanceKm": 2.8
+      }
+    },
+    {
+      "id": "bright-angel",
+      "title": "Bright Angel (Cheyava Falls)",
+      "poiId": "cheyava-falls",
+      "reference": "ASU Mastcam-Z 360° #39",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Bright_Angel_Z63_Sol1178_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Bright_Angel_Z63_Sol1178_L0_natural.jpg",
+      "file": "panoramas/bright-angel_8k.webp",
+      "sols": [
+        1178,
+        1178
+      ],
+      "date": "2024-06-13",
+      "position": {
+        "lat": 18.496112,
+        "lon": 77.303836,
+        "basis": "MMGIS waypoint at the end of the sol 1177 drive; the next drive is on sol 1182."
+      },
+      "sourceSha256": "71adbdde3f3328c44fd079d407ff6f78ea0222573a377286fc879f40a8a56bd2",
+      "sourceBytes": 433147042,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 147.8,
+        "direction": 1,
+        "horizonFraction": 0.2488,
+        "elevationDeg": {
+          "top": 21.39,
+          "bottom": -64.57
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 0.9768,
+        "tiltDeg": 0.31,
+        "tiltTowardAzimuthDeg": 0.7,
+        "medianResidualDeg": 0.08,
+        "inlierFraction": 0.973,
+        "columnsUsed": 7200,
+        "groundM": -2362.8,
+        "medianHorizonDistanceKm": 0.5
+      }
+    },
+    {
+      "id": "lookout-hill",
+      "title": "Jezero rim crest at Lookout Hill",
+      "poiId": "lookout-hill",
+      "reference": "ASU Mastcam-Z 360° #41",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Lookout_Hill_Sols1356-1358_L0_natural_2x.jpg",
+      "sourceFile": "Mastcam-Z_360_Lookout_Hill_Sols1356-1358_L0_natural_2x.jpg",
+      "file": "panoramas/lookout-hill_8k.webp",
+      "sols": [
+        1356,
+        1358
+      ],
+      "date": "2024-12-13",
+      "position": {
+        "lat": 18.457528,
+        "lon": 77.268527,
+        "basis": "MMGIS waypoint at the end of the sol 1354 drive; the next drive is on sol 1358."
+      },
+      "sourceSha256": "0e0280c84d81e3942f2057b9e28f80ec802cc57c48cd80bcfc75394d677c177c",
+      "sourceBytes": 476738251,
+      "geometry": null,
+      "excluded": "geometry not measurable: no plausible alignment (skyline does not match the terrain horizon)"
+    },
+    {
+      "id": "witch-hazel-hill",
+      "title": "Shallow Bay, Witch Hazel Hill",
+      "poiId": "witch-hazel-hill",
+      "reference": "ASU Mastcam-Z 360° #42",
+      "sourceUrl": "https://mcz-images.sese.asu.edu/Mastcam-Z_360_Shallow_Bay_Sol1399_L0_natural.jpg",
+      "sourceFile": "Mastcam-Z_360_Shallow_Bay_Sol1399_L0_natural.jpg",
+      "file": "panoramas/witch-hazel-hill_8k.webp",
+      "sols": [
+        1399,
+        1399
+      ],
+      "date": "2025-01-26",
+      "position": {
+        "lat": 18.460569,
+        "lon": 77.264638,
+        "basis": "MMGIS waypoint at the end of the sol 1397 drive; the next drive is on sol 1400."
+      },
+      "sourceSha256": "45520f4a521a017ef1f05e751609e6330c48f2440a93a0721c1e76198ab360de",
+      "sourceBytes": 162649834,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 286.95,
+        "direction": 1,
+        "horizonFraction": 0.2241,
+        "elevationDeg": {
+          "top": 20.74,
+          "bottom": -71.79
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 0.974,
+        "tiltDeg": 0.237,
+        "tiltTowardAzimuthDeg": 295.7,
+        "medianResidualDeg": 0.072,
+        "inlierFraction": 0.876,
+        "columnsUsed": 7200,
+        "groundM": -1821.4,
+        "medianHorizonDistanceKm": 0.3
+      }
+    },
+    {
+      "id": "crocodile-bridge",
+      "title": "“Crocodile Bridge”, Jezero Crater rim",
+      "reference": "PIA26699",
+      "sourceUrl": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia26/pia26699/PIA26699.jpg",
+      "sourceFile": "PIA26699.jpg",
+      "file": "panoramas/crocodile-bridge_8k.webp",
+      "sols": [
+        1717,
+        1717
+      ],
+      "date": "2025-12-18",
       "position": {
         "lat": 18.427599,
         "lon": 77.235154,
-        "basis": "MMGIS waypoint at the end of the sol 1710 drive; no drive is listed until sol 1756, so the rover was parked there on sol 1717."
+        "basis": "MMGIS waypoint at the end of the sol 1710 drive; the next drive is on sol 1756."
       },
-      "limitations": "The view direction is not georeferenced (no azimuth is published with the mosaic). The level horizon was estimated from the distant flat skyline at 19% of the image height (about ±1°), giving +15.6° to −66.4° of elevation; the sky above the photographed strip is a plain gradient extrapolated from its top rows, not imagery. Black areas are parts of the mosaic NASA left without data."
+      "sourceSha256": "ce98007f3310c3b14c5ae748971b38c3aa018e3c317e0e58ecc459dbea8a1b70",
+      "sourceBytes": 14295326,
+      "geometry": {
+        "method": "skyline matched to the terrain horizon (scripts/geospatial/copernico_geo/panorama.py)",
+        "azimuthAtLeftDeg": 188.65,
+        "direction": 1,
+        "horizonFraction": 0.1933,
+        "elevationDeg": {
+          "top": 15.89,
+          "bottom": -66.3
+        },
+        "spanDeg": 360.0,
+        "verticalScale": 1.0023,
+        "tiltDeg": 0.296,
+        "tiltTowardAzimuthDeg": 314.7,
+        "medianResidualDeg": 0.026,
+        "inlierFraction": 0.99,
+        "columnsUsed": 7200,
+        "groundM": -1974.6,
+        "medianHorizonDistanceKm": 1.2
+      }
     }
   ]
 }

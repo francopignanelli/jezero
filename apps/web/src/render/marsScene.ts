@@ -1118,6 +1118,11 @@ export class MarsScene {
     this.requestRender();
   }
 
+  /** Compass heading of the camera (° from north, clockwise). */
+  cameraHeadingDeg(): number {
+    return CesiumMath.toDegrees(this.widget.camera.heading);
+  }
+
   setAnnotationsMuted(groupId: string, muted: boolean): void {
     if (!this.isDestroyed()) this.annotations.setGroupMuted(groupId, muted);
   }
