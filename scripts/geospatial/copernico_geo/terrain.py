@@ -16,6 +16,7 @@ from osgeo import gdal
 from pydelatin import Delatin
 from quantized_mesh_encoder import encode
 from quantized_mesh_encoder.constants import EXTENSION_HEADER
+from quantized_mesh_encoder.ecef import to_ecef
 from quantized_mesh_encoder.ellipsoid import Ellipsoid
 from quantized_mesh_encoder.extensions import VertexNormalsExtension
 from quantized_mesh_encoder.normals import oct_encode
@@ -176,6 +177,38 @@ def _fill_ring(ext: np.ndarray) -> np.ndarray:
     return np.where(np.isfinite(ext), ext, np.nanmean(ext))
 
 
+# Header layout of quantized-mesh-1.0: centre (3 doubles), min/max height (2 floats), bounding
+# sphere (4 doubles), then the horizon occlusion point (3 doubles) at byte 64.
+HORIZON_POINT_OFFSET = 64
+
+
+def horizon_occlusion_point(cartesian: np.ndarray, centre: np.ndarray) -> np.ndarray:
+    """Cesium's EllipsoidalOccluder.computeHorizonCullingPoint, on the Mars sphere.
+
+    quantized-mesh-encoder's version silently drops vertices more than 90° from the tile's centre
+    (negative magnitudes), where Cesium gives up on horizon culling instead. The two z0 hemisphere
+    tiles have their bounding-sphere centre almost at the planet's centre, so the encoder put the
+    point thousands of radii out in an arbitrary direction, and Cesium culled the whole western
+    hemisphere as "behind the planet" whenever the 180° meridian was in view (part of the globe
+    disappeared). No finite point can be right for such a tile, since some camera always sees it
+    from behind; NaN makes every comparison in Cesium's horizon test false, i.e. "visible", which
+    is what Cesium does itself for these tiles (no occludee point, no horizon culling)."""
+    p = cartesian / MARS_R
+    d = centre / np.linalg.norm(centre)
+    m = np.linalg.norm(p, axis=1)
+    direction = p / m[:, None]
+    m2 = np.maximum(m * m, 1.0)
+    m = np.maximum(m, 1.0)
+    cos_a = direction @ d
+    sin_a = np.linalg.norm(np.cross(direction, d), axis=1)
+    cos_b = 1.0 / m
+    sin_b = np.sqrt(m2 - 1.0) * cos_b
+    denom = cos_a * cos_b - sin_a * sin_b
+    if (denom <= 1e-9).any():
+        return np.full(3, np.nan)
+    return d * float((1.0 / denom).max()) * MARS_R
+
+
 def encode_tile(heights: np.ndarray, b: BBox, max_error: float, path, normal_grid: np.ndarray) -> None:
     positions, triangles = mesh_tile(heights, b, max_error)
     indices = np.ascontiguousarray(triangles).flatten()
@@ -194,6 +227,13 @@ def encode_tile(heights: np.ndarray, b: BBox, max_error: float, path, normal_gri
             ellipsoid=MARS_SPHERE,
             extensions=[normals],
         )
+    # Replace the encoder's horizon occlusion point with Cesium's algorithm (see above).
+    with open(path, "r+b") as f:
+        header = f.read(HORIZON_POINT_OFFSET)
+        centre = np.frombuffer(header[32:56], dtype="<f8")
+        point = horizon_occlusion_point(to_ecef(positions.astype(np.float64), ellipsoid=MARS_SPHERE), centre)
+        f.seek(HORIZON_POINT_OFFSET)
+        f.write(point.astype("<f8").tobytes())
 
 
 def build(only: BBox | None = None) -> dict:

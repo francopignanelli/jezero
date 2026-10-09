@@ -82,3 +82,33 @@ def test_flat_tile_triangles_do_not_cut_inside_the_sphere():
         centroid = sum(xyz(positions[i]) for i in t) / 3
         worst = max(worst, MARS_R - np.linalg.norm(centroid))
     assert worst < 2 * max_error
+
+
+def _cesium_point_visible(camera_scaled: np.ndarray, point_scaled: np.ndarray) -> bool:
+    """Cesium EllipsoidalOccluder.isScaledSpacePointVisible (unit sphere)."""
+    vh2 = camera_scaled @ camera_scaled - 1.0
+    vt = point_scaled - camera_scaled
+    vt_dot_vc = -(vt @ camera_scaled)
+    occluded = vt_dot_vc > vh2 and vt_dot_vc * vt_dot_vc / (vt @ vt) > vh2
+    return not occluded
+
+
+def test_hemisphere_tile_is_not_horizon_culled_while_part_of_it_is_in_view(tmp_path):
+    """Regression (2026-10-09): the western z0 hemisphere vanished whenever the 180° meridian was in
+    view, because the encoder's horizon point ignored vertices more than 90° from the tile centre."""
+    import math
+
+    from copernico_geo.frames import MARS_R
+    from copernico_geo.terrain import HORIZON_POINT_OFFSET, encode_tile, grid_normals
+
+    west = BBox(west=-180.0, south=-90.0, east=0.0, north=90.0)
+    n = 33
+    heights = np.full((n, n), -3000.0)  # mostly below the reference sphere, as the northern plains
+    normals = grid_normals(np.full((n + 2, n + 2), -3000.0), west)
+    path = tmp_path / "0" / "0" / "0.terrain"
+    encode_tile(heights, west, 150.0, path, normals)
+    point = np.frombuffer(path.read_bytes()[HORIZON_POINT_OFFSET : HORIZON_POINT_OFFSET + 24], dtype="<f8")
+    # Camera above 150°E at 1.6 radii: it sees up to ~51° beyond, i.e. part of the western hemisphere.
+    lon = math.radians(150.0)
+    camera = np.array([math.cos(lon), math.sin(lon), 0.0]) * 1.6
+    assert _cesium_point_visible(camera, point / MARS_R)
