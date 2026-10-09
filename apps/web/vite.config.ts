@@ -65,6 +65,10 @@ function copyCesium(): Plugin {
   };
 }
 
+// index.html's first-paint loader reads %VITE_DATA_BASE_URL%; default it so the placeholder is
+// always defined (same default as src/config.ts).
+process.env.VITE_DATA_BASE_URL ??= './data';
+
 export default defineConfig({
   base: './',
   define: {

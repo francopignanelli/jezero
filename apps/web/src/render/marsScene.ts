@@ -48,7 +48,7 @@ import {
 } from '@copernico/domain';
 import { AnnotationLayer, type Annotation } from './annotations';
 import { tintImage, type Tint } from './tint';
-import { installCameraConstraints } from './cameraConstraints';
+import { installCameraConstraints, maxTiltDeg } from './cameraConstraints';
 import { SkyRenderer, type SkyQuality } from './sky';
 
 /**
@@ -150,6 +150,13 @@ const BAND_COLOURS = {
   'route-band-moderate': Color.fromCssColorString('#fde725'),
   'route-band-steep': Color.fromCssColorString('#f89540'),
 } as const;
+
+/** Camera tilt from looking straight down, compass heading, and the tilt allowed at this height. */
+export interface ViewState {
+  tiltDeg: number;
+  headingDeg: number;
+  maxTiltDeg: number;
+}
 
 export interface LineSpec {
   id: string;
@@ -366,6 +373,8 @@ export class MarsScene {
   private readonly seeThrough = new Map<Entity, MaterialProperty>();
   private overhead = true;
   private nearModel = false;
+  private viewListeners = new Set<(v: ViewState) => void>();
+  private lastView = '';
   private haze: PostProcessStage;
   private hazeStrength = 0;
   private hazeTint = Cartesian3.clone(HAZE_DAY);
@@ -518,6 +527,8 @@ export class MarsScene {
       this.fadeImageryTiers();
       this.updateLineOcclusion();
       this.updateCloseUpDeclutter();
+      this.limitTilt();
+      this.emitView();
     });
     scene.postRender.addEventListener(() => {
       this.renderSky();
@@ -1123,6 +1134,94 @@ export class MarsScene {
       orientation: { heading: h, pitch: settled.pitch, roll: 0 },
     });
     this.requestRender();
+  }
+
+  private heightAboveGround(): number {
+    return this.widget.camera.positionCartographic.height + 2_500; // above the Jezero floor
+  }
+
+  viewState(): ViewState {
+    const camera = this.widget.camera;
+    return {
+      tiltDeg: 90 + CesiumMath.toDegrees(camera.pitch),
+      headingDeg: CesiumMath.toDegrees(camera.heading),
+      maxTiltDeg: maxTiltDeg(this.heightAboveGround()),
+    };
+  }
+
+  onViewChange(listener: (v: ViewState) => void): () => void {
+    this.viewListeners.add(listener);
+    listener(this.viewState());
+    return () => this.viewListeners.delete(listener);
+  }
+
+  private emitView(): void {
+    if (this.viewListeners.size === 0) return;
+    const v = this.viewState();
+    const key = `${Math.round(v.tiltDeg)}:${Math.round(v.headingDeg)}:${Math.round(v.maxTiltDeg)}`;
+    if (key === this.lastView) return;
+    this.lastView = key;
+    for (const l of this.viewListeners) l(v);
+  }
+
+  /** Ground point at the centre of the view (the point tilt and heading changes orbit around). */
+  private centreTarget(): Cartesian3 | undefined {
+    const scene = this.widget.scene;
+    const centre = new Cartesian2(scene.canvas.clientWidth / 2, scene.canvas.clientHeight / 2);
+    const ray = this.widget.camera.getPickRay(centre);
+    return (
+      (ray && scene.globe.pick(ray, scene)) ??
+      this.widget.camera.pickEllipsoid(centre, scene.globe.ellipsoid) ??
+      undefined
+    );
+  }
+
+  /**
+   * Keeps the tilt within what this height allows (see maxTiltDeg): zooming out of an oblique view
+   * straightens it gradually toward looking down, orbiting the point at the centre of the view.
+   */
+  private limitTilt(): void {
+    if (this.constraints.suspended) return;
+    const camera = this.widget.camera;
+    const allowed = maxTiltDeg(this.heightAboveGround());
+    const tilt = 90 + CesiumMath.toDegrees(camera.pitch);
+    if (tilt <= allowed + 0.25) return;
+    const target = this.centreTarget();
+    if (!target) return;
+    const range = Cartesian3.distance(camera.positionWC, target);
+    camera.lookAt(
+      target,
+      new HeadingPitchRange(camera.heading, CesiumMath.toRadians(allowed - 90), range),
+    );
+    camera.lookAtTransform(Matrix4.IDENTITY);
+  }
+
+  /** Orbits the camera around the centre of the view to a tilt and heading (animated). */
+  private orbitView(tiltDeg: number, headingRad: number): Promise<void> {
+    const target = this.centreTarget();
+    if (!target) return Promise.resolve();
+    const camera = this.widget.camera;
+    const range = Cartesian3.distance(camera.positionWC, target);
+    const tilt = Math.min(tiltDeg, maxTiltDeg(this.heightAboveGround()));
+    return this.flight((done) =>
+      camera.flyToBoundingSphere(new BoundingSphere(target, 0), {
+        offset: new HeadingPitchRange(headingRad, CesiumMath.toRadians(tilt - 90), range),
+        duration: this.reducedMotion ? 0 : 0.9,
+        easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+        complete: done,
+        cancel: done,
+      }),
+    );
+  }
+
+  /** Google-Maps-style 2D / 3D: straight down, or an oblique view of the same place. */
+  setTilt(tiltDeg: number): Promise<void> {
+    return this.orbitView(tiltDeg, this.widget.camera.heading);
+  }
+
+  /** North up, keeping the tilt and the place at the centre of the view. */
+  resetNorth(): Promise<void> {
+    return this.orbitView(90 + CesiumMath.toDegrees(this.widget.camera.pitch), 0);
   }
 
   /** Compass heading of the camera (° from north, clockwise). */

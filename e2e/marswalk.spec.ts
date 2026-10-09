@@ -105,3 +105,37 @@ test('Play mission flies along the route and returns control', async ({ page }) 
   await page.getByRole('button', { name: '■ Stop' }).click();
   await expect(page.getByRole('button', { name: '▶ Play mission' })).toBeVisible();
 });
+
+test('zooming out of the oblique Jezero view straightens it; 2D / 3D toggles the tilt', async ({
+  page,
+}) => {
+  await openApp(page);
+  await page.getByRole('button', { name: 'Explore Jezero' }).click();
+  const scene = () =>
+    page.evaluate(() => {
+      const s = (window as unknown as { __copernico: { viewState(): { tiltDeg: number } } })
+        .__copernico;
+      return s.viewState().tiltDeg;
+    });
+  await expect.poll(scene, { timeout: 20_000 }).toBeGreaterThan(30); // oblique operational view
+  await page.mouse.move(900, 450);
+  for (let i = 0; i < 30; i++) {
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(60);
+  }
+  await expect.poll(scene, { timeout: 10_000 }).toBeLessThan(2); // straight down from orbit
+
+  // Back near the surface, the 3D button tilts the view and 2D returns to straight down.
+  await page.evaluate(() =>
+    (
+      window as unknown as { __copernico: { flyTo(...a: number[]): Promise<void> } }
+    ).__copernico.flyTo(18.45, 77.4, 15_000, 0, -90, 0),
+  );
+  const toggle = page.locator('.view-tilt');
+  await expect(toggle).toHaveText('3D');
+  await toggle.click();
+  await expect.poll(scene, { timeout: 10_000 }).toBeGreaterThan(40);
+  await expect(toggle).toHaveText('2D');
+  await toggle.click();
+  await expect.poll(scene, { timeout: 10_000 }).toBeLessThan(2);
+});

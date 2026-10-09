@@ -1992,3 +1992,35 @@ details.samples > summary {
   background: var(--mars-strong);
   color: #fff;
 }
+
+/* ---------- Map view controls (compass, 2D / 3D) ---------- */
+.view-control {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-button-round {
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+.map-button-round svg {
+  transition: transform 0.15s linear;
+}
+.map-button-round:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.view-tilt[aria-pressed='true'] {
+  border-color: rgb(242 139 79 / 0.6);
+}

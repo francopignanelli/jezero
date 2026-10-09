@@ -9,6 +9,7 @@ import { PanoramaViewer } from '../features/panorama/PanoramaViewer';
 import { Welcome } from '../features/guide/Welcome';
 import { InspectorCard } from '../features/inspector/InspectorCard';
 import { LayersControl } from '../features/layers/LayersControl';
+import { ViewControl } from '../features/view/ViewControl';
 import { MapLegend } from '../features/layers/Legends';
 import { useShareLinkLoader } from '../features/missions/MissionControls';
 import { RoutePanel } from '../features/routes/RoutePanel';
@@ -90,6 +91,7 @@ export function App() {
       <div className="canvas-area" data-tour="map">
         <MarsCanvas />
         <LayersControl />
+        <ViewControl />
         <MapLegend />
         <InspectorCard />
         <Toast />

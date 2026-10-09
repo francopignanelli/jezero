@@ -134,6 +134,9 @@ export function installCameraConstraints(scene: Scene, zone: ExplorationZone = J
     suspend(value: boolean) {
       suspended = value;
     },
+    get suspended() {
+      return suspended;
+    },
     addCloseUp(spot: CloseUpSpot) {
       spots.push(spot);
     },
@@ -145,3 +148,22 @@ export function installCameraConstraints(scene: Scene, zone: ExplorationZone = J
 
 /** Altitude of the reference sphere in metres, for reference in docs/tests. */
 export const REFERENCE_RADIUS_M = MARS_SPHERE_RADIUS_M;
+
+/** Tilt (° from looking straight down) allowed at full detail, and where it reaches zero. */
+export const TILT_FULL_BELOW_M = 15_000;
+export const TILT_ZERO_ABOVE_M = 1_200_000;
+export const MAX_TILT_DEG = 85;
+
+/**
+ * Largest camera tilt allowed at a height above the ground (m), as in Google Earth: free up close,
+ * easing (on a log scale of height) to straight down from orbit, so zooming out of an oblique view
+ * never leaves the planet seen at a skewed angle.
+ */
+export function maxTiltDeg(heightM: number): number {
+  if (heightM <= TILT_FULL_BELOW_M) return MAX_TILT_DEG;
+  if (heightM >= TILT_ZERO_ABOVE_M) return 0;
+  const t =
+    (Math.log10(heightM) - Math.log10(TILT_FULL_BELOW_M)) /
+    (Math.log10(TILT_ZERO_ABOVE_M) - Math.log10(TILT_FULL_BELOW_M));
+  return MAX_TILT_DEG * (1 - t * t * (3 - 2 * t));
+}

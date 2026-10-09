@@ -473,7 +473,7 @@
     </div>
     <script>
       (function () {
-        var base = '%VITE_DATA_BASE_URL%';
+        var base = '%VITE_DATA_BASE_URL%'; // replaced by Vite (default ./data, vite.config.ts)
         if (base.charAt(0) === '%') base = './data';
         base = base.replace(/\/$/, '');
         var boot = document.getElementById('boot');

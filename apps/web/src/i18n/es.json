@@ -637,5 +637,12 @@
     "measured": "Brújula y horizonte medidos comparando el perfil del horizonte con el modelo de terreno (error mediano {{residual}}°). El cielo sobre la foto es un degradado simple; las zonas negras no tienen datos.",
     "walkTo": "360° {{name}} · {{distance}}",
     "behindTerrain": "detrás del relieve"
+  },
+  "view": {
+    "group": "Vista del mapa",
+    "north": "Norte arriba",
+    "tilt": "Vista 3D (inclinada)",
+    "topDown": "Vista 2D (desde arriba)",
+    "tiltFar": "La vista 3D está disponible más cerca de la superficie"
   }
 }

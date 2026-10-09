@@ -1,6 +1,6 @@
 import { greatCircleDistance } from '@copernico/domain';
 import { describe, expect, it } from 'vitest';
-import { altitudeFloor, JEZERO_ZONE } from './cameraConstraints';
+import { altitudeFloor, JEZERO_ZONE, maxTiltDeg, MAX_TILT_DEG } from './cameraConstraints';
 import { densify, removeSpikes, roundTrack, simplify } from './pathGeometry';
 
 describe('route display geometry', () => {
@@ -112,5 +112,22 @@ describe('rover track display', () => {
     expect(round[0]).toEqual(track[0]);
     expect(round.at(-1)).toEqual(track.at(-1));
     expect(Math.max(...round.map((p) => toLine(p, track)))).toBeLessThan(8);
+  });
+});
+
+describe('tilt allowed by altitude', () => {
+  it('is free up close, straight down from orbit, and never grows with height', () => {
+    expect(maxTiltDeg(2_000)).toBe(MAX_TILT_DEG);
+    expect(maxTiltDeg(15_000)).toBe(MAX_TILT_DEG);
+    expect(maxTiltDeg(1_200_000)).toBe(0);
+    expect(maxTiltDeg(9_500_000)).toBe(0);
+    let previous = Infinity;
+    for (let h = 1_000; h < 2e6; h *= 1.2) {
+      const t = maxTiltDeg(h);
+      expect(t).toBeLessThanOrEqual(previous + 1e-9);
+      previous = t;
+    }
+    expect(maxTiltDeg(150_000)).toBeGreaterThan(20);
+    expect(maxTiltDeg(150_000)).toBeLessThan(60);
   });
 });

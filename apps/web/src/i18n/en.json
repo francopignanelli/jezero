@@ -637,5 +637,12 @@
     "measured": "Compass and horizon measured by matching the skyline to the terrain model (median error {{residual}}°). The sky above the photo is a plain gradient; black areas have no data.",
     "walkTo": "360° {{name}} · {{distance}}",
     "behindTerrain": "behind terrain"
+  },
+  "view": {
+    "group": "Map view",
+    "north": "North up",
+    "tilt": "3D view (tilted)",
+    "topDown": "2D view (from above)",
+    "tiltFar": "3D view is available closer to the surface"
   }
 }
