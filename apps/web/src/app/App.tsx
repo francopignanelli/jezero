@@ -5,6 +5,7 @@ import { EnvironmentPanel } from '../features/environment/EnvironmentPanel';
 import { ExplorePanel } from '../features/exploration/ExplorePanel';
 import { Glossary } from '../features/guide/Glossary';
 import { Tour } from '../features/guide/Tour';
+import { TourTravel } from '../features/panorama/PanoramaTour';
 import { PanoramaViewer } from '../features/panorama/PanoramaViewer';
 import { Welcome } from '../features/guide/Welcome';
 import { InspectorCard } from '../features/inspector/InspectorCard';
@@ -108,6 +109,7 @@ export function App() {
       <Tour />
       <Glossary />
       <PanoramaViewer />
+      <TourTravel />
     </div>
   );
 }

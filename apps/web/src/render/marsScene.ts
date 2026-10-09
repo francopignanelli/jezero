@@ -955,7 +955,10 @@ export class MarsScene {
     },
     seconds: number,
     onProgress: (f: number) => void,
-  ): { done: Promise<void>; stop: () => void } {
+    opts: { rangeM?: number; pitchDeg?: number } = {},
+  ): { done: Promise<boolean>; stop: () => void } {
+    const rangeM = opts.rangeM ?? 520;
+    const pitch = CesiumMath.toRadians(opts.pitchDeg ?? -24);
     const camera = this.widget.camera;
     const canvas = this.widget.canvas;
     let stopped = false;
@@ -966,8 +969,9 @@ export class MarsScene {
     canvas.addEventListener('pointerdown', stop, { once: true });
     canvas.addEventListener('wheel', stop, { once: true });
     this.constraints.suspend(true);
-    const done = new Promise<void>((resolve) => {
+    const done = new Promise<boolean>((resolve) => {
       const t0 = performance.now();
+      let completed = false;
       const frame = () => {
         const f = Math.min(1, (performance.now() - t0) / (seconds * 1000));
         if (stopped || this.isDestroyed()) return finish();
@@ -980,10 +984,13 @@ export class MarsScene {
         // Low-pass the heading so the camera does not jerk at every route vertex.
         if (heading === null) heading = target;
         else heading += Math.atan2(Math.sin(target - heading), Math.cos(target - heading)) * 0.05;
-        camera.lookAt(p, new HeadingPitchRange(heading, CesiumMath.toRadians(-24), 520));
+        camera.lookAt(p, new HeadingPitchRange(heading, pitch, rangeM));
         this.requestRender();
         onProgress(f);
-        if (f >= 1) return finish();
+        if (f >= 1) {
+          completed = true;
+          return finish();
+        }
         window.requestAnimationFrame(frame);
       };
       const finish = () => {
@@ -991,11 +998,35 @@ export class MarsScene {
         canvas.removeEventListener('wheel', stop);
         if (!this.isDestroyed()) camera.lookAtTransform(Matrix4.IDENTITY);
         this.constraints.suspend(false);
-        resolve();
+        resolve(completed);
       };
       window.requestAnimationFrame(frame);
     });
     return { done, stop };
+  }
+
+  /** Places the camera behind a point looking toward another (the first frame of playPath). */
+  lookAlong(
+    at: { lat: number; lon: number; heightM: number },
+    ahead: { lat: number; lon: number },
+    opts: { rangeM?: number; pitchDeg?: number } = {},
+  ): void {
+    if (this.isDestroyed()) return;
+    const camera = this.widget.camera;
+    const dLon =
+      (normalizeLon180(ahead.lon) - normalizeLon180(at.lon)) *
+      Math.cos(CesiumMath.toRadians(at.lat));
+    const heading = Math.atan2(dLon, ahead.lat - at.lat);
+    camera.lookAt(
+      toCartesian(at.lat, at.lon, at.heightM),
+      new HeadingPitchRange(
+        heading,
+        CesiumMath.toRadians(opts.pitchDeg ?? -24),
+        opts.rangeM ?? 520,
+      ),
+    );
+    camera.lookAtTransform(Matrix4.IDENTITY);
+    this.requestRender();
   }
 
   setAnnotations(groupId: string, items: Annotation[]): void {

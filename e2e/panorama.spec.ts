@@ -60,3 +60,53 @@ test('walking from one panorama to another loads the next view (no black screen)
     .evaluate((c) => (c as HTMLCanvasElement).getContext('webgl2')?.isContextLost() ?? true);
   expect(lost).toBe(false);
 });
+
+test('360° HUD: mission facts, look at a place, unimaged areas and the next panorama', async ({
+  page,
+}) => {
+  await openApp(page);
+  await page.getByRole('tab', { name: 'Science' }).click();
+  await page.locator('summary', { hasText: 'Three Forks sample depot' }).click();
+  await page.getByRole('button', { name: 'Look around (360°, sol 670)' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Three Forks sample depot' });
+  await expect(dialog).toBeVisible();
+  const panel = page.locator('.pano-panel');
+  await expect(panel).toContainText('Mission moment');
+  await expect(panel).toContainText('Driven since landing');
+  await expect(panel).toContainText('Samples collected nearby');
+
+  // "Look" turns the view to the place; the heading readout names what is straight ahead.
+  await page.locator('.pano-row', { hasText: 'Hawksbill Gap' }).click();
+  await expect(page.locator('.pano-facing')).toHaveText(/Hawksbill Gap/, { timeout: 5_000 });
+
+  const unimaged = page.getByRole('button', { name: 'Show the areas the camera did not image' });
+  await unimaged.click();
+  await expect(unimaged).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: /^Next panorama: Belva crater/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Belva crater' })).toBeVisible();
+  await expect(page.locator('.pano-facing')).not.toHaveText(/Hawksbill Gap/);
+});
+
+test('auto-tour: looks around, flies along the traverse to the next panorama, and can stop', async ({
+  page,
+}) => {
+  await openApp(page);
+  await page.getByRole('tab', { name: 'Science' }).click();
+  await page.getByRole('button', { name: /^Tour all \d+ 360° views along the path$/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Octavia E. Butler Landing' })).toBeVisible();
+  const tourBar = page.locator('.pano-tour');
+  await expect(tourBar).toContainText('1 of');
+  // Skip ahead: the viewer fades, the map flies the drive with a caption, the next stop opens.
+  await page.getByRole('button', { name: 'Go on to the next stop' }).click();
+  await expect(page.locator('.tour-caption')).toContainText('Van Zyl Overlook', {
+    timeout: 10_000,
+  });
+  await expect(page.getByRole('dialog', { name: 'Van Zyl Overlook' })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(tourBar).toContainText('2 of');
+  await page.getByRole('button', { name: 'Stop the tour' }).click();
+  await expect(tourBar).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Van Zyl Overlook' })).toBeVisible();
+});

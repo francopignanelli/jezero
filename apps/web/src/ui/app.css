@@ -1773,33 +1773,6 @@ details.samples > summary {
   transform: translate(-50%, -50%);
   color: var(--text-muted);
 }
-.pano-caption {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  max-width: 720px;
-  padding: 12px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: rgb(18 22 29 / 0.88);
-  backdrop-filter: blur(6px);
-}
-.pano-caption h2 {
-  margin: 0 0 4px;
-  font-size: 1.05rem;
-}
-.pano-caption p {
-  margin: 2px 0;
-  font-size: var(--fs-sm);
-}
-.pano-caption .popover-close {
-  position: static;
-}
 .annotation-action {
   pointer-events: auto;
   cursor: pointer;
@@ -1879,16 +1852,15 @@ details.samples > summary {
 
 /* ---------- 360° viewer: heading tape and places drawn at their true direction ---------- */
 .pano-tape {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  width: min(560px, calc(100% - 32px));
-  height: 26px;
-  transform: translateX(-50%);
+  position: relative;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  width: 100%;
+  height: 28px;
   border: 1px solid rgb(255 255 255 / 0.14);
   border-radius: 999px;
   background: rgb(13 15 20 / 0.72);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   overflow: hidden;
   pointer-events: none;
 }
@@ -2023,4 +1995,703 @@ details.samples > summary {
 }
 .view-tilt[aria-pressed='true'] {
   border-color: rgb(242 139 79 / 0.6);
+}
+
+/* ---------- 360° viewer HUD ---------- */
+.pano {
+  --hud-bg: rgb(13 15 20 / 0.78);
+  --hud-border: rgb(255 255 255 / 0.13);
+}
+/* Soft top and bottom darkening so the HUD reads over bright sky and ground. */
+.pano-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgb(6 5 4 / 0.55), rgb(6 5 4 / 0) 120px),
+    linear-gradient(0deg, rgb(6 5 4 / 0.5), rgb(6 5 4 / 0) 160px);
+}
+.pano-top {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+}
+.pano-top > * {
+  pointer-events: auto;
+}
+.pano-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--hud-border);
+  border-radius: 12px;
+  background: var(--hud-bg);
+  color: var(--text);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+.pano-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.pano-icon:hover {
+  background: rgb(30 34 42 / 0.92);
+  border-color: rgb(255 255 255 / 0.3);
+}
+.pano-icon[aria-pressed='true'] {
+  border-color: rgb(242 139 79 / 0.75);
+  background: rgb(60 32 20 / 0.85);
+  color: #ffd2b0;
+}
+.pano-close {
+  border-radius: 50%;
+}
+.pano-titleblock {
+  max-width: min(360px, 30vw);
+  padding: 8px 14px 10px;
+  border: 1px solid var(--hud-border);
+  border-radius: 14px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(8px);
+}
+.pano-kicker {
+  margin: 0 0 2px;
+  color: var(--mars-strong);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.pano-titleblock h2 {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.25;
+}
+.pano-subline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.pano-subline span + span::before {
+  content: '·';
+  margin-right: 10px;
+  color: var(--text-faint);
+}
+.pano-compass {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: min(460px, 34vw);
+  transform: translateX(-50%);
+  pointer-events: none !important;
+}
+.pano-tape::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--mars-strong);
+}
+.pano-tape-mark {
+  position: absolute;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--poi);
+  visibility: hidden;
+}
+.pano-tape-mark.is-pano {
+  background: #fff;
+}
+.pano-heading {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.8);
+}
+.pano-heading b {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.pano-facing {
+  color: #ffd2b0;
+  transition: opacity 0.25s ease;
+}
+.pano-facing::before {
+  content: '→ ';
+  color: var(--text-faint);
+}
+.pano-facing[data-empty='true'] {
+  opacity: 0;
+}
+.pano-tools {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Side panel */
+.pano-panel {
+  position: absolute;
+  top: 74px;
+  right: 14px;
+  bottom: 84px;
+  width: min(340px, calc(100vw - 28px));
+  overflow-y: auto;
+  padding: 4px 16px 8px;
+  border: 1px solid var(--hud-border);
+  border-radius: 16px;
+  background: rgb(13 15 20 / 0.84);
+  backdrop-filter: blur(10px);
+  animation: pano-panel-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  scrollbar-width: thin;
+}
+@keyframes pano-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+.pano-panel section {
+  padding: 12px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 0.07);
+}
+.pano-panel section:last-child {
+  border-bottom: 0;
+}
+.pano-panel h3 {
+  margin: 0 0 8px;
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.pano-panel p {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.pano-muted {
+  color: var(--text-muted);
+  font-size: 0.8rem !important;
+}
+.pano-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mars-strong);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.pano-link:hover {
+  text-decoration: underline;
+}
+.pano-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+  margin: 0;
+}
+.pano-facts dt {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+.pano-facts dd {
+  margin: 2px 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pano-facts small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+.pano-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.pano-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pano-list li > .pano-dot {
+  margin: 0 2px;
+}
+.pano-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pano-row:hover,
+.pano-row:focus-visible {
+  background: rgb(255 255 255 / 0.06);
+}
+.pano-row-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  padding: 4px 0;
+}
+.pano-row-text strong {
+  font-size: 0.86rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pano-row-text small {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+.pano-row-action {
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.pano-row:hover .pano-row-action,
+.pano-row:focus-visible .pano-row-action {
+  opacity: 1;
+}
+.pano-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(243 239 233 / 0.85);
+}
+.pano-dot-poi {
+  background: var(--poi);
+}
+.pano-dot-pano {
+  background: #fff;
+}
+.pano-dot-sample {
+  background: var(--sample);
+}
+.pano-chip {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* Mini-map */
+.pano-minimap {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  width: 216px;
+  height: 216px;
+  overflow: hidden;
+  border: 1px solid var(--hud-border);
+  border-radius: 16px;
+  background: #1a120d;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 0.45);
+}
+.pano-minimap canvas,
+.pano-minimap svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.pano-minimap-n {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgb(0 0 0 / 0.7);
+  stroke-width: 3px;
+}
+.pano-minimap-scale line {
+  stroke: #fff;
+  stroke-width: 2;
+}
+.pano-minimap-scale text {
+  fill: #fff;
+  font-size: 10px;
+  paint-order: stroke;
+  stroke: rgb(0 0 0 / 0.7);
+  stroke-width: 3px;
+}
+.pano-minimap-pano {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.25);
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.pano-minimap-pano:hover,
+.pano-minimap-pano:focus-visible {
+  transform: scale(1.3);
+  background: var(--mars-strong);
+}
+
+/* Mission timeline */
+.pano-timeline {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(560px, calc(100vw - 2 * 248px));
+  padding: 10px 12px 22px;
+  transform: translateX(-50%);
+  border: 1px solid var(--hud-border);
+  border-radius: 16px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(8px);
+}
+.pano-step {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--hud-border);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--text);
+  cursor: pointer;
+}
+.pano-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.pano-step:not(:disabled):hover {
+  border-color: rgb(242 139 79 / 0.7);
+}
+.pano-step-prev svg {
+  transform: scaleX(-1);
+}
+.pano-track {
+  position: relative;
+  flex: 1;
+  height: 14px;
+}
+.pano-track-line,
+.pano-track-done {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  height: 2px;
+  border-radius: 2px;
+}
+.pano-track-line {
+  right: 0;
+  background: rgb(255 255 255 / 0.14);
+}
+.pano-track-done {
+  background: linear-gradient(90deg, rgb(242 139 79 / 0.3), rgb(242 139 79 / 0.9));
+  transition: width 0.5s ease;
+}
+.pano-track-dot {
+  position: absolute;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  padding: 0;
+  border: 1.5px solid rgb(255 255 255 / 0.7);
+  border-radius: 50%;
+  background: #1a1d24;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+.pano-track-dot:hover,
+.pano-track-dot:focus-visible {
+  transform: scale(1.35);
+  background: var(--mars-strong);
+}
+.pano-track-dot.is-current {
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border: 2px solid #fff;
+  background: var(--mars-strong);
+  box-shadow: 0 0 0 4px rgb(242 139 79 / 0.3);
+}
+.pano-track-end {
+  position: absolute;
+  right: 0;
+  top: 18px;
+  color: var(--text-faint);
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+}
+.pano-track-start {
+  left: 0;
+  right: auto;
+}
+
+.pano-zoom {
+  position: absolute;
+  right: 14px;
+  bottom: 18px;
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .pano-titleblock {
+    max-width: calc(100vw - 210px);
+  }
+  .pano-kicker {
+    display: none;
+  }
+  .pano-top {
+    flex-wrap: wrap;
+  }
+  .pano-compass {
+    position: static;
+    order: 3;
+    flex-basis: 100%;
+    width: auto;
+    transform: none;
+  }
+  .pano[data-panel='true'] .pano-minimap {
+    display: none;
+  }
+  .pano-minimap {
+    width: 140px;
+    height: 140px;
+    bottom: 92px;
+  }
+  .pano-timeline {
+    left: 14px;
+    right: 14px;
+    width: auto;
+    transform: none;
+  }
+  .pano-zoom {
+    display: none;
+  }
+  .pano-panel {
+    top: auto;
+    left: 14px;
+    right: 14px;
+    bottom: 92px;
+    width: auto;
+    max-height: 52vh;
+  }
+}
+
+/* ---------- 360° auto-tour ---------- */
+.pano.is-touring .pano-canvas {
+  animation: pano-arrive 1s ease both;
+}
+@keyframes pano-arrive {
+  from {
+    opacity: 0;
+  }
+}
+.pano-canvas {
+  transition: opacity 0.85s ease;
+}
+.pano.is-leaving .pano-canvas,
+.pano.is-leaving .pano-overlay {
+  opacity: 0;
+}
+.pano.is-leaving .pano-overlay {
+  transition: opacity 0.4s ease;
+}
+.pano-play {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border: 1px solid rgb(242 139 79 / 0.65);
+  border-radius: 999px;
+  background: rgb(60 32 20 / 0.85);
+  color: #ffd2b0;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pano-play:hover {
+  background: rgb(90 44 24 / 0.95);
+}
+.pano-tour {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 28px);
+  padding: 6px 6px 8px 14px;
+  transform: translateX(-50%);
+  border: 1px solid rgb(242 139 79 / 0.45);
+  border-radius: 14px;
+  background: var(--hud-bg);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  animation: pano-panel-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.pano-tour-text {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pano-tour-text b {
+  color: #ffd2b0;
+}
+.pano-tour-text small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.pano-icon-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.pano-icon-sm svg {
+  width: 16px;
+  height: 16px;
+}
+.pano-tour-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgb(255 255 255 / 0.08);
+}
+.pano-tour-progress span {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #e2643a, #ffc07e);
+}
+/* Travel between stops, over the 3D map */
+.tour-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: #0b0e13;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+.tour-veil.is-on {
+  opacity: 1;
+}
+.tour-caption {
+  position: fixed;
+  left: 50%;
+  bottom: 42px;
+  z-index: 46;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: min(420px, calc(100vw - 32px));
+  padding: 12px 20px 14px;
+  transform: translateX(-50%);
+  border: 1px solid rgb(242 139 79 / 0.45);
+  border-radius: 16px;
+  background: rgb(13 15 20 / 0.82);
+  backdrop-filter: blur(8px);
+  text-align: center;
+  animation: pano-panel-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tour-caption p {
+  margin: 0;
+}
+.tour-caption-kicker {
+  color: var(--mars-strong);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.tour-caption-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.tour-caption-meta {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.tour-stop {
+  margin-top: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+@media (max-width: 900px) {
+  .pano-tour {
+    bottom: 92px;
+  }
+  .pano[data-panel='true'] .pano-tour {
+    display: none;
+  }
 }

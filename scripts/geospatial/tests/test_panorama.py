@@ -43,3 +43,20 @@ def test_fit_finds_a_mirrored_mosaic():
     f = fit(rows, horizon)
     assert f["direction"] == -1
     assert abs(f["azimuthAtLeftDeg"] - 300.0) <= DEG_PX
+
+
+def test_fill_unimaged_fills_big_black_holes_smoothly_and_keeps_real_pixels():
+    from copernico_geo.panorama import fill_unimaged
+
+    h, w = 120, 400
+    rgb = np.empty((3, h, w), dtype=np.float32)
+    rgb[0], rgb[1], rgb[2] = 150.0, 100.0, 65.0  # ground
+    rgb[:, 80:, 100:220] = 0.0  # big unimaged block (rover body)
+    rgb[:, 20:22, 300:302] = 5.0  # a tiny dark speck (a real shadow): must stay as it is
+    filled, hole = fill_unimaged(rgb)
+    assert hole[100, 160] and not hole[21, 301] and not hole[10, 10]
+    assert np.allclose(filled[:, 10, 10], [150, 100, 65], atol=0.5)  # real pixels untouched
+    assert np.allclose(filled[:, 21, 301], 5.0, atol=0.5)
+    inside = filled[:, 82, 160]
+    assert inside.min() > 40  # no black left: filled from the surroundings
+    assert inside[0] > inside[1] > inside[2]  # keeps the warm ground hue

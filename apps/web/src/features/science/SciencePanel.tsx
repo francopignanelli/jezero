@@ -9,6 +9,7 @@ import {
   type SampleSite,
 } from '../../data/surfaceData';
 import { formatCoordinate } from '../../lib/format';
+import { startTour } from '../panorama/PanoramaTour';
 import { StopsNearRoute } from './StopsNearRoute';
 
 /** The latest panorama in the rover's current area (crater rim, sol 1717). */
@@ -98,6 +99,9 @@ export function SciencePanel() {
               }}
             >
               {t('science.flyTo')}
+            </button>
+            <button type="button" className="btn" onClick={() => startTour()}>
+              {t('panorama.tour.startAll', { count: PANORAMAS.length })}
             </button>
             {roverPano && (
               <button type="button" className="btn" onClick={() => openPanorama(roverPano.id)}>

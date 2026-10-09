@@ -55,6 +55,8 @@ export interface PanoramaGeometry {
   /** Azimuth covered by the full image width (a few mosaics overlap themselves slightly). */
   spanDeg: number;
   verticalScale: number;
+  /** Share of the image the camera did not image (the rover body), filled smoothly by the pipeline. */
+  unimagedFraction?: number;
   /** Mast tilt left in the mosaic: photo elevation = true elevation + tilt·cos(azimuth − toward). */
   tiltDeg: number;
   tiltTowardAzimuthDeg: number;

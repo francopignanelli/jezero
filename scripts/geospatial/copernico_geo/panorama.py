@@ -210,6 +210,100 @@ def fit(rows: np.ndarray, horizon: np.ndarray) -> dict:
     }
 
 
+def _shift_reduce(a: np.ndarray, r: int, op) -> np.ndarray:
+    """Separable square min/max filter of radius r (columns wrap: the mosaic is 360°)."""
+    out = a.copy()
+    for k in range(1, r + 1):
+        out = op(out, np.roll(a, k, axis=1))
+        out = op(out, np.roll(a, -k, axis=1))
+    rows = out.copy()
+    for k in range(1, r + 1):
+        up = np.vstack([out[k:], np.repeat(out[-1:], k, axis=0)])
+        down = np.vstack([np.repeat(out[:1], k, axis=0), out[:-k]])
+        rows = op(rows, op(up, down))
+    return rows
+
+
+def _box_blur(a: np.ndarray, r: int) -> np.ndarray:
+    """Separable box blur of radius r (columns wrap, rows clamp), via cumulative sums."""
+    p = np.concatenate([a[:, -r:], a, a[:, :r]], axis=1)
+    c = np.cumsum(np.pad(p, ((0, 0), (1, 0))), axis=1)
+    a = (c[:, 2 * r + 1 :] - c[:, : -2 * r - 1]) / (2 * r + 1)
+    p = np.concatenate([np.repeat(a[:1], r, axis=0), a, np.repeat(a[-1:], r, axis=0)], axis=0)
+    c = np.cumsum(np.pad(p, ((1, 0), (0, 0))), axis=0)
+    return (c[2 * r + 1 :] - c[: -2 * r - 1]) / (2 * r + 1)
+
+
+def _push_pull(rgb: np.ndarray, valid: np.ndarray) -> np.ndarray:
+    """Fills invalid pixels with a smooth interpolation of the valid ones (pyramid push-pull): only
+    low-frequency colour from the surroundings, no invented detail."""
+    levels = []
+    c, w = rgb * valid, valid.astype(np.float32)
+    while True:
+        levels.append((c, w))
+        if (w > 0).all() or min(w.shape) < 4:
+            break
+        h2, w2 = w.shape[0] // 2 * 2, w.shape[1] // 2 * 2
+        c = c[:, :h2, :w2].reshape(3, h2 // 2, 2, w2 // 2, 2).sum(axis=(2, 4))
+        w = w[:h2, :w2].reshape(h2 // 2, 2, w2 // 2, 2).sum(axis=(1, 3))
+    c, w = levels[-1]
+    colour = np.where(w > 0, c / np.maximum(w, 1e-6), (c.sum(axis=(1, 2)) / max(w.sum(), 1e-6))[:, None, None])
+    for c, w in reversed(levels[:-1]):
+        h, wd = w.shape
+        up = np.repeat(np.repeat(colour, 2, axis=1), 2, axis=2)
+        up = np.pad(up, ((0, 0), (0, max(0, h - up.shape[1])), (0, max(0, wd - up.shape[2]))), mode="edge")[:, :h, :wd]
+        up = np.stack([_box_blur(ch, 1) for ch in up])
+        fine = c / np.maximum(w, 1e-6)
+        a = np.clip(w, 0, 1)
+        colour = fine * a + up * (1 - a)
+    return colour
+
+
+def fill_unimaged(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Fills the areas a mosaic leaves black (the rover's own body, below the mast camera) and
+    returns (filled RGB, unimaged mask).
+
+    The black no-data regions are found (near-black, large and contiguous: an opening drops dark
+    specks in real shadows), widened by 3 px to drop JPEG fringes, and filled by push-pull from the
+    surrounding photo. The fill is darkened and desaturated with depth into the hole so it reads as
+    a soft shadowed area rather than as terrain, and blended over a few pixels at its edge.
+    Nothing is invented: it is a smooth extension of the edge colours, and the mask is shipped so
+    the viewer can show exactly which areas were filled."""
+    black = rgb.sum(axis=0) < 24
+    hole = _shift_reduce(_shift_reduce(black, 4, np.minimum), 4, np.maximum)  # opening: drop specks
+    hole = _shift_reduce(hole, 3, np.maximum)  # cover the JPEG fringe at the edge
+    # White rover hardware at the hole edges would bleed in as pale smudges: only darker pixels
+    # (the ground) feed the fill.
+    lum = 0.3 * rgb[0] + 0.59 * rgb[1] + 0.11 * rgb[2]
+    fill = _push_pull(rgb, ~hole & (lum < 175))
+    depth = _box_blur(hole.astype(np.float32), 48)
+    t = np.clip((depth - 0.35) / 0.65, 0, 1)
+    t = t * t * (3 - 2 * t)
+    grey = fill.mean(axis=0, keepdims=True)
+    fill = (grey + (fill - grey) * (1 - 0.45 * t)) * (1 - 0.5 * t)
+    soft = _box_blur(hole.astype(np.float32), 2)
+    out = rgb * (1 - soft) + fill * soft
+    return np.clip(out, 0, 255), hole
+
+
+def write_rgb(rgb: np.ndarray, path) -> None:
+    h, w = rgb.shape[1:]
+    mem = gdal.GetDriverByName("MEM").Create("", w, h, 3, gdal.GDT_Byte)
+    for b in range(3):
+        mem.GetRasterBand(b + 1).WriteArray(rgb[b].astype(np.uint8))
+    gdal.Translate(str(path), mem, format="WEBP", creationOptions=["QUALITY=86"])
+    path.with_suffix(".webp.aux.xml").unlink(missing_ok=True)
+
+
+def write_mask(hole: np.ndarray, path, width: int = 1024) -> None:
+    """Unimaged mask (255 = filled, not imaged) at a reduced width, for the viewer's overlay."""
+    h, w = hole.shape
+    mem = gdal.GetDriverByName("MEM").Create("", w, h, 1, gdal.GDT_Byte)
+    mem.GetRasterBand(1).WriteArray(hole.astype(np.uint8) * 255)
+    gdal.Translate(str(path), mem, format="PNG", width=width, height=round(h * width / w), resampleAlg="average")
+    path.with_suffix(".png.aux.xml").unlink(missing_ok=True)
+
+
 def diagnostic(rgb: np.ndarray, rows: np.ndarray, horizon: np.ndarray, f: dict, path: str) -> None:
     """Top part of the working image with the photo skyline (magenta) and terrain horizon (cyan)."""
     h_row = f["horizonRow"]
@@ -283,9 +377,11 @@ def build(only: str | None = None) -> list[dict]:
         p["geometry"] = geometry
         diagnostic(rgb, rows, horizon, f, str(diag_dir / f"{p['id']}_skyline.png"))
         webp = OUT / p["file"].split("/")[-1]
-        gdal.Translate(str(webp), str(src), format="WEBP", width=VIEWER_PX, height=0,
-                       resampleAlg="average", creationOptions=["QUALITY=86"])
-        webp.with_suffix(".webp.aux.xml").unlink(missing_ok=True)
+        viewer = gdal.Translate("", str(src), format="MEM", width=VIEWER_PX, height=0, resampleAlg="average")
+        filled, hole = fill_unimaged(viewer.ReadAsArray().astype(np.float32))
+        write_rgb(filled, webp)
+        write_mask(hole, webp.with_name(webp.stem.replace("_8k", "") + "_mask.png"))
+        geometry["unimagedFraction"] = round(float(hole.mean()), 3)
         print(f"[panorama] {p['id']}: az0 {geometry['azimuthAtLeftDeg']}° dir {geometry['direction']:+d}, "
               f"span {f['spanDeg']:.2f}°, vscale {f['verticalScale']}, "
               f"horizon {geometry['horizonFraction']:.3f}, tilt {geometry['tiltDeg']}°, "

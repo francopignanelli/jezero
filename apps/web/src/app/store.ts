@@ -48,6 +48,13 @@ export type GridStatus = 'idle' | 'loading' | 'ready' | 'unavailable';
 
 export type LoadStep = 'pending' | 'done' | 'failed';
 /** Startup assets the scene waits for before it is revealed (see LoadingScreen). */
+/** 'view': looking around a panorama; 'travel': flying along the traverse to the next one. */
+export interface PanoramaTour {
+  index: number;
+  phase: 'view' | 'travel';
+  paused: boolean;
+}
+
 export interface LoadingState {
   stars: LoadStep;
   sky: 'pending' | 'hd' | 'sd' | 'failed';
@@ -94,6 +101,9 @@ interface AppState {
   /** Open 360° panorama id, or null. */
   panoramaOpen: string | null;
   setPanoramaOpen(id: string | null): void;
+  /** Auto-tour through the panoramas (in sol order): the stop index and phase, or null. */
+  tour: PanoramaTour | null;
+  setTour(tour: PanoramaTour | null): void;
   playRequest: number | null;
   /** Which CRISM browse composite is shown (carbonate/clay or mafic). */
   crismComposite: 'car' | 'maf';
@@ -200,6 +210,8 @@ export const useApp = create<AppState>((set) => ({
   setRouteSlopeColours: (routeSlopeColours) => set({ routeSlopeColours }),
   panoramaOpen: null,
   setPanoramaOpen: (panoramaOpen) => set({ panoramaOpen }),
+  tour: null,
+  setTour: (tour) => set({ tour }),
   playRequest: null,
   crismComposite: 'car',
   setCrismComposite: (crismComposite) => set({ crismComposite }),

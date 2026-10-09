@@ -68,3 +68,45 @@ export const IconUp = (p: SVGProps<SVGSVGElement>) => (
     <path d="m6 15 6-6 6 6" />
   </svg>
 );
+export const IconExpand = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+);
+export const IconUnimaged = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="2" strokeDasharray="3 2.4" />
+    <path d="M8 16l8-8M8 11l3-3M13 16l3-3" />
+  </svg>
+);
+export const IconPlus = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+export const IconMinus = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M5 12h14" />
+  </svg>
+);
+export const IconPlay = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />
+  </svg>
+);
+export const IconPause = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M8.5 5.5v13M15.5 5.5v13" strokeWidth={2.4} />
+  </svg>
+);
+export const IconSkip = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M6 5.5v13l9-6.5z" fill="currentColor" />
+    <path d="M18 5.5v13" strokeWidth={2.2} />
+  </svg>
+);
+export const IconChevron = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M9 5l7 7-7 7" />
+  </svg>
+);
