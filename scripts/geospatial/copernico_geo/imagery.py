@@ -153,6 +153,11 @@ def build_viking_globe() -> dict:
 
     viking = fetch.download("viking-color-925")
     mosaic = shade_mosaic(geographic_mosaic(viking, "viking", WORLD, 5, "average"), "viking", 4.0, True)
+    # Whole-planet map for the loading screen's rotating Mars (equirectangular, 2048×1024).
+    globe = ensure(BUILD / "sky") / "mars_globe_2k.webp"
+    gdal.Translate(str(globe), str(mosaic), format="WEBP", bandList=[1, 2, 3], width=2048, height=1024,
+                   resampleAlg="average", creationOptions=["QUALITY=82"])
+    globe.with_suffix(".webp.aux.xml").unlink(missing_ok=True)
     return pyramid("viking", mosaic, WORLD, 0, 5,
                    {"datasetId": "viking-color-925", "source": read_record(viking), "relief": RELIEF_NOTE})
 

@@ -895,160 +895,260 @@ dialog.provenance dd {
   z-index: 50;
   display: grid;
   place-items: center;
+  overflow: hidden;
   background:
-    radial-gradient(ellipse at 70% 20%, rgb(60 70 110 / 0.18), transparent 55%),
-    radial-gradient(ellipse at 20% 80%, rgb(140 60 30 / 0.14), transparent 50%), var(--space-0);
-  transition: opacity 0.7s ease;
+    radial-gradient(ellipse 60% 45% at 50% 38%, rgb(150 70 35 / 0.12), transparent 70%),
+    radial-gradient(ellipse at 50% 50%, #07080d, #020306 70%);
+  transition: opacity 0.9s ease;
 }
 .loading-screen.is-leaving {
   opacity: 0;
   pointer-events: none;
 }
+.loading-screen.is-leaving .loading-card {
+  transform: scale(1.04);
+  opacity: 0;
+}
+/* Real Milky Way (the scene's own sky image). The crop around the galactic centre (u 0.77,
+   v 0.56 of the equirectangular map), where the band is nearly straight, is turned into a diagonal
+   behind the planet; it drifts by 2° over two minutes. */
+.loading-milkyway {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 280vmax;
+  height: 140vmax;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  transform-origin: 77% 56%;
+  transform: translate(-77%, -56%) rotate(-86deg);
+  opacity: 0;
+  filter: saturate(1.15) blur(0.6px);
+  transition: opacity 1.6s ease;
+  animation: loading-drift 120s ease-in-out infinite alternate;
+}
+.loading-milkyway.is-loaded {
+  opacity: 0.34;
+}
+/* Keeps the centre (planet and text) dark and legible over the band. */
+.loading-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 46% 58% at 50% 50%,
+    rgb(2 3 6 / 0.82) 0%,
+    rgb(2 3 6 / 0.55) 45%,
+    rgb(2 3 6 / 0) 100%
+  );
+}
+@keyframes loading-drift {
+  to {
+    transform: translate(-77%, -56%) rotate(-84deg);
+  }
+}
 .loading-stars {
   position: absolute;
   inset: 0;
-  background-image:
-    radial-gradient(1px 1px at 12% 18%, #fff 50%, transparent 51%),
-    radial-gradient(1px 1px at 27% 72%, #cfd8ff 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 41% 33%, #fff 50%, transparent 51%),
-    radial-gradient(1px 1px at 58% 84%, #ffe9d0 50%, transparent 51%),
-    radial-gradient(1px 1px at 66% 12%, #fff 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 79% 58%, #dbe4ff 50%, transparent 51%),
-    radial-gradient(1px 1px at 88% 27%, #fff 50%, transparent 51%),
-    radial-gradient(1px 1px at 8% 52%, #ffe2c4 50%, transparent 51%),
-    radial-gradient(1px 1px at 35% 90%, #fff 50%, transparent 51%),
-    radial-gradient(1px 1px at 93% 86%, #fff 50%, transparent 51%);
-  opacity: 0.8;
-  animation: twinkle 4s ease-in-out infinite alternate;
+  width: 100%;
+  height: 100%;
+  animation: loading-twinkle 5s ease-in-out infinite alternate;
 }
-@keyframes twinkle {
+@keyframes loading-twinkle {
   from {
-    opacity: 0.45;
+    opacity: 0.75;
   }
   to {
-    opacity: 0.9;
+    opacity: 1;
   }
 }
 .loading-card {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 10px;
-  width: min(420px, calc(100vw - 40px));
+  width: min(560px, calc(100vw - 32px));
   text-align: center;
-}
-.loading-orbit {
-  position: relative;
-  width: 92px;
-  height: 92px;
-  margin-bottom: 14px;
-  perspective: 400px;
+  transition:
+    transform 0.9s ease,
+    opacity 0.7s ease;
 }
 .loading-planet {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 32% 30%,
-    #f3a06d 0%,
-    #c8653a 38%,
-    #7a3a1f 72%,
-    #2a120a 100%
-  );
-  box-shadow:
-    inset -14px -10px 24px rgb(0 0 0 / 0.55),
-    0 0 40px rgb(224 120 74 / 0.25);
+  max-width: 100%;
+  height: auto !important;
+  margin-bottom: 6px;
+  animation: loading-rise 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-.loading-ring {
-  position: absolute;
-  inset: -22px;
-  border-radius: 50%;
-  border: 1px solid rgb(108 198 230 / 0.35);
-  transform: rotateX(72deg);
-  animation: orbit 3.6s linear infinite;
-}
-.loading-moon {
-  position: absolute;
-  top: -4px;
-  left: calc(50% - 4px);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #d9d2c8;
-  box-shadow: 0 0 10px rgb(255 255 255 / 0.6);
-}
-@keyframes orbit {
+@keyframes loading-rise {
   from {
-    transform: rotateX(72deg) rotateZ(0deg);
-  }
-  to {
-    transform: rotateX(72deg) rotateZ(360deg);
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
   }
 }
 .loading-title {
-  margin: 0;
-  font-size: 1.35rem;
-  letter-spacing: 0.32em;
+  margin: 0 0 10px;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 400;
+  letter-spacing: 0.42em;
+  margin-right: -0.42em; /* keep the spaced word optically centred */
   text-transform: uppercase;
-  font-weight: 600;
+  color: #f1ece6;
+  animation: loading-rise 1.1s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .loading-subtitle {
   margin: 0;
   color: var(--text-muted);
-  font-size: var(--fs-sm);
+  font-size: 1.02rem;
+  animation: loading-rise 1.1s 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .loading-bar {
-  width: 100%;
-  height: 2px;
+  position: relative;
+  width: min(460px, 100%);
+  height: 6px;
+  margin: 26px 0 18px;
+  border-radius: 999px;
   background: rgb(255 255 255 / 0.08);
-  border-radius: 2px;
-  overflow: hidden;
-  margin: 8px 0 4px;
+  animation: loading-rise 1.1s 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .loading-bar span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--mars), var(--info));
-  transition: width 0.4s ease;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transform-origin: left center;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #e2643a, #f28b4f 55%, #ffc07e);
+  box-shadow: 0 0 14px rgb(242 139 79 / 0.55);
+  overflow: hidden;
+  will-change: transform;
+}
+.loading-bar span::after {
+  /* a soft highlight sweeping along the filled part */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.45), transparent);
+  transform: translateX(-100%);
+  animation: loading-sheen 1.8s ease-in-out infinite;
+}
+@keyframes loading-sheen {
+  to {
+    transform: translateX(100%);
+  }
 }
 .loading-steps {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 5px;
-  width: 100%;
+  width: min(380px, 100%);
   text-align: left;
-  font-size: var(--fs-sm);
-  color: var(--text-muted);
+  font-size: 0.98rem;
 }
 .loading-steps li {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 0.07);
+  color: var(--text-muted);
+  transition: color 0.5s ease;
+  animation: loading-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-.loading-steps li[data-status='done'] {
+.loading-steps li:last-child {
+  border-bottom: 0;
+}
+.loading-steps li[data-status='done'],
+.loading-steps li[data-status='active'] {
   color: var(--text);
 }
-.loading-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgb(255 255 255 / 0.25);
+.step-icon {
+  width: 24px;
+  height: 24px;
   flex: none;
-  animation: pulse 1.2s ease-in-out infinite;
+  overflow: visible;
 }
-[data-status='done'] .loading-dot {
-  background: var(--ok);
-  animation: none;
+.step-icon circle,
+.step-icon path {
+  fill: none;
+  transition:
+    opacity 0.45s ease,
+    transform 0.55s cubic-bezier(0.3, 1.5, 0.5, 1),
+    stroke 0.4s ease,
+    stroke-dashoffset 0.45s ease;
+  transform-origin: 12px 12px;
 }
-[data-status='failed'] .loading-dot {
-  background: var(--warn);
-  animation: none;
+.step-ring {
+  stroke: rgb(255 255 255 / 0.22);
+  stroke-width: 1.6;
 }
-@keyframes pulse {
-  50% {
-    opacity: 0.3;
+/* Loading: an orange ring with a brighter arc running around it. */
+.step-spin {
+  stroke: #ffb06a;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 14 60;
+  opacity: 0;
+}
+[data-status='active'] .step-ring {
+  stroke: rgb(242 139 79 / 0.55);
+}
+[data-status='active'] .step-spin {
+  opacity: 1;
+  animation: step-spin 1.1s linear infinite;
+}
+@keyframes step-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Done: a green disc pops in and the check draws itself. */
+.step-fill {
+  fill: #3fae6a !important;
+  transform: scale(0);
+  opacity: 0;
+}
+.step-check {
+  stroke: #fff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 16;
+  stroke-dashoffset: 16;
+}
+[data-status='done'] .step-fill {
+  transform: scale(1);
+  opacity: 1;
+}
+[data-status='done'] .step-check {
+  stroke-dashoffset: 0;
+  transition-delay: 0.18s;
+}
+[data-status='done'] .step-ring {
+  opacity: 0;
+}
+.step-bang {
+  stroke: #1a1206;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  opacity: 0;
+}
+[data-status='failed'] .step-fill {
+  fill: var(--warn) !important;
+  transform: scale(1);
+  opacity: 1;
+}
+[data-status='failed'] .step-bang {
+  opacity: 1;
+}
+.loading-card > .btn {
+  margin-top: 16px;
+}
+@media (max-height: 760px) {
+  .loading-planet {
+    width: 340px !important;
+  }
+  .loading-bar {
+    margin: 18px 0 10px;
+  }
+  .loading-steps li {
+    padding: 6px 0;
   }
 }
 
