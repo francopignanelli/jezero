@@ -52,6 +52,7 @@ npx tsx scripts/data/fetch-zip-entry.ts && scripts/geospatial/run.sh terrain-rim
 npx tsx scripts/data/fetch-panoramas.ts && scripts/geospatial/run.sh panoramas   # real Mastcam-Z 360° views (~2.4 GB originals): placed by sol, compass/horizon measured
 npx -y @gltf-transform/cli@4 optimize data/raw/models/25042_Perseverance.glb data/build/models/perseverance.glb --texture-compress webp --texture-size 1024 --compress meshopt   # 3D rover
 npx tsx scripts/data/build-sky.ts && scripts/geospatial/run.sh sky   # stars + Milky Way
+scripts/geospatial/run.sh loading-bg   # loading-screen background (needs the sky step); imagery-relief also writes sky/mars_globe_2k.webp
 npx tsx scripts/data/validate-grid.ts    # grid vs PDS PLACES + guided-route check
 ```
 
