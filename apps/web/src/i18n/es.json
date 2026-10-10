@@ -186,7 +186,7 @@
     "dwellAria": "Minutos en {{name}}",
     "play": "▶ Reproducir misión",
     "stopPlay": "■ Detener",
-    "playHint": "Recorrido de 30 s por la ruta elegida; tocá el mapa para detenerlo.",
+    "playHint": "Caminata cinematográfica por la ruta elegida, con el reloj de EVA y la pendiente bajo los pies; tocá el mapa para detenerla.",
     "playReduced": "Desactivado porque está activado el movimiento reducido.",
     "colourBySlope": "Colorear la ruta según la pendiente"
   },
@@ -693,5 +693,20 @@
     "tilt": "Vista 3D (inclinada)",
     "topDown": "Vista 2D (desde arriba)",
     "tiltFar": "La vista 3D está disponible más cerca de la superficie"
+  },
+  "walk": {
+    "title": "Caminata simulada",
+    "clock": "Reloj de EVA",
+    "distance": "Recorrido",
+    "slope": "Pendiente bajo los pies",
+    "elevation": "Elevación",
+    "next": "Siguiente: {{name}} en {{distance}}",
+    "done": "Ruta completa",
+    "arrived": "Llegada · {{name}}",
+    "stop": "Parada {{n}}",
+    "backToStart": "De vuelta al inicio",
+    "pause": "Pausar la caminata",
+    "resume": "Seguir la caminata",
+    "stopSim": "Terminar la simulación"
   }
 }

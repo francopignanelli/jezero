@@ -102,8 +102,13 @@ test('Play mission flies along the route and returns control', async ({ page }) 
   expect(mid.cursor).toBeGreaterThan(0);
   // Follow-cam a few hundred metres above the crater floor (~2.5 km below the reference sphere).
   expect(mid.height).toBeLessThan(-1500);
+  // Walk HUD: EVA clock running, distance walked, next stop.
+  const hud = page.getByRole('status').filter({ hasText: 'Simulated Marswalk' });
+  await expect(hud).toContainText('EVA clock');
+  await expect(hud).toContainText(/Next: .+ in /);
   await page.getByRole('button', { name: '■ Stop' }).click();
   await expect(page.getByRole('button', { name: '▶ Play mission' })).toBeVisible();
+  await expect(hud).toHaveCount(0);
 });
 
 test('zooming out of the oblique Jezero view straightens it; 2D / 3D toggles the tilt', async ({

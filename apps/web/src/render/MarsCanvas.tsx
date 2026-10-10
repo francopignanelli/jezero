@@ -18,6 +18,7 @@ import { routingClient } from '../features/routes/routingClient';
 import type { OverlayKind } from '../features/routes/overlays';
 import { arrowsAlong, buildTrack, pointAt, slopeRuns, type Track } from '../lib/routeTrack';
 import type { Annotation } from './annotations';
+import { walkControls, walkFeed } from '../features/routes/walkFeed';
 import { registerScene } from './sceneRegistry';
 import type { Tint } from './tint';
 import { MarsScene, type LayerGrade, type LineSpec, type LonLatRect } from './marsScene';
@@ -443,30 +444,42 @@ export function MarsCanvas() {
     };
   }, [layers.reach, start?.lat, start?.lon, start, gridRect]);
 
-  // Route fly-through ("Play mission"): ~30 s regardless of route length; the profile/timeline
-  // cursor follows. Stops on any map input or when the request is cleared.
+  // Walk simulation ("Play mission"): a crew marker walks the selected route with a glowing trail
+  // and a smoothed follow camera (render/walkSim.ts); the HUD and the profile cursor follow.
+  // Stops on any map input or when the request is cleared.
   useEffect(() => {
     const scene = sceneRef.current;
     const tr = trackRef.current;
     if (!scene || !tr || playRequest === null) return;
-    const { setPlay, setRouteCursor } = useApp.getState();
+    const { setPlay, setRouteCursor, result, profile } = useApp.getState();
+    const selected = profile === 'lower-risk' ? result?.lowerRisk : result?.shortest;
     setPlay(playRequest, true);
+    const toTrack = tr.track.totalM / Math.max(1, tr.profileTotalM);
+    let acc = 0;
+    const stops = (selected?.legs ?? []).map((leg) => {
+      acc += leg.horizontalDistanceM;
+      return { distanceM: acc, waypoint: leg.toWaypoint };
+    });
+    // ~20 s plus 3.5 s per km (24–50 s): long enough to read, short enough for a demo.
+    const durationS = Math.min(50, Math.max(24, 20 + 3.5 * (tr.track.totalM / 1000)));
     let last = 0;
-    const run = scene.playPath(
-      (f) => ({
-        at: pointAt(tr.track, f * tr.track.totalM),
-        ahead: pointAt(tr.track, Math.min(tr.track.totalM, f * tr.track.totalM + 60)),
-      }),
-      30,
-      (f) => {
+    const run = scene.startWalk({
+      track: tr.track,
+      stops: stops.map((x) => x.distanceM * toTrack),
+      durationS,
+      onFrame: (frame) => {
+        walkFeed.publish({ ...frame, toProfile: 1 / toTrack, stops });
         const now = performance.now();
-        if (now - last > 66) {
+        if (now - last > 50) {
           last = now;
-          setRouteCursor(f * tr.profileTotalM);
+          setRouteCursor(frame.phase === 'intro' ? null : frame.distanceM / toTrack);
         }
       },
-    );
+    });
+    walkControls.setPaused = run.setPaused;
     void run.done.then(() => {
+      walkFeed.publish(null);
+      walkControls.setPaused = () => {};
       setRouteCursor(null);
       useApp.getState().setPlay(null, false);
     });
@@ -519,7 +532,8 @@ export function MarsCanvas() {
     const scene = sceneRef.current;
     const tr = trackRef.current;
     if (!scene) return;
-    if (routeCursorM === null || !tr) {
+    // During the walk simulation its crew marker replaces the profile cursor.
+    if (routeCursorM === null || !tr || useApp.getState().playing) {
       scene.clearGroup('cursor');
       return;
     }

@@ -48,6 +48,7 @@ import {
 } from '@copernico/domain';
 import { AnnotationLayer, type Annotation } from './annotations';
 import { tintImage, type Tint } from './tint';
+import { startWalk, type WalkRun, type WalkSpec } from './walkSim';
 import { installCameraConstraints, maxTiltDeg } from './cameraConstraints';
 import { SkyRenderer, type SkyQuality } from './sky';
 
@@ -140,6 +141,7 @@ export type LineStyle =
   | 'route-band-moderate'
   | 'route-band-steep'
   | 'route-alternative'
+  | 'route-ahead'
   | 'traverse'
   | 'traverse-muted'
   | 'boundary';
@@ -258,6 +260,19 @@ function lineMaterials(style: LineStyle): LineLayer[] {
           }),
         },
       ];
+    case 'route-ahead':
+      // The route still to walk during the walk simulation: thin and quiet under the lit trail.
+      return [
+        {
+          width: 6,
+          material: new ColorMaterialProperty(COLOURS.outline.withAlpha(0.45)),
+        },
+        {
+          width: 3,
+          material: new ColorMaterialProperty(COLOURS.route.withAlpha(0.55)),
+          depthFail: new ColorMaterialProperty(COLOURS.route.withAlpha(0.3)),
+        },
+      ];
     case 'route-alternative':
       return [
         {
@@ -367,6 +382,8 @@ export class MarsScene {
   private readonly groups = new Map<string, Entity[]>();
   private readonly hiddenGroups = new Set<string>();
   private readonly lineSpecs = new Map<string, LineSpec[]>();
+  /** Route lines saved while the walk simulation draws them muted. */
+  private walkRoute: { specs: LineSpec[]; muted: LineSpec[] } | null = null;
   /** Where each placed model is (its centre, for camera close-ups). */
   readonly modelTargets = new Map<string, { lat: number; lon: number; heightM: number }>();
   /** Lines without their own see-through style, and the material to use when looking down. */
@@ -772,6 +789,31 @@ export class MarsScene {
     }
   }
 
+  /** While walking: the selected route is drawn muted and its chevrons hidden, so the trail reads. */
+  private muteRoute(on: boolean): void {
+    if (this.isDestroyed()) return;
+    if (on && !this.walkRoute) {
+      const specs = this.lineSpecs.get('route');
+      if (specs) {
+        const muted = specs
+          .filter((l) => !l.style.startsWith('route-band-'))
+          .map((l) =>
+            l.style === 'route-alternative' ? l : { ...l, style: 'route-ahead' as const },
+          );
+        this.walkRoute = { specs, muted };
+        this.setLines('route', muted);
+      }
+    } else if (!on && this.walkRoute) {
+      // Restore unless the route was redrawn meanwhile.
+      if (this.lineSpecs.get('route') === this.walkRoute.muted)
+        this.setLines('route', this.walkRoute.specs);
+      this.walkRoute = null;
+    }
+    const arrows = !on && !this.hiddenGroups.has('routeArrows');
+    for (const e of this.groups.get('routeArrows') ?? []) e.show = arrows;
+    this.requestRender();
+  }
+
   // ---------- vector groups ----------
 
   setLayerVisible(id: string, visible: boolean): void {
@@ -1003,6 +1045,24 @@ export class MarsScene {
       window.requestAnimationFrame(frame);
     });
     return { done, stop };
+  }
+
+  /** Cinematic walk simulation along a route (see walkSim.ts). */
+  startWalk(spec: WalkSpec): WalkRun {
+    const points = spec.track.points;
+    return startWalk(
+      {
+        widget: this.widget,
+        ellipsoid: MARS_SPHERE,
+        suspend: (on) => {
+          this.constraints.suspend(on);
+          this.muteRoute(on);
+        },
+        requestRender: () => this.requestRender(),
+        frameRoute: () => this.flyToPath(points, 2.8),
+      },
+      spec,
+    );
   }
 
   /** Places the camera behind a point looking toward another (the first frame of playPath). */

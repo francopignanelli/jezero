@@ -11,6 +11,7 @@ import { Welcome } from '../features/guide/Welcome';
 import { InspectorCard } from '../features/inspector/InspectorCard';
 import { LayersControl } from '../features/layers/LayersControl';
 import { ViewControl } from '../features/view/ViewControl';
+import { WalkHud } from '../features/routes/WalkHud';
 import { MapLegend } from '../features/layers/Legends';
 import { useShareLinkLoader } from '../features/missions/MissionControls';
 import { RoutePanel } from '../features/routes/RoutePanel';
@@ -94,6 +95,7 @@ export function App() {
         <LayersControl />
         <ViewControl />
         <MapLegend />
+        <WalkHud />
         <InspectorCard />
         <Toast />
         {picking && (

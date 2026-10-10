@@ -2,6 +2,7 @@ import { greatCircleDistance } from '@copernico/domain';
 import { describe, expect, it } from 'vitest';
 import { altitudeFloor, JEZERO_ZONE, maxTiltDeg, MAX_TILT_DEG } from './cameraConstraints';
 import { densify, removeSpikes, roundTrack, simplify } from './pathGeometry';
+import { speedTable } from './walkSim';
 
 describe('route display geometry', () => {
   const route = [
@@ -129,5 +130,34 @@ describe('tilt allowed by altitude', () => {
     }
     expect(maxTiltDeg(150_000)).toBeGreaterThan(20);
     expect(maxTiltDeg(150_000)).toBeLessThan(60);
+  });
+});
+
+describe('walk simulation speed profile', () => {
+  const total = 5640;
+  const stops = [2640, 3215, total];
+  const at = speedTable(total, stops, 40);
+
+  it('starts at 0, ends at the route end at the given duration and never goes backwards', () => {
+    expect(at(0)).toBe(0);
+    expect(at(40)).toBeCloseTo(total, 6);
+    let prev = 0;
+    for (let t = 0; t <= 40; t += 0.05) {
+      const d = at(t);
+      expect(d).toBeGreaterThanOrEqual(prev - 1e-9);
+      prev = d;
+    }
+  });
+
+  it('eases in, slows into each stop and holds there', () => {
+    const v = (t: number) => (at(t + 0.05) - at(t)) / 0.05;
+    let reach = 0;
+    while (at(reach) < stops[0]! - 1e-6) reach += 0.01;
+    // Held at the stop for most of the 0.8 s, then walks on.
+    expect(at(reach + 0.7)).toBeCloseTo(stops[0]!, 3);
+    expect(at(reach + 2)).toBeGreaterThan(stops[0]! + 5);
+    const cruise = v(10);
+    expect(v(0)).toBeLessThan(0.2 * cruise);
+    expect(v(reach - 0.1)).toBeLessThan(0.2 * cruise);
   });
 });

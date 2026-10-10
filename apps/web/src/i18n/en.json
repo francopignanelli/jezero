@@ -186,7 +186,7 @@
     "dwellAria": "Minutes spent at {{name}}",
     "play": "▶ Play mission",
     "stopPlay": "■ Stop",
-    "playHint": "30 s fly-along of the selected route; touch the map to stop.",
+    "playHint": "Cinematic walk of the selected route, with the EVA clock and the slope underfoot; touch the map to stop.",
     "playReduced": "Disabled because reduced motion is on.",
     "colourBySlope": "Colour the route by slope"
   },
@@ -693,5 +693,20 @@
     "tilt": "3D view (tilted)",
     "topDown": "2D view (from above)",
     "tiltFar": "3D view is available closer to the surface"
+  },
+  "walk": {
+    "title": "Simulated Marswalk",
+    "clock": "EVA clock",
+    "distance": "Walked",
+    "slope": "Slope underfoot",
+    "elevation": "Elevation",
+    "next": "Next: {{name}} in {{distance}}",
+    "done": "Route complete",
+    "arrived": "Arrived · {{name}}",
+    "stop": "Stop {{n}}",
+    "backToStart": "Back at the start",
+    "pause": "Pause the walk",
+    "resume": "Resume the walk",
+    "stopSim": "End the simulation"
   }
 }
