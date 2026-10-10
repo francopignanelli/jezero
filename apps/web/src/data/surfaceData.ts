@@ -38,13 +38,20 @@ export interface TraverseCollection {
   features: Array<{ properties: { sol: number }; geometry: { type: 'LineString'; coordinates: Array<[number, number]> } }>;
 }
 
-async function json<T>(path: string): Promise<T | null> {
-  try {
-    const res = await fetch(dataUrl(path));
-    return res.ok ? ((await res.json()) as T) : null;
-  } catch {
-    return null;
+/** One request per file per session: the map, the Science panel and the 360° HUD share it. */
+const cache = new Map<string, Promise<unknown>>();
+
+function json<T>(path: string): Promise<T | null> {
+  let p = cache.get(path) as Promise<T | null> | undefined;
+  if (!p) {
+    p = fetch(dataUrl(path))
+      .then((res) => (res.ok ? (res.json() as Promise<T>) : null))
+      .catch(() => null);
+    cache.set(path, p);
+    // A failure may be transient: let a later call retry.
+    void p.then((v) => v === null && cache.delete(path));
   }
+  return p;
 }
 
 export const loadRover = () => json<RoverSnapshot>('rover/rover.json');

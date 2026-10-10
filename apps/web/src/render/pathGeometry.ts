@@ -70,48 +70,28 @@ export function simplify<T extends LatLonPoint>(points: readonly T[], toleranceM
   return points.filter((_, i) => keep[i] === 1);
 }
 
-/** Closed outline of a lon/lat rectangle, counter-clockwise. */
-export function rectangleRing(r: {
-  west: number;
-  south: number;
-  east: number;
-  north: number;
-}): LatLonPoint[] {
-  return [
-    { lat: r.south, lon: r.west },
-    { lat: r.south, lon: r.east },
-    { lat: r.north, lon: r.east },
-    { lat: r.north, lon: r.west },
-    { lat: r.south, lon: r.west },
-  ];
-}
-
 /**
  * Removes out-and-back spikes (display only): a vertex whose two neighbours lie within 30° of the
  * same direction (the path turns back on itself) and within `maxSpikeM`, as tactical
  * re-localizations leave in a rover track.
  */
 export function removeSpikes<T extends LatLonPoint>(points: readonly T[], maxSpikeM: number): T[] {
-  const out = [...points];
-  let changed = true;
-  while (changed && out.length > 2) {
-    changed = false;
-    for (let i = 1; i < out.length - 1; i++) {
-      const [ax, ay] = toLocal(out[i - 1]!, out[i]!);
-      const [bx, by] = toLocal(out[i + 1]!, out[i]!);
-      const la = Math.hypot(ax, ay);
-      const lb = Math.hypot(bx, by);
-      if (la === 0 || lb === 0) {
-        out.splice(i, 1); // duplicate vertex
-        changed = true;
-        break;
-      }
-      const cos = (ax * bx + ay * by) / (la * lb);
-      if (cos < Math.cos((30 * Math.PI) / 180) || Math.max(la, lb) > maxSpikeM) continue;
-      out.splice(i, 1);
-      changed = true;
-      break;
-    }
+  const cosMax = Math.cos((30 * Math.PI) / 180);
+  const isSpike = (prev: T, mid: T, next: T) => {
+    const [ax, ay] = toLocal(prev, mid);
+    const [bx, by] = toLocal(next, mid);
+    const la = Math.hypot(ax, ay);
+    const lb = Math.hypot(bx, by);
+    if (la === 0 || lb === 0) return true; // duplicate vertex
+    return (ax * bx + ay * by) / (la * lb) >= cosMax && Math.max(la, lb) <= maxSpikeM;
+  };
+  // One pass with a stack, O(n). Removing a vertex only changes the test of its neighbours, so
+  // re-testing the new last vertex gives the same result as rescanning from the start after each
+  // removal (which took 3.3 s on the 36,000-point traverse).
+  const out: T[] = [];
+  for (const p of points) {
+    while (out.length >= 2 && isSpike(out[out.length - 2]!, out[out.length - 1]!, p)) out.pop();
+    out.push(p);
   }
   return out;
 }

@@ -172,6 +172,9 @@ export interface LineSpec {
 const toCartesian = (lat: number, lon: number, h: number): Cartesian3 =>
   Cartesian3.fromDegrees(normalizeLon180(lon), lat, h, MARS_SPHERE);
 
+/** Models are fetched when the camera is this close (they are drawn within 40 km). */
+const MODEL_LOAD_WITHIN_M = 150_000;
+
 export const COLOURS = {
   route: Color.fromCssColorString('#3ff0c0'),
   alternative: Color.fromCssColorString('#e8e2d6'),
@@ -386,6 +389,8 @@ export class MarsScene {
   private walkRoute: { specs: LineSpec[]; muted: LineSpec[] } | null = null;
   /** Where each placed model is (its centre, for camera close-ups). */
   readonly modelTargets = new Map<string, { lat: number; lon: number; heightM: number }>();
+  /** Models placed but not yet loaded (the camera is still far away). */
+  private readonly pendingModels = new Map<string, { position: Cartesian3; add: () => void }>();
   /** Lines without their own see-through style, and the material to use when looking down. */
   private readonly seeThrough = new Map<Entity, MaterialProperty>();
   private overhead = true;
@@ -542,6 +547,7 @@ export class MarsScene {
       const light = 0.12 + 0.88 * (this.sky?.daylight ?? 1);
       Cartesian3.multiplyByScalar(HAZE_DAY, light, this.hazeTint);
       this.fadeImageryTiers();
+      this.loadNearModels();
       this.updateLineOcclusion();
       this.updateCloseUpDeclutter();
       this.limitTilt();
@@ -586,12 +592,18 @@ export class MarsScene {
     starsUrl: string,
     milkyWay: { hd: string; sd: string },
     onQuality?: (quality: SkyQuality) => void,
+    hdAfter?: Promise<unknown>,
   ): Promise<{ stars: boolean; quality: SkyQuality }> {
     if (!this.sky) return { stars: false, quality: 'none' };
-    const result = await this.sky.load(starsUrl, milkyWay, (q) => {
-      onQuality?.(q);
-      this.requestRender(); // starts the cross-fade; postRender keeps it going
-    });
+    const result = await this.sky.load(
+      starsUrl,
+      milkyWay,
+      (q) => {
+        onQuality?.(q);
+        this.requestRender(); // starts the cross-fade; postRender keeps it going
+      },
+      hdAfter,
+    );
     this.requestRender();
     return result;
   }
@@ -689,6 +701,16 @@ export class MarsScene {
     const show = !near && !this.hiddenGroups.has('rover');
     for (const e of this.groups.get('rover') ?? []) if (e.polyline) e.show = show;
     this.requestRender();
+  }
+
+  private loadNearModels(): void {
+    if (this.pendingModels.size === 0) return;
+    const camera = this.widget.camera.positionWC;
+    for (const [id, m] of this.pendingModels) {
+      if (Cartesian3.distance(camera, m.position) >= MODEL_LOAD_WITHIN_M) continue;
+      this.pendingModels.delete(id);
+      m.add();
+    }
   }
 
   private fadeImageryTiers(): void {
@@ -1124,6 +1146,7 @@ export class MarsScene {
   ): Promise<void> {
     if (this.isDestroyed()) return;
     this.clearGroup(groupId);
+    this.pendingModels.delete(groupId);
     const position = toCartesian(m.lat, m.lon, m.heightM);
     // The model's front (robotic arm) is glTF +Z; Cesium maps it so heading 0 faces east, hence −90°.
     const orientation = Transforms.headingPitchRollQuaternion(
@@ -1147,8 +1170,15 @@ export class MarsScene {
         imageBasedLightingFactor: new Cartesian2(0.5, 0.35),
       },
     });
-    this.group(groupId).push(entity);
-    this.widget.entities.add(entity);
+    // The glTF (Perseverance: 2.3 MB) is only fetched once the camera comes within reach of it.
+    const add = () => {
+      entity.show = !this.hiddenGroups.has(groupId);
+      this.group(groupId).push(entity);
+      this.widget.entities.add(entity);
+      this.requestRender();
+    };
+    if (Cartesian3.distance(this.widget.camera.positionWC, position) < MODEL_LOAD_WITHIN_M) add();
+    else this.pendingModels.set(groupId, { position, add });
     this.modelTargets.set(groupId, { lat: m.lat, lon: m.lon, heightM: m.heightM + 1.1 });
     // Let the camera come down to the model (it is ~3 m long).
     this.constraints.addCloseUp({ lat: m.lat, lon: m.lon, radiusM: 150, minAboveTerrainM: 4 });

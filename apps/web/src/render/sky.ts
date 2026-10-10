@@ -304,20 +304,25 @@ export class SkyRenderer {
 
   /**
    * Progressive load: resolves once the star catalog and the 4K Milky Way (2.7 MB) are on the GPU,
-   * so the scene can be revealed quickly. If the GPU supports 8K, the HD texture then loads in the
-   * background and cross-fades in; `onQuality('hd')` reports the upgrade. Positions are identical
-   * in both textures; only the detail changes.
+   * so the scene can be revealed quickly. If the GPU supports 8K, the HD texture (16.5 MB) then loads
+   * in the background once `hdAfter` settles, so it does not compete with the first terrain tiles,
+   * and cross-fades in; `onQuality('hd')` reports the upgrade. Positions are identical in both
+   * textures; only the detail changes.
    */
   async load(
     starsUrl: string,
     milkyWay: { hd: string; sd: string },
     onQuality?: (quality: SkyQuality) => void,
+    hdAfter: Promise<unknown> = Promise.resolve(),
   ): Promise<{ stars: boolean; quality: SkyQuality }> {
     const target = this.chooseQuality();
     const [starFile, sd] = await Promise.all([
       fetch(starsUrl).then((r) => (r.ok ? (r.json() as Promise<StarFile>) : null)),
       loadImage(milkyWay.sd),
     ]);
+    // Destroyed meanwhile (e.g. React StrictMode's discarded first mount): its context is gone, and
+    // a failed 4K upload must not start the 8K fallback download.
+    if (this.destroyed) return { stars: false, quality: 'none' };
     if (starFile) {
       const data = new Float32Array(starFile.stars.length * 7);
       starFile.stars.forEach(([ra, dec, mag, cls], i) => {
@@ -340,7 +345,7 @@ export class SkyRenderer {
         this.texture = hd ? this.upload(hd) : null;
         if (this.texture) quality = 'hd';
       } else {
-        void this.upgrade(milkyWay.hd, onQuality);
+        void hdAfter.then(() => this.upgrade(milkyWay.hd, onQuality));
       }
     }
     this.gl.finish(); // the first texture is on the GPU before the scene is revealed
@@ -348,9 +353,20 @@ export class SkyRenderer {
   }
 
   private async upgrade(url: string, onQuality?: (quality: SkyQuality) => void): Promise<void> {
-    const image = await loadImage(url);
-    if (!image || this.destroyed) return;
-    const texture = this.upload(image);
+    // Decoded off the main thread (createImageBitmap from a Blob); an <img> would be decoded on it,
+    // again for every crop.
+    if (this.destroyed) return;
+    let image: ImageBitmap;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return;
+      image = await createImageBitmap(await res.blob());
+    } catch {
+      return;
+    }
+    if (this.destroyed) return image.close();
+    const texture = await this.uploadInStrips(image);
+    image.close();
     if (!texture) return; // out of GPU memory for 8K: keep 4K
     this.nextTexture = texture;
     this.fadeStartMs = performance.now();
@@ -367,6 +383,51 @@ export class SkyRenderer {
       gl.deleteTexture(texture);
       return null;
     }
+    this.finishTexture();
+    return texture;
+  }
+
+  /**
+   * Same texture as upload(), from a decoded bitmap sent in 512-row strips, one per frame, so the
+   * 8K image never blocks the main thread (decoding and uploading it in one go took ~0.9 s).
+   * Mipmaps are generated once at the end.
+   */
+  private async uploadInStrips(image: ImageBitmap): Promise<WebGLTexture | null> {
+    const gl = this.gl;
+    const { width: w, height: h } = image;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texStorage2D(gl.TEXTURE_2D, 1 + Math.floor(Math.log2(Math.max(w, h))), gl.RGB8, w, h);
+    if (gl.getError() !== gl.NO_ERROR) {
+      gl.deleteTexture(texture);
+      return null;
+    }
+    const STRIP = 512;
+    for (let y = 0; y < h; y += STRIP) {
+      let strip: ImageBitmap;
+      try {
+        strip = await createImageBitmap(image, 0, y, w, Math.min(STRIP, h - y));
+      } catch {
+        gl.deleteTexture(texture);
+        return null;
+      }
+      if (this.destroyed) {
+        strip.close();
+        return null;
+      }
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, y, gl.RGB, gl.UNSIGNED_BYTE, strip);
+      strip.close();
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    this.finishTexture();
+    return texture;
+  }
+
+  /** Mip chain and sampling for the texture bound to TEXTURE_2D. */
+  private finishTexture(): void {
+    const gl = this.gl;
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -377,7 +438,6 @@ export class SkyRenderer {
       const max = gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number;
       gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, max));
     }
-    return texture;
   }
 
   private pointVao(

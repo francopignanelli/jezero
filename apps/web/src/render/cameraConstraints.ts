@@ -1,5 +1,5 @@
 import { Cartesian3, Cartographic, Math as CesiumMath, type Scene } from 'cesium';
-import { greatCircleDistance, MARS_SPHERE_RADIUS_M, normalizeLon180 } from '@copernico/domain';
+import { greatCircleDistance, normalizeLon180 } from '@copernico/domain';
 
 /**
  * The controlled exploration volume. Close-up flight is allowed only over Jezero; elsewhere the
@@ -145,9 +145,6 @@ export function installCameraConstraints(scene: Scene, zone: ExplorationZone = J
     },
   };
 }
-
-/** Altitude of the reference sphere in metres, for reference in docs/tests. */
-export const REFERENCE_RADIUS_M = MARS_SPHERE_RADIUS_M;
 
 /** Tilt (° from looking straight down) allowed at full detail, and where it reaches zero. */
 export const TILT_FULL_BELOW_M = 15_000;

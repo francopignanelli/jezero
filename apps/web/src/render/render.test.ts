@@ -1,5 +1,6 @@
 import { greatCircleDistance } from '@copernico/domain';
 import { describe, expect, it } from 'vitest';
+import fc from 'fast-check';
 import { altitudeFloor, JEZERO_ZONE, maxTiltDeg, MAX_TILT_DEG } from './cameraConstraints';
 import { densify, removeSpikes, roundTrack, simplify } from './pathGeometry';
 import { speedTable } from './walkSim';
@@ -105,6 +106,44 @@ describe('rover track display', () => {
     const cleaned = removeSpikes(track, 20);
     expect(cleaned).toHaveLength(5); // the 10 m spike is gone, the 90° corner at (200, 0) stays
     expect(cleaned.at(-2)).toEqual(at(200, 0));
+  });
+  it('spike removal in one pass equals removing the first spike and rescanning', () => {
+    // Reference: the original quadratic algorithm.
+    const reference = (pts: Array<{ lat: number; lon: number }>, maxM: number) => {
+      const out = [...pts];
+      const local = (p: (typeof pts)[0], r: (typeof pts)[0]) => [
+        (p.lon - r.lon) * M * Math.cos((r.lat * Math.PI) / 180),
+        (p.lat - r.lat) * M,
+      ];
+      for (let i = 1; i < out.length - 1;) {
+        const [ax, ay] = local(out[i - 1]!, out[i]!) as [number, number];
+        const [bx, by] = local(out[i + 1]!, out[i]!) as [number, number];
+        const la = Math.hypot(ax, ay);
+        const lb = Math.hypot(bx, by);
+        const spike =
+          la === 0 ||
+          lb === 0 ||
+          ((ax * bx + ay * by) / (la * lb) >= Math.cos(Math.PI / 6) && Math.max(la, lb) <= maxM);
+        if (spike) {
+          out.splice(i, 1);
+          i = 1;
+        } else i++;
+      }
+      return out;
+    };
+    fc.assert(
+      fc.property(
+        fc.array(fc.tuple(fc.integer({ min: 0, max: 60 }), fc.integer({ min: 0, max: 60 })), {
+          minLength: 0,
+          maxLength: 40,
+        }),
+        (xy) => {
+          const pts = xy.map(([x, y]) => at(x, y));
+          expect(removeSpikes(pts, 30)).toEqual(reference(pts, 30));
+        },
+      ),
+      { numRuns: 400 },
+    );
   });
   it('rounds corners within the stated distance of the true track', () => {
     const track = [at(0, 0), at(300, 0), at(300, 300), at(0, 300)];

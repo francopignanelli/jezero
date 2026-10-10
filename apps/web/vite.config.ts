@@ -35,13 +35,23 @@ function serveDirectory(mount: string, root: string, cache: (file: string) => st
       server.middlewares.use(`/${mount}`, (req, res, next) => {
         const rel = decodeURIComponent((req.url ?? '/').split('?')[0]!);
         const file = normalize(join(root, rel));
-        if (!file.startsWith(root) || !existsSync(file) || !statSync(file).isFile()) {
+        const stat = file.startsWith(root) && existsSync(file) ? statSync(file) : null;
+        if (!stat?.isFile()) {
           res.statusCode = 404;
           res.end();
           return;
         }
-        res.setHeader('Content-Type', TYPES[extname(file)] ?? 'application/octet-stream');
+        // Revalidated on every use, answered 304 while unchanged: reloads reuse the browser cache,
+        // and a rebuilt file (new size or time) is fetched again.
+        const etag = `W/"${stat.size.toString(36)}-${Math.round(stat.mtimeMs).toString(36)}"`;
+        res.setHeader('ETag', etag);
         res.setHeader('Cache-Control', cache(file));
+        if (req.headers['if-none-match'] === etag) {
+          res.statusCode = 304;
+          res.end();
+          return;
+        }
+        res.setHeader('Content-Type', TYPES[extname(file)] ?? 'application/octet-stream');
         createReadStream(file).on('error', next).pipe(res);
       });
     },
@@ -78,7 +88,7 @@ export default defineConfig({
     react(),
     // Development only: pipeline output (data/build, gitignored) at /data; in production CloudFront
     // serves the same paths from S3 (VITE_DATA_BASE_URL). Tiles are immutable per build.
-    serveDirectory('data', DATA_DIR, () => 'no-store'),
+    serveDirectory('data', DATA_DIR, () => 'no-cache'),
     serveDirectory(CESIUM_BASE, CESIUM_BUILD, () => 'max-age=86400'),
     copyCesium(),
   ],

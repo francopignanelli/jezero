@@ -23,10 +23,6 @@ export interface GridSpec {
   projection: EqcParams;
 }
 
-export function cellIndex(spec: GridSpec, col: number, row: number): number {
-  return row * spec.cols + col;
-}
-
 export function inBounds(spec: GridSpec, col: number, row: number): boolean {
   return col >= 0 && row >= 0 && col < spec.cols && row < spec.rows;
 }

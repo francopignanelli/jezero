@@ -6,11 +6,12 @@ export const dataUrl = (path: string): string => `${DATA_BASE_URL.replace(/\/$/,
 
 /**
  * Version token appended to tile URLs so browsers and CloudFront never serve tiles from an older
- * data build. Set VITE_DATA_VERSION at release time; in development every page load is fresh.
+ * data build. Set VITE_DATA_VERSION at release time. In development the dev server revalidates
+ * every data file (ETag), so a constant token is enough and reloads reuse the browser cache.
  */
 export const DATA_VERSION: string =
   (import.meta.env.VITE_DATA_VERSION as string | undefined) ??
-  (import.meta.env.DEV ? String(Date.now()) : 'jezero-v1');
+  (import.meta.env.DEV ? 'dev' : 'jezero-v1');
 
 /** Absolute form, required when handing URLs to Web Workers (they resolve relative to the worker script). */
 export const absoluteDataUrl = (path: string): string =>

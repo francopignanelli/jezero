@@ -169,6 +169,9 @@ export function MarsCanvas() {
       if (s.mode === 'jezero') s.setInspected({ lat, lon });
     });
 
+    // The 8K Milky Way waits until the scene is revealed: it must not slow the first tiles.
+    let revealed = () => {};
+    const shown = new Promise<void>((r) => (revealed = r));
     const sky = scene
       .loadSky(
         dataUrl(`sky/stars.json?v=${DATA_VERSION}`),
@@ -179,6 +182,7 @@ export function MarsCanvas() {
         (quality) => {
           if (quality === 'hd') setLoading({ sky: 'hd' });
         },
+        shown,
       )
       .then((r) =>
         setLoading({
@@ -191,9 +195,11 @@ export function MarsCanvas() {
       const terrainOk = await scene.loadTerrain(dataUrl('tiles/terrain'), DATA_VERSION);
       setLoading({ terrain: terrainOk ? 'done' : 'failed' });
       let imageryOk = true;
-      for (const { id, toggle, credit, tiles, rectangle, grade, tint } of IMAGERY) {
-        const meta = await loadImageryLayer(tiles ?? id);
-        if (scene.isDestroyed()) return;
+      // Layer metadata in parallel; layers are still added in IMAGERY order (it is the draw order).
+      const metas = await Promise.all(IMAGERY.map((l) => loadImageryLayer(l.tiles ?? l.id)));
+      if (scene.isDestroyed()) return;
+      for (const [i, { id, toggle, credit, tiles, rectangle, grade, tint }] of IMAGERY.entries()) {
+        const meta = metas[i];
         if (!meta) {
           imageryOk = false;
           continue;
@@ -215,7 +221,7 @@ export function MarsCanvas() {
       setLoading({ tiles: tilesOk ? 'done' : 'failed' });
     })();
 
-    const surface = loadSurfaceLayers(scene).then(
+    const surface = loadSurfaceLayers(scene, shown).then(
       () => setLoading({ surface: 'done' }),
       (error: unknown) => {
         console.error('[Copernico] surface data failed', error);
@@ -226,7 +232,9 @@ export function MarsCanvas() {
     // Reveal when everything is in (or after a generous timeout; the loading screen explains).
     const timeout = new Promise((r) => window.setTimeout(r, 30_000));
     void Promise.race([Promise.all([sky, globe, surface]), timeout]).then(() => {
-      if (!scene.isDestroyed()) setSceneReady(true);
+      if (scene.isDestroyed()) return; // a discarded scene loads nothing more
+      setSceneReady(true);
+      revealed();
     });
 
     return () => {
@@ -672,7 +680,13 @@ function coverageMask(outer: LonLatRect, inner: LonLatRect): HTMLCanvasElement {
   return canvas;
 }
 
-async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
+/**
+ * Surface data for the loading screen; the markers and lines are placed once the scene is shown.
+ * They sit on the most detailed terrain tiles (hundreds along the ~45 km of traverse), and none of
+ * them shows from orbit. Their tile requests are not throttled by Cesium, so issued earlier they
+ * would queue ahead of the globe's own tiles and delay the reveal.
+ */
+async function loadSurfaceLayers(scene: MarsScene, shown: Promise<void>): Promise<void> {
   const [coverage, rover, traverse, samples, ingenuity] = await Promise.all([
     loadCoverage(),
     loadRover(),
@@ -694,67 +708,42 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
     },
   ]);
 
-  if (coverage) {
-    const rings = coverage.features.flatMap((f) =>
-      f.geometry.coordinates.map((ring) => ring.map(([lon, lat]) => ({ lat, lon }))),
-    );
-    const lines = await Promise.all(
-      rings.map(async (ring, i) => ({
-        id: `ring${i}`,
-        style: 'boundary' as const,
-        points: await drape(scene, densify(ring, 40), 6),
-      })),
-    );
-    scene.setLines('coverage', lines);
-  }
+  void shown
+    .then(async () => {
+      await placeSurfaceMarkers(scene, rover, samples, ingenuity);
+      await drapeSurfaceLines(scene, coverage, traverse);
+    })
+    .catch((error: unknown) => console.error('[Copernico] surface overlays failed', error));
+}
 
-  if (traverse) {
-    // One continuous, display-simplified line in sol order instead of 556 overlapping drive segments.
-    const drives = [...traverse.features].sort((a, b) => a.properties.sol - b.properties.sol);
-    const path = drives.flatMap((f) => f.geometry.coordinates.map(([lon, lat]) => ({ lat, lon })));
-    // Display only, two levels of detail: up close the track (re-localization spikes removed,
-    // simplified to 6 m, corners rounded within 8 m); beyond 15 km a cleaner line (15 m / 20 m),
-    // whose offsets are under ~1.5 px there. Both are cut into ~2 km pieces because Cesium judges a
-    // line's display distance from its bounding-sphere centre, and the whole track is ~40 km long.
-    const base = removeSpikes(path, 25);
-    const [nearPts, farPts] = await Promise.all([
-      drape(scene, densify(roundTrack(simplify(base, 6), 8), 20), 1.5),
-      drape(scene, densify(roundTrack(simplify(base, 15), 20), 50), 3),
-    ]);
-    const pieces = <T,>(pts: T[], n: number) =>
-      Array.from({ length: Math.ceil((pts.length - 1) / n) }, (_, i) =>
-        pts.slice(i * n, i * n + n + 1),
-      );
-    scene.setLines('rover', [
-      ...pieces(nearPts, 100).map((points, i) => ({
-        id: `traverse-${i}`,
-        style: 'traverse' as const,
-        points,
-        farM: 15_000,
-      })),
-      ...pieces(farPts, 40).map((points, i) => ({
-        id: `traverse-far-${i}`,
-        style: 'traverse' as const,
-        points,
-        nearM: 15_000,
-      })),
-    ]);
-  }
+/** Rover, panoramas, samples, places and Ingenuity flights, on the rendered terrain. */
+async function placeSurfaceMarkers(
+  scene: MarsScene,
+  rover: Awaited<ReturnType<typeof loadRover>>,
+  samples: Awaited<ReturnType<typeof loadSamples>>,
+  ingenuity: Awaited<ReturnType<typeof loadIngenuity>>,
+): Promise<void> {
+  if (scene.isDestroyed()) return;
+  // Every marker in one terrain query: they share tiles, and separate queries would each wait.
+  const standalone = PANORAMAS.filter((p) => !p.poiId);
+  const points: Array<{ lat: number; lon: number }> = [
+    ...(rover ? [rover.latest] : []),
+    ...standalone.map((p) => p.position),
+    ...(samples?.samples ?? []),
+    ...POIS,
+    ...(ingenuity?.flights ?? []),
+  ];
+  const heights = await scene.sampleTerrain(points.map(({ lat, lon }) => ({ lat, lon })));
+  if (scene.isDestroyed()) return;
+  let k = 0;
+  /** Next sampled height, lifted 2 m so markers never sink into the surface. */
+  const next = () => {
+    const h = heights[k++]!;
+    return (Number.isFinite(h) ? h : 0) + 2;
+  };
 
   if (rover) {
-    const [latest] = await scene.withTerrainHeights(
-      [
-        {
-          id: 'latest',
-          lat: rover.latest.lat,
-          lon: rover.latest.lon,
-          color: '#f2b84b',
-          size: 12,
-          hideWithinM: 250, // the 3D model takes over up close
-        },
-      ],
-      2,
-    );
+    const heightM = next();
     // 3D Perseverance at its latest published position, facing along its last drive.
     const [prev] = rover.waypoints.slice(-2);
     const heading = prev
@@ -766,16 +755,16 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
     void scene.setModel('roverModel', {
       lat: rover.latest.lat,
       lon: rover.latest.lon,
-      heightM: latest!.heightM - 2, // marker lift removed: wheels on the rendered terrain
+      heightM: heightM - 2, // marker lift removed: wheels on the rendered terrain
       headingRad: heading,
       url: dataUrl(`models/perseverance.glb?v=${DATA_VERSION}`),
     });
     scene.setAnnotations('rover', [
       {
         id: 'perseverance',
-        lat: latest!.lat,
-        lon: latest!.lon,
-        heightM: latest!.heightM,
+        lat: rover.latest.lat,
+        lon: rover.latest.lon,
+        heightM,
         text: `Perseverance · sol ${rover.latest.sol}`,
         kind: 'rover',
         priority: 95, // above the panorama pin next to it
@@ -788,61 +777,43 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
 
   // Real 360° panoramas, at the rover position where they were taken. One at a POI becomes a "360°"
   // chip on that POI's pin; the others get their own pin.
-  const standalone = PANORAMAS.filter((p) => !p.poiId);
-  const panos = await scene.withTerrainHeights(
-    standalone.map((p) => ({
+  scene.setAnnotations(
+    'panoramas',
+    standalone.map((p): Annotation => ({
       id: p.id,
       lat: p.position.lat,
       lon: p.position.lon,
-      color: '#ffffff',
-      size: 8,
-      hideWithinM: 0,
-    })),
-    2,
-  );
-  scene.setAnnotations(
-    'panoramas',
-    panos.map((p, i): Annotation => ({
-      id: p.id,
-      lat: p.lat,
-      lon: p.lon,
-      heightM: p.heightM,
-      text: `360° · ${standalone[i]!.title}`,
+      heightM: next(),
+      text: `360° · ${p.title}`,
       kind: 'panorama',
       priority: 90,
       maxCameraDistanceM: 60_000,
-      onClick: () => useApp.getState().setPanoramaOpen(standalone[i]!.id),
+      onClick: () => useApp.getState().setPanoramaOpen(p.id),
     })),
   );
 
   if (samples) {
     scene.setMarkers(
       'samples',
-      await scene.withTerrainHeights(
-        samples.samples.map((s) => ({
-          id: s.sampleNumber,
-          lat: s.lat,
-          lon: s.lon,
-          color: '#ff9ad5',
-          size: 7,
-        })),
-        2,
-      ),
+      samples.samples.map((s) => ({
+        id: s.sampleNumber,
+        lat: s.lat,
+        lon: s.lon,
+        heightM: next(),
+        color: '#ff9ad5',
+        size: 7,
+      })),
     );
   }
 
-  const pois = await scene.withTerrainHeights(
-    POIS.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, color: '#b69cff', size: 9 })),
-    2,
-  );
   scene.setAnnotations(
     'pois',
-    pois.map((p, i): Annotation => ({
+    POIS.map((p, i): Annotation => ({
       id: p.id,
       lat: p.lat,
       lon: p.lon,
-      heightM: p.heightM,
-      text: POIS[i]!.name,
+      heightM: next(),
+      text: p.name,
       dedupeKey: `poi:${p.id}`,
       kind: 'poi',
       priority: 50 - i,
@@ -866,16 +837,86 @@ async function loadSurfaceLayers(scene: MarsScene): Promise<void> {
   if (ingenuity) {
     scene.setMarkers(
       'ingenuity',
-      await scene.withTerrainHeights(
-        ingenuity.flights.map((f) => ({
-          id: String(f.flight),
-          lat: f.lat,
-          lon: f.lon,
-          color: '#9fe3ff',
-          size: 5,
-        })),
-        2,
-      ),
+      ingenuity.flights.map((f) => ({
+        id: String(f.flight),
+        lat: f.lat,
+        lon: f.lon,
+        heightM: next(),
+        color: '#9fe3ff',
+        size: 5,
+      })),
     );
   }
+}
+
+/** Coverage outline and the rover traverse, draped on the rendered terrain in one query. */
+async function drapeSurfaceLines(
+  scene: MarsScene,
+  coverage: Awaited<ReturnType<typeof loadCoverage>>,
+  traverse: Awaited<ReturnType<typeof loadTraverse>>,
+): Promise<void> {
+  const rings = (coverage?.features ?? []).flatMap((f) =>
+    f.geometry.coordinates.map((ring) =>
+      densify(
+        ring.map(([lon, lat]) => ({ lat, lon })),
+        40,
+      ),
+    ),
+  );
+  let near: LatLonPoint[] = [];
+  let far: LatLonPoint[] = [];
+  if (traverse) {
+    // One continuous, display-simplified line in sol order instead of 556 overlapping drive segments.
+    const drives = [...traverse.features].sort((a, b) => a.properties.sol - b.properties.sol);
+    const path = drives.flatMap((f) => f.geometry.coordinates.map(([lon, lat]) => ({ lat, lon })));
+    // Display only, two levels of detail: up close the track (re-localization spikes removed,
+    // simplified to 6 m, corners rounded within 8 m); beyond 15 km a cleaner line (15 m / 20 m),
+    // whose offsets are under ~1.5 px there.
+    const base = removeSpikes(path, 25);
+    near = densify(roundTrack(simplify(base, 6), 8), 20);
+    far = densify(roundTrack(simplify(base, 15), 20), 50);
+  }
+  // A single query: the two traverse versions cross the same tiles, and parallel queries would each
+  // download them.
+  const heights = await scene.sampleTerrain([...rings.flat(), ...near, ...far]);
+  if (scene.isDestroyed()) return;
+  let k = 0;
+  const lift = (pts: LatLonPoint[], liftM: number) =>
+    pts.map((p) => {
+      const h = heights[k++]!;
+      return { ...p, heightM: (Number.isFinite(h) ? h : 0) + liftM };
+    });
+  const ringLines = rings.map((pts, i) => ({
+    id: `ring${i}`,
+    style: 'boundary' as const,
+    points: lift(pts, 6),
+  }));
+  if (ringLines.length) scene.setLines('coverage', ringLines);
+  if (!traverse) return;
+  const nearPts = lift(near, 1.5);
+  const farPts = lift(far, 3);
+  // Cut into ~2 km pieces: Cesium judges a line's display distance from its bounding-sphere centre,
+  // and the whole track is ~40 km long.
+  const pieces = <T,>(pts: T[], n: number) =>
+    Array.from({ length: Math.ceil((pts.length - 1) / n) }, (_, i) =>
+      pts.slice(i * n, i * n + n + 1),
+    );
+  // A route computed meanwhile mutes the traverse (see the route effect).
+  const s = useApp.getState();
+  const selected = s.profile === 'lower-risk' ? s.result?.lowerRisk : s.result?.shortest;
+  const style = selected?.status === 'ok' ? ('traverse-muted' as const) : ('traverse' as const);
+  scene.setLines('rover', [
+    ...pieces(nearPts, 100).map((points, i) => ({
+      id: `traverse-${i}`,
+      style,
+      points,
+      farM: 15_000,
+    })),
+    ...pieces(farPts, 40).map((points, i) => ({
+      id: `traverse-far-${i}`,
+      style,
+      points,
+      nearM: 15_000,
+    })),
+  ]);
 }
