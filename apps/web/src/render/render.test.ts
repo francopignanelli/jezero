@@ -4,6 +4,8 @@ import fc from 'fast-check';
 import { altitudeFloor, JEZERO_ZONE, maxTiltDeg, MAX_TILT_DEG } from './cameraConstraints';
 import { densify, removeSpikes, roundTrack, simplify } from './pathGeometry';
 import { speedTable } from './walkSim';
+import { flightPeak, flightSeconds } from './flight';
+import { Cartesian3, Ellipsoid } from 'cesium';
 
 describe('route display geometry', () => {
   const route = [
@@ -198,5 +200,38 @@ describe('walk simulation speed profile', () => {
     const cruise = v(10);
     expect(v(0)).toBeLessThan(0.2 * cruise);
     expect(v(reach - 0.1)).toBeLessThan(0.2 * cruise);
+  });
+});
+
+describe('camera flight peak', () => {
+  const mars = new Ellipsoid(3_396_190, 3_396_190, 3_396_190);
+  // Jezero floor is ~2.5 km below the reference sphere: heights here are negative, as in the app.
+  const at = (lat: number, lon: number, h: number) => Cartesian3.fromDegrees(lon, lat, h, mars);
+  it('a nearby place is a short glide, never a climb toward orbit', () => {
+    // ~320 m away: at most a few tens of metres above the higher end (it climbed to 6,000 km).
+    const peak = flightPeak(at(18.44, 77.45, -1300), at(18.445, 77.452, -1250), mars);
+    expect(peak - -1250).toBeGreaterThanOrEqual(0);
+    expect(peak - -1250).toBeLessThan(40);
+    // Same place, nothing to cross: no climb at all.
+    expect(flightPeak(at(18.44, 77.45, -1300), at(18.44, 77.45, -1250), mars)).toBeCloseTo(
+      -1250,
+      3,
+    );
+  });
+
+  it('a distant place at the same height gets a hop proportional to the distance', () => {
+    const peak = flightPeak(at(18.4, 77.4, -1300), at(18.4, 77.5, -1300), mars); // ~5.6 km
+    expect(peak - -1300).toBeGreaterThan(800);
+    expect(peak - -1300).toBeLessThan(1200);
+  });
+
+  it('orbit to surface is a plain descent (never above the start)', () => {
+    const start = 9_500_000;
+    expect(flightPeak(at(18.44, 77.45, start), at(18.45, 77.4, -1300), mars)).toBeCloseTo(start, 0);
+  });
+
+  it('short trips are quick, long ones take the requested time', () => {
+    expect(flightSeconds(at(18.44, 77.45, -1300), at(18.441, 77.45, -1300), 3)).toBeLessThan(1.4);
+    expect(flightSeconds(at(18.44, 77.45, 9_500_000), at(18.44, 77.45, -1300), 3)).toBe(3);
   });
 });

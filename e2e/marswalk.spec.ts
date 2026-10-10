@@ -144,3 +144,44 @@ test('zooming out of the oblique Jezero view straightens it; 2D / 3D toggles the
   await toggle.click();
   await expect.poll(scene, { timeout: 10_000 }).toBeLessThan(2);
 });
+
+test('flying to a nearby place glides from the current view (no climb toward orbit)', async ({
+  page,
+}) => {
+  await openApp(page);
+  await page.getByRole('button', { name: 'Explore Jezero' }).click();
+  await page.waitForTimeout(6000);
+  await page.getByRole('tab', { name: 'Science' }).click();
+  const show = async (i: number) => {
+    const card = page.locator('[id^="poi-card-"]').nth(i);
+    if (!(await card.evaluate((e) => (e as HTMLDetailsElement).open)))
+      await card.locator('summary').click();
+    await card.getByRole('button', { name: 'Show on map' }).click();
+  };
+  // Highest camera height (m above the reference sphere) over the next few seconds.
+  const highest = async (action: () => Promise<void>) => {
+    await page.evaluate(() => {
+      const w = window as unknown as {
+        __copernico: {
+          widget: {
+            camera: { positionCartographic: { height: number } };
+            scene: { postRender: { addEventListener(f: () => void): void } };
+          };
+        };
+        __max: number;
+      };
+      w.__max = -Infinity;
+      const cam = w.__copernico.widget.camera;
+      w.__copernico.widget.scene.postRender.addEventListener(() => {
+        w.__max = Math.max(w.__max, cam.positionCartographic.height);
+      });
+    });
+    await action();
+    await page.waitForTimeout(4000);
+    return page.evaluate(() => (window as unknown as { __max: number }).__max);
+  };
+  // From the operational view (~10 km up) down to a place: a descent, never above the start.
+  expect(await highest(() => show(0))).toBeLessThan(15_000);
+  // Between two places on the crater floor (~2.5 km below the sphere): a short hop at most.
+  expect(await highest(() => show(1))).toBeLessThan(2_000);
+});

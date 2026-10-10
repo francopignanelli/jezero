@@ -50,6 +50,7 @@ import { AnnotationLayer, type Annotation } from './annotations';
 import { tintImage, type Tint } from './tint';
 import { startWalk, type WalkRun, type WalkSpec } from './walkSim';
 import { installCameraConstraints, maxTiltDeg } from './cameraConstraints';
+import { flightPeak, flightSeconds, viewpoint } from './flight';
 import { SkyRenderer, type SkyQuality } from './sky';
 
 /**
@@ -996,11 +997,14 @@ export class MarsScene {
     const fovy = frustum.fovy ?? Math.PI / 3;
     const fovx = 2 * Math.atan(Math.tan(fovy / 2) * (frustum.aspectRatio ?? 1));
     const range = Math.max(1_400, (1.15 * sphere.radius) / Math.sin(Math.min(fovx, fovy) / 2));
+    const pitch = CesiumMath.toRadians(-52);
+    const to = viewpoint(sphere.center, heading, pitch, range, MARS_SPHERE);
     return this.flight((done) =>
       this.widget.camera.flyToBoundingSphere(sphere, {
-        offset: new HeadingPitchRange(heading, CesiumMath.toRadians(-52), range),
+        offset: new HeadingPitchRange(heading, pitch, range),
         duration: this.reducedMotion ? 0 : seconds,
         easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+        maximumHeight: flightPeak(this.widget.camera.positionWC, to, MARS_SPHERE),
         complete: done,
         cancel: done,
       }),
@@ -1204,7 +1208,7 @@ export class MarsScene {
     const lat = t.lat - (horizontal * Math.cos(h)) / mPerDeg;
     const lon =
       t.lon - (horizontal * Math.sin(h)) / (mPerDeg * Math.cos(CesiumMath.toRadians(t.lat)));
-    const viewpoint = async () => {
+    const pose = async () => {
       const [ground] = await this.sampleTerrain([{ lat, lon }]);
       const height = Math.max(
         t.heightM + rangeM * Math.sin(CesiumMath.toRadians(elevationDeg)),
@@ -1215,13 +1219,15 @@ export class MarsScene {
         pitch: -Math.atan2(height - t.heightM, horizontal),
       };
     };
-    const first = await viewpoint();
+    const first = await pose();
+    const from = this.widget.camera.positionWC;
     await this.flight((done) =>
       this.widget.camera.flyTo({
         destination: first.destination,
         orientation: { heading: h, pitch: first.pitch, roll: 0 },
-        duration: this.reducedMotion ? 0 : 3,
+        duration: this.reducedMotion ? 0 : flightSeconds(from, first.destination, 3),
         easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+        maximumHeight: flightPeak(from, first.destination, MARS_SPHERE),
         complete: done,
         cancel: done,
       }),
@@ -1248,7 +1254,7 @@ export class MarsScene {
       Math.abs(camera.pitch - landed.pitch) > 1e-3
     )
       return;
-    const settled = await viewpoint();
+    const settled = await pose();
     if (Cartesian3.distance(settled.destination, camera.positionWC) < 0.5) return;
     camera.setView({
       destination: settled.destination,
@@ -1324,11 +1330,14 @@ export class MarsScene {
     const camera = this.widget.camera;
     const range = Cartesian3.distance(camera.positionWC, target);
     const tilt = Math.min(tiltDeg, maxTiltDeg(this.heightAboveGround()));
+    const pitch = CesiumMath.toRadians(tilt - 90);
+    const to = viewpoint(target, headingRad, pitch, range, MARS_SPHERE);
     return this.flight((done) =>
       camera.flyToBoundingSphere(new BoundingSphere(target, 0), {
-        offset: new HeadingPitchRange(headingRad, CesiumMath.toRadians(tilt - 90), range),
+        offset: new HeadingPitchRange(headingRad, pitch, range),
         duration: this.reducedMotion ? 0 : 0.9,
         easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+        maximumHeight: flightPeak(camera.positionWC, to, MARS_SPHERE),
         complete: done,
         cancel: done,
       }),
@@ -1439,17 +1448,19 @@ export class MarsScene {
     pitchDeg: number,
     seconds: number,
   ): Promise<void> {
+    const from = this.widget.camera.positionWC;
+    const to = toCartesian(lat, lon, heightM);
     return this.flight((done) =>
       this.widget.camera.flyTo({
-        destination: toCartesian(lat, lon, heightM),
+        destination: to,
         orientation: {
           heading: CesiumMath.toRadians(headingDeg),
           pitch: CesiumMath.toRadians(pitchDeg),
           roll: 0,
         },
-        duration: this.reducedMotion ? 0 : seconds,
+        duration: this.reducedMotion ? 0 : flightSeconds(from, to, seconds),
         easingFunction: EasingFunction.QUADRATIC_IN_OUT,
-        maximumHeight: 6_000_000,
+        maximumHeight: flightPeak(from, to, MARS_SPHERE),
         complete: done,
         cancel: done,
       }),
@@ -1466,22 +1477,20 @@ export class MarsScene {
     pitchDeg: number,
     seconds: number,
   ): Promise<void> {
+    const target = toCartesian(lat, lon, heightM);
+    const heading = CesiumMath.toRadians(headingDeg);
+    const pitch = CesiumMath.toRadians(pitchDeg);
+    const from = this.widget.camera.positionWC;
+    const to = viewpoint(target, heading, pitch, rangeM, MARS_SPHERE);
     return this.flight((done) =>
-      this.widget.camera.flyToBoundingSphere(
-        new BoundingSphere(toCartesian(lat, lon, heightM), 1),
-        {
-          offset: new HeadingPitchRange(
-            CesiumMath.toRadians(headingDeg),
-            CesiumMath.toRadians(pitchDeg),
-            rangeM,
-          ),
-          duration: this.reducedMotion ? 0 : seconds,
-          easingFunction: EasingFunction.QUADRATIC_IN_OUT,
-          maximumHeight: 6_000_000,
-          complete: done,
-          cancel: done,
-        },
-      ),
+      this.widget.camera.flyToBoundingSphere(new BoundingSphere(target, 1), {
+        offset: new HeadingPitchRange(heading, pitch, rangeM),
+        duration: this.reducedMotion ? 0 : flightSeconds(from, to, seconds),
+        easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+        maximumHeight: flightPeak(from, to, MARS_SPHERE),
+        complete: done,
+        cancel: done,
+      }),
     );
   }
 

@@ -16,6 +16,7 @@ import {
 } from 'cesium';
 import { normalizeLon180 } from '@copernico/domain';
 import { pointAt, type Track } from '../lib/routeTrack';
+import { flightPeak } from './flight';
 
 /**
  * Cinematic walk simulation along a computed route. Everything moves inside the render loop
@@ -503,6 +504,7 @@ export function startWalk(ctx: WalkContext, spec: WalkSpec): WalkRun {
       orientation,
       duration: 2.4,
       easingFunction: EasingFunction.QUADRATIC_IN_OUT,
+      maximumHeight: flightPeak(save.position, destination, ellipsoid),
       complete: () => {
         phase = 'walk';
         last = frameTime();
