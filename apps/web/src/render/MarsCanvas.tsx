@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useApp, type LayerId } from '../app/store';
 import { DATA_VERSION, JEZERO_OPERATIONAL_VIEW, dataUrl } from '../config';
 import { PANORAMAS, POIS, panoramaForPoi } from '../data/catalog';
+import { MARS_FEATURES } from '../data/marsFeatures';
 import {
   loadCoverage,
   loadCrism,
@@ -105,7 +106,8 @@ export const REACH_BANDS_H = [
 /** Crater-scale rectangle used to dim terrain outside route-planning coverage. */
 const CRATER_RECT: LonLatRect = { west: 77.0, south: 17.6, east: 78.58, north: 19.28 };
 /** Jezero centre and label (USGS Gazetteer). */
-const JEZERO_LABEL = { lat: 18.41, lon: 77.69 };
+/** Jezero crater centre (IAU Gazetteer). */
+const JEZERO_LABEL = { lat: 18.38, lon: 77.58 };
 
 export function MarsCanvas() {
   const { t } = useTranslation();
@@ -707,6 +709,20 @@ async function loadSurfaceLayers(scene: MarsScene, shown: Promise<void>): Promis
       minCameraDistanceM: 350_000,
     },
   ]);
+  // Context from orbit: the major named features, under Jezero (it always wins an overlap).
+  scene.setAnnotations(
+    'features',
+    MARS_FEATURES.map((f): Annotation => ({
+      id: f.id,
+      lat: f.lat,
+      lon: f.lon,
+      heightM: f.heightM,
+      text: f.name,
+      kind: 'feature',
+      priority: 120 - 20 * f.rank,
+      minCameraDistanceM: 900_000,
+    })),
+  );
 
   void shown
     .then(async () => {

@@ -10,7 +10,7 @@ import { MARS_SPHERE_RADIUS_M, normalizeLon180 } from '@copernico/domain';
  * label above at one of a few stem heights. The dot replaces a WebGL point, which terrain clips into
  * a half-buried dome; dots stay visible when their label has no room.
  */
-export type AnnotationKind = 'waypoint' | 'poi' | 'rover' | 'region' | 'panorama';
+export type AnnotationKind = 'waypoint' | 'poi' | 'rover' | 'region' | 'feature' | 'panorama';
 
 export interface Annotation {
   id: string;
@@ -39,6 +39,8 @@ interface Placed {
   /** Pins only. */
   stem?: HTMLElement;
   dot?: HTMLElement;
+  /** Place-name labels: a small mark exactly at the named position (the label sits beside it). */
+  mark?: HTMLElement;
   anchor: Cartesian3;
   a: Annotation;
   width: number;
@@ -46,6 +48,7 @@ interface Placed {
 }
 
 const PIN_KINDS: ReadonlySet<AnnotationKind> = new Set(['poi', 'rover', 'panorama']);
+const MARK_KINDS: ReadonlySet<AnnotationKind> = new Set(['region', 'feature']);
 /** Stem lengths tried in turn (px), so nearby pins stagger instead of hiding their labels. */
 const STEMS = [16, 38, 60, 84] as const;
 const DOT_PX = 10;
@@ -107,6 +110,7 @@ export class AnnotationLayer {
       p.el.remove();
       p.stem?.remove();
       p.dot?.remove();
+      p.mark?.remove();
     }
     const placed = items.map((a): Placed => {
       let stem: HTMLElement | undefined;
@@ -151,9 +155,16 @@ export class AnnotationLayer {
         el.appendChild(chip);
       }
       this.root.appendChild(el);
+      let mark: HTMLElement | undefined;
+      if (MARK_KINDS.has(a.kind)) {
+        mark = document.createElement('div');
+        mark.className = `annotation-mark annotation-mark-${a.kind}`;
+        this.root.appendChild(mark);
+      }
       return {
         el,
         ...(stem && dot ? { stem, dot } : {}),
+        ...(mark ? { mark } : {}),
         a,
         anchor: Cartesian3.fromDegrees(
           normalizeLon180(a.lon),
@@ -206,6 +217,7 @@ export class AnnotationLayer {
         p.el.style.visibility = 'hidden';
         if (p.stem) p.stem.style.visibility = 'hidden';
         if (p.dot) p.dot.style.visibility = 'hidden';
+        if (p.mark) p.mark.style.visibility = 'hidden';
         if (this.hidden.has(group)) continue;
         const d = Cartesian3.distance(camera, p.anchor);
         if (p.a.maxCameraDistanceM !== undefined && d > p.a.maxCameraDistanceM) continue;
@@ -302,6 +314,10 @@ export class AnnotationLayer {
         c.el.style.visibility = 'visible';
         c.el.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
         c.el.dataset.side = side;
+        if (c.mark) {
+          c.mark.style.visibility = 'visible';
+          c.mark.style.transform = `translate3d(${Math.round(c.x)}px, ${Math.round(c.y)}px, 0)`;
+        }
         break;
       }
     }
