@@ -34,8 +34,12 @@ export async function openApp(page: Page, path = '/', { fresh = false } = {}): P
 
 /** Loads the guided Marswalk and computes it. */
 export async function computeGuided(page: Page): Promise<void> {
+  await page.getByRole('tab', { name: 'Marswalk' }).click();
   await page.getByRole('button', { name: 'Load guided Marswalk' }).click();
-  await expect(page.getByRole('tab', { name: 'Plan' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Marswalk' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   await page.getByRole('button', { name: 'Calculate routes' }).click();
-  await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('.metrics').first()).toBeVisible({ timeout: 60_000 });
 }

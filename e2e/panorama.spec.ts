@@ -1,14 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { openApp, trackExternalRequests } from './helpers';
 
-test('360° panorama: opens from the rover card, loads the local image, closes with Esc', async ({
+test('360° panorama: opens from the gallery, loads the local image, closes with Esc', async ({
   page,
 }) => {
   const external = trackExternalRequests(page);
   await openApp(page);
-  await page.getByRole('tab', { name: 'Science' }).click();
-  const image = page.waitForResponse((r) => r.url().includes('/panoramas/') && r.ok());
-  await page.getByRole('button', { name: /Look around \(360°, sol 1717\)/ }).click();
+  await page.getByRole('tab', { name: 'Surface' }).click();
+  const image = page.waitForResponse((r) => r.url().includes('_8k.webp') && r.ok());
+  await page.locator('.pano-card', { hasText: 'Crocodile Bridge' }).click(); // 360° gallery, Surface tab
 
   const dialog = page.getByRole('dialog', { name: /Crocodile Bridge/ });
   await expect(dialog).toBeVisible();
@@ -26,7 +26,7 @@ test('a point of interest opens the real panorama taken there, with a measured c
   page,
 }) => {
   await openApp(page);
-  await page.getByRole('tab', { name: 'Science' }).click();
+  await page.getByRole('tab', { name: 'Surface' }).click();
   await page.locator('summary', { hasText: 'Three Forks sample depot' }).click();
   await page.getByRole('button', { name: 'Look around (360°, sol 670)' }).click();
   const dialog = page.getByRole('dialog', { name: 'Three Forks sample depot' });
@@ -42,7 +42,7 @@ test('walking from one panorama to another loads the next view (no black screen)
   page,
 }) => {
   await openApp(page);
-  await page.getByRole('tab', { name: 'Science' }).click();
+  await page.getByRole('tab', { name: 'Surface' }).click();
   await page.locator('summary', { hasText: 'Three Forks sample depot' }).click();
   await page.getByRole('button', { name: 'Look around (360°, sol 670)' }).click();
   await expect(page.getByRole('dialog', { name: 'Three Forks sample depot' })).toBeVisible();
@@ -65,7 +65,7 @@ test('360° HUD: mission facts, look at a place, unimaged areas and the next pan
   page,
 }) => {
   await openApp(page);
-  await page.getByRole('tab', { name: 'Science' }).click();
+  await page.getByRole('tab', { name: 'Surface' }).click();
   await page.locator('summary', { hasText: 'Three Forks sample depot' }).click();
   await page.getByRole('button', { name: 'Look around (360°, sol 670)' }).click();
   const dialog = page.getByRole('dialog', { name: 'Three Forks sample depot' });
@@ -92,7 +92,7 @@ test('auto-tour: looks around, flies along the traverse to the next panorama, an
   page,
 }) => {
   await openApp(page);
-  await page.getByRole('tab', { name: 'Science' }).click();
+  await page.getByRole('tab', { name: 'Surface' }).click();
   await page.getByRole('button', { name: /^Tour all \d+ 360° views along the path$/ }).click();
   await expect(page.getByRole('dialog', { name: 'Octavia E. Butler Landing' })).toBeVisible();
   const tourBar = page.locator('.pano-tour');

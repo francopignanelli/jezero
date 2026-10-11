@@ -4,7 +4,8 @@ import { create } from 'zustand';
 import type { OverlayKind } from '../features/routes/overlays';
 
 export type Mode = 'orbit' | 'jezero';
-export type Tab = 'explore' | 'route' | 'science' | 'environment';
+/** One tab per activity: the planet, the Jezero surface, planning a Marswalk, conditions. */
+export type Tab = 'mars' | 'surface' | 'marswalk' | 'conditions';
 
 export type LayerId =
   | 'viking'
@@ -92,6 +93,12 @@ interface AppState {
   setWelcomeOpen(open: boolean): void;
   tourStep: number | null;
   setTourStep(step: number | null): void;
+  /** Demo mode: the tour runs by itself (actions included), with its cards as captions. */
+  tourAuto: boolean;
+  setTourAuto(auto: boolean): void;
+  /** "Things to try" dialog. */
+  checklistOpen: boolean;
+  setChecklistOpen(open: boolean): void;
   glossary: { open: boolean; term: string | null };
   openGlossary(term?: string | null): void;
   closeGlossary(): void;
@@ -119,6 +126,8 @@ interface AppState {
   setSceneReady(v: boolean): void;
   setMode(mode: Mode): void;
   setTab(tab: Tab): void;
+  /** Opens a tab and takes the camera to its place: Mars → orbit, Surface/Marswalk → Jezero. */
+  goTo(tab: Tab): void;
   setPanelOpen(open: boolean): void;
   setLayer(id: LayerId, visible: boolean): void;
   addWaypoint(w: Omit<WaypointEntry, 'id'>): void;
@@ -159,7 +168,7 @@ const withId = (w: Omit<WaypointEntry, 'id'>): WaypointEntry => ({ ...w, id: `wp
 
 export const useApp = create<AppState>((set) => ({
   mode: 'orbit',
-  tab: 'explore',
+  tab: 'mars',
   panelOpen: true,
   layers: {
     viking: true,
@@ -203,6 +212,10 @@ export const useApp = create<AppState>((set) => ({
   setWelcomeOpen: (welcomeOpen) => set({ welcomeOpen }),
   tourStep: null,
   setTourStep: (tourStep) => set({ tourStep }),
+  tourAuto: false,
+  setTourAuto: (tourAuto) => set({ tourAuto }),
+  checklistOpen: false,
+  setChecklistOpen: (checklistOpen) => set({ checklistOpen }),
   glossary: { open: false, term: null },
   openGlossary: (term = null) => set({ glossary: { open: true, term } }),
   closeGlossary: () => set({ glossary: { open: false, term: null } }),
@@ -226,6 +239,12 @@ export const useApp = create<AppState>((set) => ({
   setSceneReady: (sceneReady) => set({ sceneReady }),
   setMode: (mode) => set({ mode }),
   setTab: (tab) => set({ tab, panelOpen: true }),
+  goTo: (tab) =>
+    set((s) => ({
+      tab,
+      panelOpen: true,
+      mode: tab === 'mars' ? 'orbit' : tab === 'conditions' ? s.mode : 'jezero',
+    })),
   setPanelOpen: (panelOpen) => set({ panelOpen }),
   setLayer: (id, visible) => set((s) => ({ layers: { ...s.layers, [id]: visible } })),
   addWaypoint: (w) => set((s) => ({ waypoints: [...s.waypoints, withId(w)], result: null })),

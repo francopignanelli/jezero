@@ -2,7 +2,8 @@ import type { ComponentType, SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AssistantDock } from '../features/assistant/AssistantDock';
 import { EnvironmentPanel } from '../features/environment/EnvironmentPanel';
-import { ExplorePanel } from '../features/exploration/ExplorePanel';
+import { MarsPanel } from '../features/exploration/MarsPanel';
+import { Checklist } from '../features/guide/Checklist';
 import { Glossary } from '../features/guide/Glossary';
 import { Tour } from '../features/guide/Tour';
 import { TourTravel } from '../features/panorama/PanoramaTour';
@@ -11,14 +12,14 @@ import { Welcome } from '../features/guide/Welcome';
 import { InspectorCard } from '../features/inspector/InspectorCard';
 import { LayersControl } from '../features/layers/LayersControl';
 import { ViewControl } from '../features/view/ViewControl';
-import { WalkHud } from '../features/routes/WalkHud';
+import { SimulateButton, WalkHud } from '../features/routes/WalkHud';
 import { MapLegend } from '../features/layers/Legends';
 import { useShareLinkLoader } from '../features/missions/MissionControls';
 import { RoutePanel } from '../features/routes/RoutePanel';
-import { SciencePanel } from '../features/science/SciencePanel';
+import { SurfacePanel } from '../features/science/SurfacePanel';
 import { FEATURES } from '../config';
 import { MarsCanvas } from '../render/MarsCanvas';
-import { IconGlobe, IconRoute, IconScience, IconSun, IconX } from '../ui/icons';
+import { IconGlobe, IconRoute, IconSun, IconSurface, IconX } from '../ui/icons';
 import { LoadingScreen } from './LoadingScreen';
 import { PrototypeNotice } from './PrototypeNotice';
 import { Toast } from './Toast';
@@ -30,16 +31,16 @@ const TABS: Array<{
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   panel: ComponentType;
 }> = [
-  { id: 'explore', icon: IconGlobe, panel: ExplorePanel },
-  { id: 'route', icon: IconRoute, panel: RoutePanel },
-  { id: 'science', icon: IconScience, panel: SciencePanel },
-  { id: 'environment', icon: IconSun, panel: EnvironmentPanel },
+  { id: 'mars', icon: IconGlobe, panel: MarsPanel },
+  { id: 'surface', icon: IconSurface, panel: SurfacePanel },
+  { id: 'marswalk', icon: IconRoute, panel: RoutePanel },
+  { id: 'conditions', icon: IconSun, panel: EnvironmentPanel },
 ];
 
 export function App() {
   const { t } = useTranslation();
   const tab = useApp((s) => s.tab);
-  const setTab = useApp((s) => s.setTab);
+  const goTo = useApp((s) => s.goTo);
   const panelOpen = useApp((s) => s.panelOpen);
   const setPanelOpen = useApp((s) => s.setPanelOpen);
   const picking = useApp((s) => s.picking);
@@ -52,7 +53,7 @@ export function App() {
         {t('app.skipToMain')}
       </a>
       <TopBar />
-      <nav className="rail" aria-label={t('nav.label')}>
+      <nav className="rail" aria-label={t('nav.label')} data-tour="tabs">
         <div role="tablist" aria-orientation="vertical" style={{ display: 'contents' }}>
           {TABS.map(({ id, icon: Icon }) => (
             <button
@@ -64,8 +65,9 @@ export function App() {
               aria-selected={tab === id}
               aria-controls="panel"
               title={tab === id && panelOpen ? t('nav.hidePanel') : undefined}
-              // Selecting the open tab again hides the panel and gives the map the full width.
-              onClick={() => (tab === id && panelOpen ? setPanelOpen(false) : setTab(id))}
+              // Selecting the open tab again hides the panel and gives the map the full width;
+              // another tab also takes the camera to its place (orbit for Mars, Jezero otherwise).
+              onClick={() => (tab === id && panelOpen ? setPanelOpen(false) : goTo(id))}
             >
               <Icon />
               {t(`nav.${id}`)}
@@ -96,6 +98,7 @@ export function App() {
         <ViewControl />
         <MapLegend />
         <WalkHud />
+        <SimulateButton />
         <InspectorCard />
         <Toast />
         {picking && (
@@ -110,6 +113,7 @@ export function App() {
       <Welcome />
       <Tour />
       <Glossary />
+      <Checklist />
       <PanoramaViewer />
       <TourTravel />
     </div>

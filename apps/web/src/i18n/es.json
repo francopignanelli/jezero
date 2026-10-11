@@ -23,31 +23,31 @@
     "plannedEvaShort": "EVA"
   },
   "nav": {
-    "explore": "Explorar",
     "layers": "Capas",
-    "route": "Planificar",
-    "science": "Ciencia",
-    "environment": "Condiciones",
     "label": "Paneles principales",
-    "hidePanel": "Ocultar panel"
+    "hidePanel": "Ocultar panel",
+    "mars": "Marte",
+    "surface": "Superficie",
+    "marswalk": "Caminata",
+    "conditions": "Condiciones"
   },
   "explore": {
     "title": "Explorar Marte",
-    "intro": "Estás viendo Marte. El área delimitada en el cráter Jezero es donde la planificación detallada de caminatas cuenta con datos de terreno de 1 m.",
+    "intro": "Marte desde la órbita. Las formaciones principales están rotuladas en sus posiciones oficiales (UAI). El cráter Jezero, en naranja, es donde trabaja Copernico: explorá su superficie y planificá caminatas ahí.",
     "exploreJezero": "Explorar Jezero",
-    "backToOrbit": "Volver a la órbita",
     "coverage": "Cobertura para planificar rutas",
     "coverageNote": "Modelo de elevación de 1 m derivado de HiRISE. Fuera de este contorno Copernico no calcula rutas.",
-    "guided": "Caminata guiada",
     "guidedDescription": "Sitio de aterrizaje → depósito de muestras Three Forks → frente del delta en Hawksbill Gap, con regreso al inicio.",
     "startGuided": "Cargar caminata guiada",
-    "steps": {
-      "one": "1 · Viajá a Jezero",
-      "two": "2 · Elegí un inicio, paradas y un destino",
-      "three": "3 · Compará rutas y leé por qué difieren",
-      "four": "4 · Revisá luz diurna, margen de regreso y paradas científicas"
-    },
-    "missions": "Misiones de la NASA en este mapa"
+    "missions": "Misiones de la NASA en este mapa",
+    "whyTitle": "¿Por qué Jezero?",
+    "why": "Un cráter de 45 km que tuvo un lago hace unos 3.500 millones de años; el delta que dejó el río todavía se conserva en su lado oeste. El rover Perseverance de la NASA lo explora desde febrero de 2021 y recoge muestras de roca para un posible regreso a la Tierra.",
+    "nextTitle": "Qué podés hacer",
+    "next": {
+      "surface": "Vistas 360° reales, el rover, sitios científicos y mapas del suelo",
+      "marswalk": "Planificar una caminata paso a paso y simularla",
+      "conditions": "Hora, Sol, estación y clima medido"
+    }
   },
   "layers": {
     "title": "Capas de datos",
@@ -142,7 +142,7 @@
   },
   "route": {
     "title": "Planificar una caminata",
-    "intro": "Elegí puntos en el mapa o agregalos desde las listas. Las rutas se mantienen dentro del contorno de cobertura.",
+    "intro": "Cinco pasos: elegí las paradas, calculá, revisá, simulá y guardá o compartí. Las rutas quedan dentro del contorno de cobertura.",
     "waypoints": "Puntos de ruta",
     "start": "Inicio",
     "stop": "Parada {{n}}",
@@ -184,11 +184,22 @@
     "profileHint": "Perfil de elevación (m). Pasá el cursor o usá las flechas para seguir la ruta en el mapa.",
     "dwellUnit": "min en la parada",
     "dwellAria": "Minutos en {{name}}",
-    "play": "▶ Reproducir misión",
+    "play": "▶ Simular la caminata",
     "stopPlay": "■ Detener",
     "playHint": "Caminata cinematográfica por la ruta elegida, con el reloj de EVA y la pendiente bajo los pies; tocá el mapa para detenerla.",
     "playReduced": "Desactivado porque está activado el movimiento reducido.",
-    "colourBySlope": "Colorear la ruta según la pendiente"
+    "colourBySlope": "Colorear la ruta según la pendiente",
+    "simulateMap": "Simular la caminata",
+    "steps": {
+      "stops": "Elegí las paradas",
+      "calculate": "Calculá las rutas",
+      "review": "Revisá el plan",
+      "reviewHint": "Calculá una ruta para ver distancia, tiempo, la línea de tiempo con luz diurna, el perfil de elevación y paradas científicas cercanas.",
+      "simulate": "Simulá la caminata",
+      "simulateHint": "Cuando haya una ruta: una caminata cinematográfica con reloj de EVA y la pendiente bajo los pies.",
+      "save": "Guardá y compartí",
+      "saveHint": "Cuando haya una ruta: guardala en este navegador, copiá un enlace para compartir, exportá GeoJSON o CSV, o imprimí un informe."
+    }
   },
   "metrics": {
     "distance": "Distancia",
@@ -233,8 +244,6 @@
     }
   },
   "science": {
-    "title": "Ciencia en el camino",
-    "intro": "Sitios con fuente donde trabajó Perseverance y qué podría investigar una tripulación allí.",
     "pois": "Puntos de interés",
     "samples": "Muestras de Perseverance",
     "rover": "Perseverance",
@@ -421,29 +430,39 @@
     "title": "Planificá una caminata en Marte",
     "lede": "Copernico combina datos de cinco misiones de la NASA para ayudar a futuros astronautas a planificar una caminata segura en Marte, y a hacer ciencia en el camino.",
     "cards": {
-      "explore": {
-        "title": "Explorá",
-        "body": "Volá desde la órbita hasta el cráter Jezero, donde Perseverance explora un antiguo lago."
+      "mars": {
+        "title": "Marte",
+        "body": "Todo el planeta, sus formaciones principales y la entrada al cráter Jezero."
       },
-      "plan": {
-        "title": "Planificá",
-        "body": "Elegí puntos y obtené la ruta de menor riesgo, sus tiempos y un control de luz diurna."
+      "surface": {
+        "title": "Superficie",
+        "body": "Vistas 360° reales, Perseverance en 3D, sitios científicos y mapas del suelo."
       },
-      "science": {
-        "title": "Descubrí",
-        "body": "Mirá sitios científicos, mapas de minerales y qué podría estudiar la tripulación en el camino."
+      "marswalk": {
+        "title": "Caminata",
+        "body": "Planificá una caminata en cinco pasos, revisá la luz diurna y el margen de regreso, y simulala."
+      },
+      "conditions": {
+        "title": "Condiciones",
+        "body": "Hora, Sol, estación y el clima que midió Perseverance."
       }
     },
-    "tour": "Hacer el recorrido de 2 minutos",
+    "tour": "Hacer el recorrido (4 capítulos cortos)",
     "explore": "Explorar por mi cuenta",
-    "later": "Podés volver a abrir el recorrido con el botón ? de arriba. ¿Dudas con alguna palabra?",
-    "glossary": "Abrir el glosario"
+    "later": "El botón ? de arriba tiene el recorrido, un modo demo y “Cosas para probar”, una lista de todo lo que hace Copernico. ¿Dudas con alguna palabra?",
+    "glossary": "Abrir el glosario",
+    "demo": "Verlo andar solo"
   },
   "help": {
     "label": "Ayuda",
-    "tour": "Recorrido guiado",
+    "tour": "Recorrido guiado desde el inicio",
     "glossary": "Glosario de términos",
-    "about": "¿Qué es Copernico?"
+    "about": "¿Qué es Copernico?",
+    "resume": "Seguir el recorrido ({{chapter}}, paso {{n}})",
+    "chapters": "O empezá un capítulo:",
+    "chapter": "Empezar el capítulo {{chapter}}",
+    "checklist": "Cosas para probar ({{done}}/{{total}})",
+    "demo": "Modo demo (anda solo)"
   },
   "tour": {
     "stepOf": "Paso {{n}} de {{total}}",
@@ -457,31 +476,31 @@
     "steps": {
       "planet": {
         "title": "Esto es Marte",
-        "body": "Un modelo 3D de Marte hecho con imágenes y datos de elevación de orbitadores de la NASA. Arrastrá para girarlo; usá la rueda o pellizcá para acercarte.\nLas estrellas, los planetas y la Vía Láctea del fondo están donde realmente están, vistos desde Marte a la hora planificada de la caminata.\nTocá Siguiente, o dejá que el recorrido haga un paso por vos con “Hacelo por mí”. Esc sale del recorrido cuando quieras."
+        "body": "Un modelo 3D de Marte hecho con imágenes y datos de elevación de orbitadores de la NASA. Arrastrá para girarlo; usá la rueda o pellizcá para acercarte. Las formaciones principales están rotuladas en sus posiciones oficiales, y el cráter Jezero, en naranja, es donde pasa todo en Copernico.\nLas estrellas y la Vía Láctea del fondo están donde realmente están, vistas desde Marte a la hora planificada de la caminata.\nTocá Siguiente, o dejá que el recorrido haga un paso por vos con “Hacelo por mí”. Esc sale del recorrido cuando quieras."
       },
       "panels": {
-        "title": "El menú",
-        "body": "Estos cuatro botones abren el panel lateral: Explorar (empezá acá), Planificar (tu caminata), Ciencia (qué estudiar) y Condiciones (hora, Sol y datos del clima). Tocá de nuevo el que está abierto para ocultar el panel y ver más mapa."
+        "title": "Cuatro pestañas, una por actividad",
+        "body": "Marte (el planeta), Superficie (Jezero de cerca: vistas 360°, el rover, sitios científicos), Caminata (planificar y simular una caminata) y Condiciones (hora, Sol y datos del clima). Cada pestaña lleva la cámara a su lugar. Tocá de nuevo la pestaña abierta para ocultar el panel."
       },
       "jezero": {
         "title": "Volá al cráter Jezero",
-        "body": "Jezero es un cráter de 45 km que tuvo un lago hace unos 3.500 millones de años. El rover Perseverance de la NASA lo explora desde 2021. Este botón te lleva hasta ahí."
+        "body": "Jezero es un cráter de 45 km que tuvo un lago hace unos 3.500 millones de años. El rover Perseverance de la NASA lo explora desde 2021. Este botón te lleva ahí y abre la pestaña Superficie."
       },
       "area": {
-        "title": "El área de planificación",
-        "body": "El rectángulo marcado es el único lugar con detalle de terreno de 1 metro (de la cámara HiRISE). Las rutas solo se calculan adentro.\nLa línea naranja es el camino real que recorrió Perseverance. Los puntos violetas son sitios científicos: tocá uno para leer sobre él. Tocá el suelo en cualquier lugar para ver su altura y pendiente."
+        "title": "Jezero de cerca",
+        "body": "El rectángulo marcado es el único lugar con detalle de terreno de 1 metro (de la cámara HiRISE); las caminatas se planifican adentro.\nLa línea naranja es el camino real que recorrió Perseverance. Los puntos violetas son sitios científicos: tocá uno para leer sobre él."
       },
       "guided": {
-        "title": "Planificá una caminata",
-        "body": "Esto carga una caminata de ejemplo: desde el sitio de aterrizaje hasta el depósito de muestras y el frente del delta, y la vuelta. También podés elegir tus propios puntos en el mapa desde el panel Planificar."
+        "title": "Paso 1: elegí las paradas",
+        "body": "Elegí puntos en el mapa, escribí coordenadas o cargá la caminata guiada: sitio de aterrizaje → depósito de muestras → frente del delta, y regreso. Podés fijar cuánto trabaja la tripulación en cada parada."
       },
       "calculate": {
-        "title": "Calculá la ruta",
-        "body": "El planificador revisa cada cuadrado de 5 m de terreno, evita pendientes de más de 20° y busca el camino de menor riesgo estimado. Tarda alrededor de medio segundo."
+        "title": "Paso 2: calculá",
+        "body": "El planificador revisa cada cuadrado de 5 m de terreno, evita pendientes de más de 20° y encuentra el camino con el menor riesgo estimado. Tarda alrededor de medio segundo."
       },
       "results": {
-        "title": "Leé los resultados",
-        "body": "Distancia, tiempo estimado de caminata, cuánto sube el camino y la pendiente más fuerte.\nEl “margen de regreso” es el tiempo que queda antes del límite de 8 horas del traje, guardando siempre tiempo para volver. Verde significa que el plan entra."
+        "title": "Paso 3: revisá el plan",
+        "body": "Distancia, tiempo estimado de caminata, cuánto sube el camino y la pendiente más empinada.\nEl “margen de regreso” es el tiempo que queda antes del límite de 8 horas del traje, siempre dejando tiempo para volver caminando. Verde significa que el plan entra."
       },
       "alternatives": {
         "title": "¿Más segura o más corta?",
@@ -500,22 +519,54 @@
         "body": "Sitios científicos cerca de tu ruta, con el tiempo extra de caminata que suma cada uno. “Agregar parada” lo suma a tu plan y recalcula."
       },
       "layers": {
-        "title": "Capas del mapa",
-        "body": "Activá mapas extra: clases de pendiente, señales de minerales del espectrómetro CRISM, hasta dónde puede ir y volver la tripulación, y más. La ⓘ de cada capa explica de dónde vienen sus datos y sus límites."
+        "title": "Herramientas del mapa",
+        "body": "Siempre en el mapa: Capas (cada una con un ⓘ sobre su fuente de datos y sus límites), la brújula para mirar al norte y 2D/3D para mirar desde arriba o en ángulo."
       },
       "play": {
-        "title": "Ensayá la caminata",
-        "body": "“Reproducir misión” mueve la cámara a lo largo de la ruta en 30 segundos, como un adelanto de la caminata. Tocá el mapa para detenerlo."
+        "title": "Paso 4: simulá la caminata",
+        "body": "Una caminata cinematográfica por la ruta, con reloj de EVA, la pendiente bajo los pies y la llegada a cada parada. El mismo botón aparece en el mapa cada vez que hay una ruta lista. Tocá el mapa para detenerla."
       },
       "missions": {
-        "title": "Guardá y compartí",
-        "body": "Guardá el plan en este navegador, copiá un enlace que abre el mismo plan para cualquiera, o exportalo como GeoJSON, planilla (CSV) o un resumen para imprimir."
+        "title": "Paso 5: guardá y compartí",
+        "body": "Guardá el plan en este navegador, copiá un enlace que abre el mismo plan para cualquiera, o exportalo como GeoJSON, planilla (CSV) o informe imprimible."
       },
       "help": {
         "title": "La ayuda siempre está acá",
-        "body": "Volvé a abrir este recorrido o el glosario desde este botón ?.\nRecordá: las rutas muestran menor riesgo estimado con datos orbitales, nunca seguridad garantizada."
+        "body": "Desde ? podés seguir este recorrido, repetir un capítulo, verlo andar solo como demo o abrir “Cosas para probar”, una lista de todo lo que hace Copernico.\nRecordá: las rutas muestran menor riesgo estimado a partir de datos orbitales, nunca seguridad garantizada."
+      },
+      "panoramas": {
+        "title": "Vistas 360° reales",
+        "body": "Diez panorámicas unidas a partir de imágenes de Mastcam-Z de Perseverance, ubicadas donde se tomaron. Abrí una, o dejá que “Recorrer todas” pase por ellas en orden de misión, volando el camino real del rover entre una y otra."
+      },
+      "panoramaView": {
+        "title": "Mirá alrededor",
+        "body": "Arrastrá para mirar alrededor y usá la rueda para acercarte. La barra muestra el sol, la estación marciana y qué hay en cada dirección; el minimapa muestra hacia dónde mirás. El botón rayado muestra qué parte se completó (la cubierta del propio rover, debajo de la cámara). Esc la cierra."
+      },
+      "rover": {
+        "title": "Perseverance",
+        "body": "El rover en 3D en su última posición publicada. Debajo del botón, los chips muestran en el mapa todo su recorrido, los sitios de muestras y los vuelos del helicóptero Ingenuity."
+      },
+      "ground": {
+        "title": "De qué está hecho el suelo",
+        "body": "Mapas desde la órbita: señales de minerales del espectrómetro CRISM, inercia térmica (arena o roca), pendiente y altura. Una leyenda en el mapa explica los colores."
+      },
+      "inspect": {
+        "title": "Inspeccioná cualquier punto",
+        "body": "Tocá el suelo en cualquier lugar de Jezero: la tarjeta muestra su altura, pendiente y tipo de suelo, y si una tripulación podría caminar ahí. Desde la tarjeta podés sumar el punto a una caminata."
+      },
+      "pois": {
+        "title": "Sitios científicos",
+        "body": "Lugares donde trabajó Perseverance, por qué importan y qué podría investigar una tripulación. “Ver en el mapa” vuela hasta ahí; “Agregar como parada” lo suma a tu caminata."
+      },
+      "conditions": {
+        "title": "Cuándo caminar",
+        "body": "El inicio planificado de la EVA mueve el Sol de la escena, las estrellas y la línea de tiempo de la caminata: cambialo acá y mirá cómo se mueve la luz. Abajo están la altura del Sol, la estación, la ventana de luz diurna y el último clima medido por Perseverance (no en vivo)."
       }
-    }
+    },
+    "demo": "Demo",
+    "pause": "Pausar",
+    "resume": "Seguir",
+    "nextChapter": "Siguiente: {{chapter}}"
   },
   "glossary": {
     "title": "Glosario",
@@ -708,5 +759,35 @@
     "pause": "Pausar la caminata",
     "resume": "Seguir la caminata",
     "stopSim": "Terminar la simulación"
+  },
+  "surface": {
+    "title": "Superficie de Jezero",
+    "intro": "Jezero de cerca: vistas 360° reales tomadas por Perseverance, el propio rover, mapas del suelo y los sitios científicos.",
+    "panoramas": "Panorámicas 360° ({{count}})",
+    "panoramasNote": "Unidas a partir de imágenes de Mastcam-Z y ubicadas donde las tomó el rover, en orden de misión.",
+    "panoSol": "Sol {{sol}} · {{date}}",
+    "showOnMap": "Mostrar en el mapa:",
+    "groundTitle": "De qué está hecho el suelo",
+    "ground": "Mapas orbitales de minerales, arena o roca, pendiente y altura, cada uno con leyenda y nota de fuente (ⓘ en Capas).",
+    "inspectTip": "Consejo: tocá cualquier lugar del cráter para ver la altura, la pendiente y el tipo de suelo."
+  },
+  "checklist": {
+    "title": "Cosas para probar",
+    "close": "Cerrar",
+    "progress": "{{done}} de {{total}} hechas. Cada una muestra una parte distinta de Copernico.",
+    "done": " (hecho)",
+    "todo": " (pendiente)",
+    "show": "Mostrame",
+    "items": {
+      "jezero": "Volar al cráter Jezero",
+      "panorama": "Mirar alrededor en una panorámica 360° real",
+      "rover": "Visitar a Perseverance de cerca",
+      "inspect": "Inspeccionar el suelo en cualquier punto",
+      "layer": "Activar un mapa del suelo (minerales, arena, pendiente…)",
+      "route": "Calcular una caminata",
+      "simulate": "Simular la caminata",
+      "save": "Guardar, compartir o exportar una misión",
+      "conditions": "Cambiar la hora planificada de la EVA"
+    }
   }
 }

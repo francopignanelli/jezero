@@ -12,6 +12,5 @@ export function loadGuidedMarswalk(): void {
     }),
   );
   s.setReturnToStart(GUIDED_MISSION.returnToStart);
-  if (s.mode !== 'jezero') s.setMode('jezero');
-  s.setTab('route');
+  s.goTo('marswalk');
 }

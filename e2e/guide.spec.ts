@@ -12,7 +12,7 @@ test('first visit: welcome, then the guided tour drives the app to the end', asy
     .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
     .analyze();
   expect(a11y.violations.map((v) => v.id)).toEqual([]);
-  await page.getByRole('button', { name: 'Take the 2-minute tour' }).click();
+  await page.getByRole('button', { name: 'Take the tour (4 short chapters)' }).click();
   await expect(welcome).toHaveCount(0);
 
   const card = page.locator('.tour-card');
@@ -30,9 +30,13 @@ test('first visit: welcome, then the guided tour drives the app to the end', asy
   }
   await expect(card).toHaveCount(0);
   // The tour prepared the app itself: Jezero, the guided route and its results.
-  expect(titles).toContain('Read the results');
+  expect(titles).toContain('Real 360° views');
+  expect(titles).toContain('Step 3: review the plan');
+  expect(titles).toContain('When to walk');
   expect(titles.at(-1)).toBe('Help is always here');
-  await expect(page.locator('.metrics').first()).toContainText('km');
+  // The tour ends in Conditions; its Marswalk chapter left a computed route behind.
+  await page.getByRole('tab', { name: 'Marswalk' }).click();
+  await expect(page.locator('[data-tour="metrics"]')).toContainText('km');
 
   // The welcome does not come back on the next visit.
   await page.reload();

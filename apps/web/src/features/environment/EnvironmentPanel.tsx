@@ -59,7 +59,7 @@ export function EnvironmentPanel() {
       <p className="lede">{t('environment.intro')}</p>
       <p className="alert alert-info">{t('environment.noLive')}</p>
 
-      <label className="field" style={{ marginTop: 12 }}>
+      <label className="field" style={{ marginTop: 12 }} data-tour="eva-start">
         {t('environment.evaStart')}
         <input
           type="datetime-local"

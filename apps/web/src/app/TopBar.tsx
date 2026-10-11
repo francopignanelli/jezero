@@ -10,6 +10,7 @@ export function TopBar() {
   const { t, i18n } = useTranslation();
   const mode = useApp((s) => s.mode);
   const setTab = useApp((s) => s.setTab);
+  const goTo = useApp((s) => s.goTo);
   // One time source for the whole app: the planned EVA start drives this chip, the scene lighting,
   // the sky and the Conditions panel. "Now" is shown only inside Conditions, labelled as such.
   const eva = useApp((s) => s.evaStartUtcMs);
@@ -24,7 +25,15 @@ export function TopBar() {
       </div>
       <nav aria-label="Breadcrumb">
         <ol className="breadcrumb">
-          <li aria-current={mode === 'orbit' ? 'location' : undefined}>{t('breadcrumb.mars')}</li>
+          {mode === 'orbit' ? (
+            <li aria-current="location">{t('breadcrumb.mars')}</li>
+          ) : (
+            <li>
+              <button type="button" className="crumb-link" onClick={() => goTo('mars')}>
+                {t('breadcrumb.mars')}
+              </button>
+            </li>
+          )}
           {mode === 'jezero' && (
             <>
               <li>{t('breadcrumb.jezero')}</li>
@@ -38,7 +47,7 @@ export function TopBar() {
         type="button"
         className="time-chip"
         title={`${t('status.plannedEvaHint')} ${t('status.calculated')}`}
-        onClick={() => setTab('environment')}
+        onClick={() => setTab('conditions')}
       >
         <span className="tag tag-calculated">
           <span className="hide-sm">{t('status.plannedEva')}</span>

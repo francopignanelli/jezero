@@ -5,6 +5,20 @@ import { IconX } from '../../ui/icons';
 import { TOUR } from './steps';
 
 const DONE_KEY = 'copernico.tourDone';
+/** Step to resume from when the tour was closed part-way. */
+export const RESUME_KEY = 'copernico.tourAt';
+const store = {
+  set(key: string, value: string | null) {
+    try {
+      if (value === null) window.localStorage.removeItem(key);
+      else window.localStorage.setItem(key, value);
+    } catch {
+      /* storage unavailable */
+    }
+  },
+};
+/** Demo mode: reading time for a step (ms) from the length of its text. */
+const readingMs = (text: string) => Math.min(9_000, Math.max(5_000, 2_500 + 25 * text.length));
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const anchor = (id: string) => document.querySelector<HTMLElement>(`[data-tour="${id}"]`);
@@ -62,6 +76,10 @@ export function Tour() {
   const { t } = useTranslation();
   const stepIndex = useApp((s) => s.tourStep);
   const setStep = useApp((s) => s.setTourStep);
+  const auto = useApp((s) => s.tourAuto);
+  const setAuto = useApp((s) => s.setTourAuto);
+  const sceneReady = useApp((s) => s.sceneReady);
+  const [paused, setPaused] = useState(false);
   const [box, setBox] = useState<Box | null>(null);
   const [ready, setReady] = useState(false);
   const [running, setRunning] = useState(false);
@@ -69,22 +87,38 @@ export function Tour() {
   const [cardSize, setCardSize] = useState({ w: 340, h: 220 });
   const step = stepIndex === null ? null : (TOUR[stepIndex] ?? null);
   const last = stepIndex === TOUR.length - 1;
+  const inChapter = step ? TOUR.filter((x) => x.chapter === step.chapter) : [];
+  const nextStep = stepIndex === null ? undefined : TOUR[stepIndex + 1];
+  const chapterEnds = Boolean(step && nextStep && nextStep.chapter !== step.chapter);
+  const dwellMs = step
+    ? (step.demoMs ??
+      readingMs(`${t(`tour.steps.${step.id}.title`)} ${t(`tour.steps.${step.id}.body`)}`))
+    : 0;
 
-  const end = () => {
+  /** Closing part-way remembers the step (Help → Resume); finishing clears it. */
+  const end = (finished = false) => {
+    if (finished || last) {
+      store.set(DONE_KEY, '1');
+      store.set(RESUME_KEY, null);
+    } else if (stepIndex !== null) store.set(RESUME_KEY, String(stepIndex));
     setStep(null);
-    try {
-      window.localStorage.setItem(DONE_KEY, '1');
-    } catch {
-      /* storage unavailable */
-    }
+    setAuto(false);
+    setPaused(false);
   };
   const go = (delta: 1 | -1) => {
     if (stepIndex === null) return;
     const next = stepIndex + delta;
     if (next < 0) return;
-    if (next >= TOUR.length) end();
+    if (next >= TOUR.length) end(true);
     else setStep(next);
   };
+
+  // A recording or presentation link (?demo) plays the whole tour hands-free once loaded.
+  useEffect(() => {
+    if (!sceneReady || !new URLSearchParams(window.location.search).has('demo')) return;
+    setAuto(true);
+    setStep(0);
+  }, [sceneReady, setAuto, setStep]);
 
   // Enter a step: prepare the app, let the map settle, wait for the anchor, bring it into view.
   useEffect(() => {
@@ -120,6 +154,30 @@ export function Tour() {
     return () => window.clearInterval(id);
   }, [step]);
 
+  // Demo mode: do the step's action, give time to read, then move on.
+  useEffect(() => {
+    if (!auto || paused || !ready || !step) return;
+    let cancelled = false;
+    let timer = 0;
+    void (async () => {
+      if (step.action) {
+        setRunning(true);
+        try {
+          await step.action();
+        } finally {
+          setRunning(false);
+        }
+      }
+      if (cancelled) return;
+      timer = window.setTimeout(() => !cancelled && go(1), dwellMs);
+    })();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // go/t change identity every render; the step, readiness and pause decide.
+  }, [auto, paused, ready, step]);
+
   useLayoutEffect(() => {
     const el = cardRef.current;
     if (el) setCardSize({ w: el.offsetWidth, h: el.offsetHeight });
@@ -131,7 +189,10 @@ export function Tour() {
     cardRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') end();
-      else if (e.key === 'ArrowRight' && (e.target as HTMLElement).tagName !== 'INPUT') go(1);
+      else if (auto && e.key === ' ') {
+        e.preventDefault();
+        setPaused((p) => !p);
+      } else if (e.key === 'ArrowRight' && (e.target as HTMLElement).tagName !== 'INPUT') go(1);
       else if (e.key === 'ArrowLeft' && (e.target as HTMLElement).tagName !== 'INPUT') go(-1);
     };
     window.addEventListener('keydown', onKey);
@@ -178,13 +239,15 @@ export function Tour() {
       >
         <div className="tour-head">
           <span className="tour-count">
-            {t('tour.stepOf', { n: stepIndex + 1, total: TOUR.length })}
+            {auto && <span className="tour-demo">{t('tour.demo')}</span>}
+            {t(`nav.${step.chapter}`)} ·{' '}
+            {t('tour.stepOf', { n: inChapter.indexOf(step) + 1, total: inChapter.length })}
           </span>
           <button
             type="button"
             className="popover-close"
             aria-label={t('tour.close')}
-            onClick={end}
+            onClick={() => end()}
           >
             <IconX />
           </button>
@@ -200,10 +263,34 @@ export function Tour() {
         {!ready && step.target && <p className="meta">{t('tour.preparing')}</p>}
         <div className="tour-progress" aria-hidden="true">
           {TOUR.map((s, i) => (
-            <span key={s.id} className={i === stepIndex ? 'on' : i < stepIndex ? 'done' : ''} />
+            <span
+              key={s.id}
+              className={[
+                i === stepIndex ? 'on' : i < stepIndex ? 'done' : '',
+                i > 0 && TOUR[i - 1]!.chapter !== s.chapter ? 'chapter-start' : '',
+              ].join(' ')}
+            />
           ))}
         </div>
+        {auto && !paused && ready && !running && (
+          <div
+            className="tour-timer"
+            key={stepIndex}
+            aria-hidden="true"
+            style={{ animationDuration: `${dwellMs}ms` }}
+          />
+        )}
         <div className="tour-actions">
+          {auto && (
+            <button
+              type="button"
+              className="btn btn-sm"
+              aria-pressed={paused}
+              onClick={() => setPaused(!paused)}
+            >
+              {paused ? t('tour.resume') : t('tour.pause')}
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -229,7 +316,11 @@ export function Tour() {
             onClick={() => go(1)}
             disabled={running}
           >
-            {last ? t('tour.finish') : t('tour.next')}
+            {last
+              ? t('tour.finish')
+              : chapterEnds && nextStep
+                ? t('tour.nextChapter', { chapter: t(`nav.${nextStep.chapter}`) })
+                : t('tour.next')}
           </button>
         </div>
       </div>

@@ -186,3 +186,23 @@ export function WalkHud() {
     </div>
   );
 }
+
+/** On the map whenever a route is ready: starts the walk simulation (also in Marswalk, step 4). */
+export function SimulateButton() {
+  const { t } = useTranslation();
+  const ready = useApp((s) => {
+    const r = s.profile === 'lower-risk' ? s.result?.lowerRisk : s.result?.shortest;
+    return r?.status === 'ok' && Boolean(r.metrics);
+  });
+  const show = useApp((s) => s.mode === 'jezero' && !s.playing && !s.panoramaOpen && !s.tour);
+  const setPlay = useApp((s) => s.setPlay);
+  const reduced =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!ready || !show || reduced) return null;
+  return (
+    <button type="button" className="simulate-fab" onClick={() => setPlay(Date.now(), true)}>
+      <IconPlay />
+      {t('route.simulateMap')}
+    </button>
+  );
+}

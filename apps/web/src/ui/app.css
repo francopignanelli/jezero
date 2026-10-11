@@ -1639,7 +1639,7 @@ details.samples > summary {
 }
 .welcome-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin: 0 0 18px;
   padding: 0;
@@ -1697,7 +1697,8 @@ details.samples > summary {
 .tour {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  /* Above the 360° viewer, which a tour step opens. */
+  z-index: 50;
   pointer-events: none;
 }
 .tour-backdrop {
@@ -2947,5 +2948,418 @@ details.samples > summary {
   }
   .walk-hud {
     bottom: 64px;
+  }
+}
+
+/* ---------- Navigation: breadcrumb link, panel sub-headings ---------- */
+.crumb-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgb(255 255 255 / 0.25);
+  text-underline-offset: 3px;
+}
+.crumb-link:hover {
+  color: var(--text);
+  text-decoration-color: currentColor;
+}
+.panel h4 {
+  margin: 18px 0 8px;
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* ---------- Mars tab ---------- */
+.why-jezero {
+  border-color: rgb(255 154 77 / 0.45);
+  background: linear-gradient(135deg, rgb(255 140 60 / 0.1), transparent 60%), var(--surface-2);
+}
+.next-tabs {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.next-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+.next-tab:hover {
+  border-color: var(--mars);
+  background: var(--surface-3);
+}
+.next-tab svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--mars);
+}
+.next-tab > span {
+  display: grid;
+  gap: 2px;
+}
+.next-tab span span {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* ---------- Surface tab: 360° gallery, layer chips ---------- */
+.btn-block {
+  width: 100%;
+  margin: 2px 0 4px;
+  justify-content: center;
+}
+.pano-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.pano-card {
+  display: grid;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+.pano-card:hover {
+  border-color: var(--mars);
+  transform: translateY(-1px);
+}
+.pano-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  object-fit: cover;
+  background: linear-gradient(180deg, #4a3326, #2a1d16);
+}
+.pano-card-text {
+  display: grid;
+  gap: 1px;
+  padding: 6px 9px 8px;
+}
+.pano-card-text strong {
+  font-size: var(--fs-sm);
+  line-height: 1.25;
+}
+.pano-card-text span {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.layer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.layer-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.layer-chip[aria-pressed='true'] {
+  border-color: var(--mars);
+  background: rgb(224 120 74 / 0.16);
+  color: var(--text);
+}
+.layer-chip[aria-pressed='true']::before {
+  content: '\2713\00a0';
+}
+.inspect-tip {
+  margin-top: 8px;
+}
+
+/* ---------- Marswalk tab: numbered steps ---------- */
+.step {
+  position: relative;
+  margin: 14px 0 0;
+  padding: 0 0 6px 34px;
+}
+.step::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 28px;
+  bottom: -10px;
+  width: 2px;
+  background: var(--border);
+}
+.step:last-child::before {
+  display: none;
+}
+.panel .step-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px -34px;
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+}
+.step-n {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--mars);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--mars);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.step-done .step-n {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: #06201a;
+}
+.step-locked .step-n {
+  border-color: var(--border-strong);
+  color: var(--text-faint);
+}
+.panel .step-locked .step-title {
+  color: var(--text-muted);
+}
+.step-hint {
+  margin: 0;
+}
+.guided-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+.guided-row p {
+  margin: 0;
+}
+.guided-row .btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* ---------- Map: simulate button ---------- */
+/* Bottom-right: clear of the route's start label and the prototype notice (bottom-left). */
+.simulate-fab {
+  position: absolute;
+  right: 18px;
+  bottom: 22px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px 10px 14px;
+  border: 1px solid rgb(63 240 192 / 0.5);
+  border-radius: 999px;
+  background: rgb(10 14 16 / 0.85);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 26px rgb(0 0 0 / 0.45);
+  color: #bdfbec;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  animation: walk-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.simulate-fab:hover {
+  border-color: #3ff0c0;
+  color: #fff;
+}
+.simulate-fab svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Help menu, checklist ---------- */
+.help-button {
+  position: relative;
+}
+.help-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  background: var(--mars);
+}
+.help-items {
+  min-width: 250px;
+}
+.menu-label {
+  padding: 6px 10px 2px;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+.menu-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 6px 6px;
+}
+.menu-items .menu-chips button {
+  padding: 4px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+}
+.menu-items hr {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.checklist {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  z-index: 35;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.checklist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.checklist h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.checklist-bar {
+  height: 4px;
+  margin: 2px 0 10px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.checklist-bar span {
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  background: var(--ok);
+  transition: transform 0.5s ease;
+}
+.checklist ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.checklist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: var(--fs-sm);
+}
+.checklist-tick {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+}
+.checklist li[data-done='true'] .checklist-tick {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: #06201a;
+}
+.checklist li[data-done='true'] .checklist-text {
+  color: var(--text-muted);
+}
+.checklist-text {
+  flex: 1;
+}
+
+/* ---------- Tour: chapters and demo mode ---------- */
+.tour-progress span.chapter-start {
+  margin-left: 6px;
+}
+.tour-demo {
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--mars);
+  color: #1a0d06;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tour-timer {
+  height: 2px;
+  margin: -6px 0 10px;
+  border-radius: 2px;
+  background: var(--mars);
+  transform-origin: left center;
+  animation: tour-timer linear both;
+}
+@keyframes tour-timer {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (max-width: 820px) {
+  .welcome-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .simulate-fab {
+    right: 12px;
+    bottom: 76px;
   }
 }

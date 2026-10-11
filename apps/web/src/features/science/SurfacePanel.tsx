@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useApp } from '../../app/store';
-import { PANORAMAS, POIS, panoramaForPoi } from '../../data/catalog';
+import { useApp, type LayerId } from '../../app/store';
+import { dataUrl, DATA_VERSION } from '../../config';
+import { PANORAMAS, POIS, panoramaForPoi, type Panorama } from '../../data/catalog';
 import {
   loadRover,
   loadSamples,
@@ -9,18 +10,83 @@ import {
   type SampleSite,
 } from '../../data/surfaceData';
 import { formatCoordinate } from '../../lib/format';
-import { startTour } from '../panorama/PanoramaTour';
-import { StopsNearRoute } from './StopsNearRoute';
-
-/** The latest panorama in the rover's current area (crater rim, sol 1717). */
-const roverPano = PANORAMAS.find((p) => p.id === 'crocodile-bridge');
+import { startTour, TOUR as PANORAMA_ORDER } from '../panorama/PanoramaTour';
+import { flyToRover } from './rover';
 
 /** Route-planning coverage of the operational region (see data/build/regions/jezero/grid.json). */
 const COVERAGE = { west: 77.28, east: 77.48, south: 18.4, north: 18.52 };
 const inCoverage = (lat: number, lon: number) =>
   lat >= COVERAGE.south && lat <= COVERAGE.north && lon >= COVERAGE.west && lon <= COVERAGE.east;
 
-export function SciencePanel() {
+/** Map layers offered as one-tap chips in this tab (the Layers control has them all). */
+const MISSION_LAYERS: LayerId[] = ['rover', 'samples', 'ingenuity'];
+const GROUND_LAYERS: LayerId[] = ['crism', 'thermalInertia', 'slope', 'elevation'];
+
+function LayerChips({ ids, tour }: { ids: LayerId[]; tour?: string }) {
+  const { t } = useTranslation();
+  const layers = useApp((s) => s.layers);
+  const setLayer = useApp((s) => s.setLayer);
+  return (
+    <div className="layer-chips" data-tour={tour}>
+      {ids.map((id) => (
+        <button
+          key={id}
+          type="button"
+          className="layer-chip"
+          aria-pressed={layers[id]}
+          onClick={() => setLayer(id, !layers[id])}
+        >
+          {t(`layers.items.${id}`)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** 360° panoramas in mission order, each a card that opens it. */
+function PanoramaGallery() {
+  const { t, i18n } = useTranslation();
+  const open = useApp((s) => s.setPanoramaOpen);
+  const card = (p: Panorama) => (
+    <li key={p.id}>
+      <button type="button" className="pano-card" onClick={() => open(p.id)}>
+        <img
+          src={dataUrl(`${p.file.replace('_8k.webp', '_thumb.webp')}?v=${DATA_VERSION}`)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          width={320}
+          height={107}
+          onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = 'hidden')}
+        />
+        <span className="pano-card-text">
+          <strong>{p.title}</strong>
+          <span>
+            {t('surface.panoSol', {
+              sol: p.sols[0],
+              date: new Date(p.date).toLocaleDateString(i18n.language, {
+                year: 'numeric',
+                month: 'short',
+              }),
+            })}
+          </span>
+        </span>
+      </button>
+    </li>
+  );
+  return (
+    <section className="pano-gallery" aria-labelledby="pano-gallery-title" data-tour="panoramas">
+      <h3 id="pano-gallery-title">{t('surface.panoramas', { count: PANORAMAS.length })}</h3>
+      <p className="meta">{t('surface.panoramasNote')}</p>
+      <button type="button" className="btn btn-primary btn-block" onClick={() => startTour()}>
+        {t('panorama.tour.startAll', { count: PANORAMAS.length })}
+      </button>
+      <ul className="pano-cards">{PANORAMA_ORDER.map(card)}</ul>
+    </section>
+  );
+}
+
+export function SurfacePanel() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language.startsWith('es') ? 'es' : 'en';
   const addWaypoint = useApp((s) => s.addWaypoint);
@@ -56,14 +122,14 @@ export function SciencePanel() {
     : '—';
 
   return (
-    <section aria-labelledby="science-title">
-      <h2 id="science-title">{t('science.title')}</h2>
-      <p className="lede">{t('science.intro')}</p>
+    <section aria-labelledby="surface-title">
+      <h2 id="surface-title">{t('surface.title')}</h2>
+      <p className="lede">{t('surface.intro')}</p>
 
-      <StopsNearRoute />
+      <PanoramaGallery />
 
       {rover && (
-        <div className="card">
+        <div className="card" data-tour="rover">
           <div className="card-title">
             {t('science.rover')}
             <span
@@ -82,38 +148,24 @@ export function SciencePanel() {
           </p>
           <p className="meta">{rover.provenance}</p>
           <div className="btn-stack">
-            <button
-              type="button"
-              className="btn"
-              // Close-up of the 3D rover (target at its published elevation above the areoid).
-              onClick={() => {
-                setMode('jezero');
-                flyTo(rover.latest.lat, rover.latest.lon, {
-                  heightM: rover.latest.elevationM,
-                  model: 'roverModel',
-                  // Three-quarter front view (the rover faces ~157°): at ~24 m the 3 m rover fills a
-                  // useful part of the view and the 25 cm HiRISE ground still reads as terrain.
-                  rangeM: 24,
-                  headingDeg: 297,
-                });
-              }}
-            >
+            <button type="button" className="btn" onClick={() => void flyToRover()}>
               {t('science.flyTo')}
             </button>
-            <button type="button" className="btn" onClick={() => startTour()}>
-              {t('panorama.tour.startAll', { count: PANORAMAS.length })}
-            </button>
-            {roverPano && (
-              <button type="button" className="btn" onClick={() => openPanorama(roverPano.id)}>
-                {t('panorama.open', { sol: roverPano.sols[0] })}
-              </button>
-            )}
           </div>
+          <p className="meta">{t('surface.showOnMap')}</p>
+          <LayerChips ids={MISSION_LAYERS} />
         </div>
       )}
 
+      <div className="card">
+        <div className="card-title">{t('surface.groundTitle')}</div>
+        <p className="lede">{t('surface.ground')}</p>
+        <LayerChips ids={GROUND_LAYERS} tour="ground-layers" />
+        <p className="meta inspect-tip">{t('surface.inspectTip')}</p>
+      </div>
+
       <h3>{t('science.pois')}</h3>
-      <div ref={listRef}>
+      <div ref={listRef} data-tour="pois">
         {POIS.map((p) => {
           const inside = inCoverage(p.lat, p.lon);
           return (

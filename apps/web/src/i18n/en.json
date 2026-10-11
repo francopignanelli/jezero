@@ -23,31 +23,31 @@
     "plannedEvaShort": "EVA"
   },
   "nav": {
-    "explore": "Explore",
     "layers": "Layers",
-    "route": "Plan",
-    "science": "Science",
-    "environment": "Conditions",
     "label": "Main panels",
-    "hidePanel": "Hide panel"
+    "hidePanel": "Hide panel",
+    "mars": "Mars",
+    "surface": "Surface",
+    "marswalk": "Marswalk",
+    "conditions": "Conditions"
   },
   "explore": {
     "title": "Explore Mars",
-    "intro": "You are looking at Mars. The outlined area in Jezero Crater is where detailed Marswalk planning is supported by 1 m terrain data.",
+    "intro": "Mars from orbit. Major features are labelled at their official (IAU) positions. Jezero Crater, in orange, is where Copernico works: explore its surface and plan walks there.",
     "exploreJezero": "Explore Jezero",
-    "backToOrbit": "Back to orbit",
     "coverage": "Route-planning coverage",
     "coverageNote": "HiRISE-derived 1 m elevation model. Outside this outline Copernico does not compute routes.",
-    "guided": "Guided Marswalk",
     "guidedDescription": "Landing site → Three Forks sample depot → Hawksbill Gap delta front, returning to the start.",
     "startGuided": "Load guided Marswalk",
-    "steps": {
-      "one": "1 · Fly into Jezero",
-      "two": "2 · Choose a start, stops and a destination",
-      "three": "3 · Compare routes and read why they differ",
-      "four": "4 · Check daylight, walk-back margin and science stops"
-    },
-    "missions": "NASA missions in this map"
+    "missions": "NASA missions in this map",
+    "whyTitle": "Why Jezero?",
+    "why": "A 45 km crater that held a lake about 3.5 billion years ago; the river delta it left is still preserved on its western side. NASA's Perseverance rover has explored it since February 2021, collecting rock samples for possible return to Earth.",
+    "nextTitle": "What you can do",
+    "next": {
+      "surface": "Real 360° views, the rover, science sites and maps of the ground",
+      "marswalk": "Plan a walk step by step, then simulate it",
+      "conditions": "Time, Sun, season and measured weather"
+    }
   },
   "layers": {
     "title": "Data layers",
@@ -142,7 +142,7 @@
   },
   "route": {
     "title": "Plan a Marswalk",
-    "intro": "Pick points on the map or add them from the lists. Routes stay inside the coverage outline.",
+    "intro": "Five steps: choose the stops, calculate, review, simulate, then save or share. Routes stay inside the coverage outline.",
     "waypoints": "Waypoints",
     "start": "Start",
     "stop": "Stop {{n}}",
@@ -184,11 +184,22 @@
     "profileHint": "Elevation profile (m). Hover or use the arrow keys to follow the route on the map.",
     "dwellUnit": "min at stop",
     "dwellAria": "Minutes spent at {{name}}",
-    "play": "▶ Play mission",
+    "play": "▶ Simulate the walk",
     "stopPlay": "■ Stop",
     "playHint": "Cinematic walk of the selected route, with the EVA clock and the slope underfoot; touch the map to stop.",
     "playReduced": "Disabled because reduced motion is on.",
-    "colourBySlope": "Colour the route by slope"
+    "colourBySlope": "Colour the route by slope",
+    "simulateMap": "Simulate the walk",
+    "steps": {
+      "stops": "Choose the stops",
+      "calculate": "Calculate the routes",
+      "review": "Review the plan",
+      "reviewHint": "Calculate a route to see distance, time, the daylight timeline, the elevation profile and science stops nearby.",
+      "simulate": "Simulate the walk",
+      "simulateHint": "Once a route is ready: a cinematic walk with an EVA clock and the slope underfoot.",
+      "save": "Save and share",
+      "saveHint": "Once a route is ready: save it in this browser, copy a share link, export GeoJSON or CSV, or print a briefing."
+    }
   },
   "metrics": {
     "distance": "Distance",
@@ -233,8 +244,6 @@
     }
   },
   "science": {
-    "title": "Science along the way",
-    "intro": "Sourced sites where Perseverance worked, and what a crew could investigate there.",
     "pois": "Points of interest",
     "samples": "Perseverance samples",
     "rover": "Perseverance",
@@ -421,29 +430,39 @@
     "title": "Plan a walk on Mars",
     "lede": "Copernico combines data from five NASA missions to help future astronauts plan a safe walk on Mars, and do science along the way.",
     "cards": {
-      "explore": {
-        "title": "Explore",
-        "body": "Fly from orbit into Jezero Crater, where Perseverance is exploring an ancient lake."
+      "mars": {
+        "title": "Mars",
+        "body": "The whole planet, its major features, and the way into Jezero Crater."
       },
-      "plan": {
-        "title": "Plan",
-        "body": "Pick points and get the lower-risk route, its timing and a daylight check."
+      "surface": {
+        "title": "Surface",
+        "body": "Real 360° views, Perseverance in 3D, science sites and maps of the ground."
       },
-      "science": {
-        "title": "Discover",
-        "body": "See science sites, mineral maps and what a crew could study on the way."
+      "marswalk": {
+        "title": "Marswalk",
+        "body": "Plan a walk in five steps, check daylight and the walk-back margin, then simulate it."
+      },
+      "conditions": {
+        "title": "Conditions",
+        "body": "Time, Sun, season and the weather Perseverance measured."
       }
     },
-    "tour": "Take the 2-minute tour",
+    "tour": "Take the tour (4 short chapters)",
     "explore": "Explore on my own",
-    "later": "You can reopen the tour from the ? button at the top. Unsure about a word?",
-    "glossary": "Open the glossary"
+    "later": "The ? button at the top has the tour, a demo mode and “Things to try”, a checklist of everything Copernico can do. Unsure about a word?",
+    "glossary": "Open the glossary",
+    "demo": "Watch it play by itself"
   },
   "help": {
     "label": "Help",
-    "tour": "Guided tour",
+    "tour": "Guided tour from the start",
     "glossary": "Glossary of terms",
-    "about": "What is Copernico?"
+    "about": "What is Copernico?",
+    "resume": "Resume the tour ({{chapter}}, step {{n}})",
+    "chapters": "Or start one chapter:",
+    "chapter": "Start the {{chapter}} chapter",
+    "checklist": "Things to try ({{done}}/{{total}})",
+    "demo": "Demo mode (plays by itself)"
   },
   "tour": {
     "stepOf": "Step {{n}} of {{total}}",
@@ -457,30 +476,30 @@
     "steps": {
       "planet": {
         "title": "This is Mars",
-        "body": "A 3D model of Mars built from NASA orbiter images and elevation data. Drag to turn it; scroll or pinch to zoom.\nThe stars, planets and Milky Way behind it are where they really are, as seen from Mars at the planned walk time.\nPress Next, or let the tour do a step for you with “Do it for me”. Esc leaves the tour at any time."
+        "body": "A 3D model of Mars built from NASA orbiter images and elevation data. Drag to turn it; scroll or pinch to zoom. Major features are labelled at their official positions, and Jezero Crater, in orange, is where everything in Copernico happens.\nThe stars and the Milky Way behind it are where they really are, seen from Mars at the planned walk time.\nPress Next, or let the tour do a step for you with “Do it for me”. Esc leaves the tour at any time."
       },
       "panels": {
-        "title": "The menu",
-        "body": "These four buttons open the side panel: Explore (start here), Plan (your walk), Science (what to study) and Conditions (time, Sun and weather data). Click the open one again to hide the panel and see more map."
+        "title": "Four tabs, one per activity",
+        "body": "Mars (the planet), Surface (Jezero up close: 360° views, the rover, science sites), Marswalk (plan and simulate a walk) and Conditions (time, Sun and weather data). Each tab takes the camera to its place. Click the open tab again to hide the panel."
       },
       "jezero": {
         "title": "Fly to Jezero Crater",
-        "body": "Jezero is a 45 km crater that held a lake about 3.5 billion years ago. NASA's Perseverance rover has explored it since 2021. This button flies you there."
+        "body": "Jezero is a 45 km crater that held a lake about 3.5 billion years ago. NASA's Perseverance rover has explored it since 2021. This button flies you there and opens the Surface tab."
       },
       "area": {
-        "title": "The planning area",
-        "body": "The outlined rectangle is the only place with 1-metre terrain detail (from the HiRISE camera). Routes are calculated only inside it.\nThe orange line is the real path Perseverance drove. Purple dots are science sites: click one to read about it. Click the ground anywhere to see its height and slope."
+        "title": "Jezero up close",
+        "body": "The outlined rectangle is the only place with 1-metre terrain detail (from the HiRISE camera); walks are planned inside it.\nThe orange line is the real path Perseverance drove. Purple dots are science sites: click one to read about it."
       },
       "guided": {
-        "title": "Plan a walk",
-        "body": "This loads a sample walk: from the landing site to the sample depot and the delta front, then back. You can also pick your own points on the map in the Plan panel."
+        "title": "Step 1: choose the stops",
+        "body": "Pick points on the map, type coordinates, or load the guided walk: landing site → sample depot → delta front, and back. You can set how long the crew works at each stop."
       },
       "calculate": {
-        "title": "Calculate the route",
+        "title": "Step 2: calculate",
         "body": "The planner checks every 5 m square of terrain, avoids slopes steeper than 20° and finds the path with the lowest estimated risk. It takes about half a second."
       },
       "results": {
-        "title": "Read the results",
+        "title": "Step 3: review the plan",
         "body": "Distance, estimated walking time, how much the path climbs, and the steepest slope on it.\n“Walk-back margin” is the time left before the 8-hour suit limit, always keeping enough time to walk back. Green means the plan fits."
       },
       "alternatives": {
@@ -500,22 +519,54 @@
         "body": "Science sites close to your route, with the extra walking time each one would add. “Add stop” puts it in your plan and recalculates."
       },
       "layers": {
-        "title": "Map layers",
-        "body": "Turn on extra maps: slope classes, mineral signals from the CRISM spectrometer, how far a crew can go and come back, and more. The ⓘ next to each layer explains where its data comes from and its limits."
+        "title": "Map tools",
+        "body": "Always on the map: Layers (each with an ⓘ about its data source and limits), the compass to face north, and 2D/3D to look straight down or at an angle."
       },
       "play": {
-        "title": "Rehearse the walk",
-        "body": "“Play mission” flies the camera along the route in 30 seconds, like a preview of the walk. Touch the map to stop it."
+        "title": "Step 4: simulate the walk",
+        "body": "A cinematic walk along the route, with an EVA clock, the slope underfoot and an arrival at each stop. The same button appears on the map whenever a route is ready. Touch the map to stop it."
       },
       "missions": {
-        "title": "Save and share",
+        "title": "Step 5: save and share",
         "body": "Save the plan in this browser, copy a link that opens the same plan for anyone, or export it as GeoJSON, a spreadsheet (CSV) or a printable briefing."
       },
       "help": {
         "title": "Help is always here",
-        "body": "Reopen this tour or the glossary of terms from this ? button.\nRemember: routes show lower estimated risk from orbital data, never guaranteed safety."
+        "body": "From ? you can resume this tour, replay one chapter, run it hands-free as a demo, or open “Things to try”, a checklist of everything Copernico can do.\nRemember: routes show lower estimated risk from orbital data, never guaranteed safety."
+      },
+      "panoramas": {
+        "title": "Real 360° views",
+        "body": "Ten panoramas stitched from Perseverance's Mastcam-Z images, placed where they were taken. Open one, or let “Tour all” travel through them in mission order, flying the rover's real drive between them."
+      },
+      "panoramaView": {
+        "title": "Look around",
+        "body": "Drag to look around and scroll to zoom. The bar shows the sol, the Mars season and what lies in each direction; the mini-map shows where you are looking. The hatched button shows which part was filled in (the rover's own deck, below the camera). Esc closes it."
+      },
+      "rover": {
+        "title": "Perseverance",
+        "body": "The rover in 3D at its latest published position. Below the button, chips put its full drive, the sample sites and the Ingenuity helicopter flights on the map."
+      },
+      "ground": {
+        "title": "What the ground is made of",
+        "body": "Maps from orbit: mineral signals from the CRISM spectrometer, thermal inertia (sand versus rock), slope and height. A legend on the map explains the colours."
+      },
+      "inspect": {
+        "title": "Inspect any point",
+        "body": "Click the ground anywhere in Jezero: the card shows its height, slope and ground type, and whether a crew could walk there. You can add the point to a walk from the card."
+      },
+      "pois": {
+        "title": "Science sites",
+        "body": "Places where Perseverance worked, with why they matter and what a crew could investigate. “Show on map” flies there; “Add as stop” puts the site in your walk."
+      },
+      "conditions": {
+        "title": "When to walk",
+        "body": "The planned EVA start drives the Sun in the scene, the stars and the walk timeline: change it here and watch the light move. Below are the Sun height, the season, the daylight window and the latest weather measured by Perseverance (not live)."
       }
-    }
+    },
+    "demo": "Demo",
+    "pause": "Pause",
+    "resume": "Resume",
+    "nextChapter": "Next: {{chapter}}"
   },
   "glossary": {
     "title": "Glossary",
@@ -708,5 +759,35 @@
     "pause": "Pause the walk",
     "resume": "Resume the walk",
     "stopSim": "End the simulation"
+  },
+  "surface": {
+    "title": "Jezero surface",
+    "intro": "Jezero up close: real 360° views taken by Perseverance, the rover itself, maps of the ground and the science sites.",
+    "panoramas": "360° panoramas ({{count}})",
+    "panoramasNote": "Stitched from Mastcam-Z images and placed where the rover took them, in mission order.",
+    "panoSol": "Sol {{sol}} · {{date}}",
+    "showOnMap": "Show on the map:",
+    "groundTitle": "What the ground is made of",
+    "ground": "Orbital maps of minerals, sand versus rock, slope and height, each with a legend and a source note (ⓘ in Layers).",
+    "inspectTip": "Tip: click anywhere in the crater to see the height, slope and ground type there."
+  },
+  "checklist": {
+    "title": "Things to try",
+    "close": "Close",
+    "progress": "{{done}} of {{total}} done. Each one shows a different part of Copernico.",
+    "done": " (done)",
+    "todo": " (not yet)",
+    "show": "Show me",
+    "items": {
+      "jezero": "Fly into Jezero Crater",
+      "panorama": "Look around a real 360° panorama",
+      "rover": "Visit Perseverance up close",
+      "inspect": "Inspect the ground at any point",
+      "layer": "Turn on a map of the ground (minerals, sand, slope…)",
+      "route": "Calculate a Marswalk",
+      "simulate": "Simulate the walk",
+      "save": "Save, share or export a mission",
+      "conditions": "Change the planned EVA time"
+    }
   }
 }

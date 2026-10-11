@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
-import { IconGlobe, IconRoute, IconScience } from '../../ui/icons';
+import { IconGlobe, IconRoute, IconSun, IconSurface } from '../../ui/icons';
 
 const WELCOMED_KEY = 'copernico.welcomed';
 
@@ -28,12 +28,16 @@ export function Welcome() {
   const setOpen = useApp((s) => s.setWelcomeOpen);
   const sceneReady = useApp((s) => s.sceneReady);
   const startTour = useApp((s) => s.setTourStep);
+  const setAuto = useApp((s) => s.setTourAuto);
   const openGlossary = useApp((s) => s.openGlossary);
   const primary = useRef<HTMLButtonElement>(null);
 
   // Show once, after the scene has loaded, unless a shared mission link is being opened.
   useEffect(() => {
-    if (sceneReady && !alreadyWelcomed() && !window.location.hash.startsWith('#m=')) setOpen(true);
+    // Not over a shared mission link, nor over a demo recording (?demo plays the tour).
+    const demo = new URLSearchParams(window.location.search).has('demo');
+    if (sceneReady && !alreadyWelcomed() && !window.location.hash.startsWith('#m=') && !demo)
+      setOpen(true);
   }, [sceneReady, setOpen]);
 
   useEffect(() => {
@@ -50,10 +54,12 @@ export function Welcome() {
     setOpen(false);
   };
 
+  // One card per tab, in the same order as the menu.
   const cards = [
-    { icon: IconGlobe, key: 'explore' },
-    { icon: IconRoute, key: 'plan' },
-    { icon: IconScience, key: 'science' },
+    { icon: IconGlobe, key: 'mars' },
+    { icon: IconSurface, key: 'surface' },
+    { icon: IconRoute, key: 'marswalk' },
+    { icon: IconSun, key: 'conditions' },
   ] as const;
 
   return (
@@ -78,10 +84,22 @@ export function Welcome() {
             className="btn btn-primary"
             onClick={() => {
               close();
+              setAuto(false);
               startTour(0);
             }}
           >
             {t('welcome.tour')}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              close();
+              setAuto(true);
+              startTour(0);
+            }}
+          >
+            {t('welcome.demo')}
           </button>
           <button type="button" className="btn" onClick={close}>
             {t('welcome.explore')}

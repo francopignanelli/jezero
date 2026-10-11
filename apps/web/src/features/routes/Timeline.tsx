@@ -64,9 +64,9 @@ export function Timeline({
 
   return (
     <section className="timeline" aria-labelledby="timeline-title" data-tour="timeline">
-      <h3 id="timeline-title">
+      <h4 id="timeline-title">
         <Term id="daylight">{t('timeline.title')}</Term>
-      </h3>
+      </h4>
       <p className="timeline-summary">
         {t('timeline.summary', {
           start: ltst(tl.startUtcMs),

@@ -10,6 +10,7 @@ import { computeRoutes } from '../routes/compute';
 import { Briefing } from './Briefing';
 import { decodeShare, encodeShare, fromMissionInput, toMissionInput, type Versions } from './codec';
 import { download, fileSlug, toCsv, toGeoJson } from './export';
+import { markTried } from '../guide/tried';
 import { deleteMission, listMissions, renameMission, saveMission, updateMission } from './storage';
 
 const currentVersions = (route: RouteResult): Versions => ({
@@ -44,7 +45,7 @@ export async function openMission(
   s.setReturnToStart(state.returnToStart);
   s.setEvaStart(state.evaStartUtcMs);
   s.setActiveMission({ id, name: m.name });
-  s.setTab('route');
+  s.setTab('marswalk');
   const error = await computeRoutes(messages);
   const r = useApp.getState().result;
   const route = r ? (state.profile === 'lower-risk' ? r.lowerRisk : r.shortest) : null;
@@ -230,6 +231,7 @@ export function MissionActions({
     }
     setActive({ id: saved.id, name: saved.name });
     bump();
+    markTried('save');
     setNotice({
       kind: 'info',
       text: t('missions.savedNotice', { name: saved.name, version: saved.version }),
@@ -237,6 +239,7 @@ export function MissionActions({
   };
 
   const share = async () => {
+    markTried('save');
     const url = `${window.location.origin}${window.location.pathname}${encodeShare(input(name))}`;
     try {
       await navigator.clipboard.writeText(url);
@@ -246,14 +249,17 @@ export function MissionActions({
     }
   };
 
-  const exportInput = () => ({
-    name: name.trim() || defaultName(),
-    waypoints,
-    route,
-    timeline,
-    versions: currentVersions(route),
-    names,
-  });
+  const exportInput = () => {
+    markTried('save');
+    return {
+      name: name.trim() || defaultName(),
+      waypoints,
+      route,
+      timeline,
+      versions: currentVersions(route),
+      names,
+    };
+  };
 
   useEffect(() => {
     if (!printing) return;

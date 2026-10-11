@@ -5,7 +5,7 @@ import {
   EVA_PARAMS_BASIS,
   type RouteResult,
 } from '@copernico/domain';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useApp, type WaypointEntry } from '../../app/store';
@@ -18,19 +18,72 @@ import {
   formatDuration,
   formatElevation,
 } from '../../lib/format';
-import { IconPin, IconUp, IconX } from '../../ui/icons';
+import { IconCheck, IconPin, IconUp, IconX } from '../../ui/icons';
 import { Term } from '../guide/Glossary';
 import { MissionActions, SavedMissions } from '../missions/MissionControls';
 import { ElevationProfile } from './ElevationProfile';
 import { Timeline } from './Timeline';
 import { computeRoutes } from './compute';
-import { CORRIDOR_M, nearbyCandidates } from '../science/StopsNearRoute';
+import { StopsNearRoute } from '../science/StopsNearRoute';
+import { loadGuidedMarswalk } from '../exploration/guided';
 
 function waypointName(t: TFunction, w: WaypointEntry, i: number, count: number): string {
   if (w.label) return w.label;
   if (i === 0) return t('route.start');
   if (i === count - 1) return t('route.destination');
   return t('route.stop', { n: i });
+}
+
+/**
+ * One numbered step of the planning flow. Later steps stay visible while locked, with a line on
+ * what they will offer, so no feature is hidden behind an earlier one.
+ */
+function Step({
+  n,
+  title,
+  state,
+  hint,
+  tour,
+  children,
+}: {
+  n: number;
+  title: string;
+  state: 'done' | 'active' | 'locked';
+  hint?: string;
+  tour?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <section className={`step step-${state}`} aria-labelledby={`step-${n}`} data-tour={tour}>
+      <h3 id={`step-${n}`} className="step-title">
+        <span className="step-n" aria-hidden="true">
+          {state === 'done' ? <IconCheck width={14} height={14} /> : n}
+        </span>
+        <span className="visually-hidden">{n}. </span>
+        {title}
+      </h3>
+      {state === 'locked' ? <p className="meta step-hint">{hint}</p> : children}
+    </section>
+  );
+}
+
+function useRouteTimeline(primary: RouteResult | null) {
+  const waypoints = useApp((s) => s.waypoints);
+  const returnToStart = useApp((s) => s.returnToStart);
+  const evaStart = useApp((s) => s.evaStartUtcMs);
+  return useMemo(
+    () =>
+      primary
+        ? buildTimeline(
+            primary,
+            waypoints.map((w) => w.dwellMin ?? DEFAULT_DWELL_MIN),
+            returnToStart,
+            evaStart,
+            JEZERO,
+          )
+        : null,
+    [primary, waypoints, returnToStart, evaStart],
+  );
 }
 
 export function RoutePanel() {
@@ -75,6 +128,9 @@ export function RoutePanel() {
       : s.result.shortest
     : null;
   const gridBlocked = s.gridStatus === 'unavailable';
+  const timeline = useRouteTimeline(primary);
+  const routed = Boolean(s.result && primary && primary.status === 'ok' && primary.metrics);
+  const names = (w: WaypointEntry, i: number) => waypointName(t, w, i, s.waypoints.length);
 
   return (
     <section aria-labelledby="route-title">
@@ -89,172 +145,217 @@ export function RoutePanel() {
         </p>
       )}
 
-      <h3>{t('route.waypoints')}</h3>
-      {s.waypoints.length === 0 ? (
-        <p className="lede">{t('route.empty')}</p>
-      ) : (
-        <ol className="waypoints">
-          {s.waypoints.map((w, i) => {
-            const name = waypointName(t, w, i, s.waypoints.length);
-            return (
-              <li key={w.id} className="waypoint">
-                <span className="waypoint-badge" aria-hidden="true">
-                  {i + 1}
-                </span>
-                <span className="waypoint-label">
-                  {name}
-                  <span className="waypoint-coords">{formatCoordinate(w.lat, w.lon, locale)}</span>
-                  {i > 0 && (s.returnToStart || i < s.waypoints.length - 1) && (
-                    <label className="dwell">
-                      <input
-                        type="number"
-                        min={0}
-                        max={240}
-                        step={5}
-                        value={w.dwellMin ?? DEFAULT_DWELL_MIN}
-                        onChange={(e) => {
-                          const v = Number(e.target.value);
-                          if (Number.isFinite(v)) s.setDwell(w.id, Math.max(0, Math.min(240, v)));
-                        }}
-                        aria-label={t('route.dwellAria', { name })}
-                      />
-                      {t('route.dwellUnit')}
-                    </label>
-                  )}
-                </span>
-                <span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon"
-                    onClick={() => s.moveWaypoint(w.id, -1)}
-                    disabled={i === 0}
-                    aria-label={t('route.moveUp', { name })}
-                  >
-                    <IconUp width={16} height={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon"
-                    onClick={() => s.removeWaypoint(w.id)}
-                    aria-label={t('route.remove', { name })}
-                  >
-                    <IconX width={16} height={16} />
-                  </button>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-
-      <div className="btn-row">
-        <button
-          type="button"
-          className="btn"
-          aria-pressed={s.picking}
-          onClick={() => {
-            if (s.mode !== 'jezero') s.setMode('jezero');
-            s.setPicking(!s.picking);
-          }}
-        >
-          <IconPin width={16} height={16} /> {t('route.pickOnMap')}
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={s.clearWaypoints}
-          disabled={s.waypoints.length === 0}
-        >
-          {t('route.clear')}
-        </button>
-      </div>
-
-      <details>
-        <summary className="meta" style={{ cursor: 'pointer' }}>
-          {t('route.addCoordinates')}
-        </summary>
-        <form className="field-row" onSubmit={addCoordinates} style={{ marginTop: 8 }}>
-          <label className="field">
-            {t('route.latitude')}
-            <input
-              inputMode="decimal"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-              placeholder="18.4446"
-              required
-            />
-          </label>
-          <label className="field">
-            {t('route.longitude')}
-            <input
-              inputMode="decimal"
-              value={lon}
-              onChange={(e) => setLon(e.target.value)}
-              placeholder="77.4509"
-              required
-            />
-          </label>
-          <button type="submit" className="btn">
-            {t('route.add')}
+      <Step
+        n={1}
+        title={t('route.steps.stops')}
+        state={s.waypoints.length >= 2 ? 'done' : 'active'}
+        tour="step-stops"
+      >
+        <div className="guided-row">
+          <p className="meta">{t('explore.guidedDescription')}</p>
+          <button
+            type="button"
+            className="btn btn-sm"
+            data-tour="guided"
+            onClick={loadGuidedMarswalk}
+          >
+            {t('explore.startGuided')}
           </button>
-        </form>
-      </details>
+        </div>
+        {s.waypoints.length === 0 ? (
+          <p className="lede">{t('route.empty')}</p>
+        ) : (
+          <ol className="waypoints">
+            {s.waypoints.map((w, i) => {
+              const name = waypointName(t, w, i, s.waypoints.length);
+              return (
+                <li key={w.id} className="waypoint">
+                  <span className="waypoint-badge" aria-hidden="true">
+                    {i + 1}
+                  </span>
+                  <span className="waypoint-label">
+                    {name}
+                    <span className="waypoint-coords">
+                      {formatCoordinate(w.lat, w.lon, locale)}
+                    </span>
+                    {i > 0 && (s.returnToStart || i < s.waypoints.length - 1) && (
+                      <label className="dwell">
+                        <input
+                          type="number"
+                          min={0}
+                          max={240}
+                          step={5}
+                          value={w.dwellMin ?? DEFAULT_DWELL_MIN}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            if (Number.isFinite(v)) s.setDwell(w.id, Math.max(0, Math.min(240, v)));
+                          }}
+                          aria-label={t('route.dwellAria', { name })}
+                        />
+                        {t('route.dwellUnit')}
+                      </label>
+                    )}
+                  </span>
+                  <span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon"
+                      onClick={() => s.moveWaypoint(w.id, -1)}
+                      disabled={i === 0}
+                      aria-label={t('route.moveUp', { name })}
+                    >
+                      <IconUp width={16} height={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon"
+                      onClick={() => s.removeWaypoint(w.id)}
+                      aria-label={t('route.remove', { name })}
+                    >
+                      <IconX width={16} height={16} />
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
 
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={s.returnToStart}
-          onChange={(e) => s.setReturnToStart(e.target.checked)}
-        />
-        {t('route.returnToStart')}
-      </label>
+        <div className="btn-row">
+          <button
+            type="button"
+            className="btn"
+            aria-pressed={s.picking}
+            onClick={() => {
+              if (s.mode !== 'jezero') s.setMode('jezero');
+              s.setPicking(!s.picking);
+            }}
+          >
+            <IconPin width={16} height={16} /> {t('route.pickOnMap')}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={s.clearWaypoints}
+            disabled={s.waypoints.length === 0}
+          >
+            {t('route.clear')}
+          </button>
+        </div>
 
-      <div className="btn-row">
-        <button
-          type="button"
-          className="btn btn-primary"
-          data-tour="calculate"
-          onClick={() => void compute()}
-          disabled={s.computing || gridBlocked || s.waypoints.length < 2}
-        >
-          {s.computing ? t('route.computing') : t('route.compute')}
-        </button>
-      </div>
-      {error && (
-        <p className="alert alert-danger" role="alert">
-          {error}
-        </p>
-      )}
+        <details>
+          <summary className="meta" style={{ cursor: 'pointer' }}>
+            {t('route.addCoordinates')}
+          </summary>
+          <form className="field-row" onSubmit={addCoordinates} style={{ marginTop: 8 }}>
+            <label className="field">
+              {t('route.latitude')}
+              <input
+                inputMode="decimal"
+                value={lat}
+                onChange={(e) => setLat(e.target.value)}
+                placeholder="18.4446"
+                required
+              />
+            </label>
+            <label className="field">
+              {t('route.longitude')}
+              <input
+                inputMode="decimal"
+                value={lon}
+                onChange={(e) => setLon(e.target.value)}
+                placeholder="77.4509"
+                required
+              />
+            </label>
+            <button type="submit" className="btn">
+              {t('route.add')}
+            </button>
+          </form>
+        </details>
 
-      <div aria-live="polite">
-        {s.result && primary && <RouteResults primary={primary} elapsedMs={elapsedMs} />}
-      </div>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={s.returnToStart}
+            onChange={(e) => s.setReturnToStart(e.target.checked)}
+          />
+          {t('route.returnToStart')}
+        </label>
+      </Step>
+
+      <Step n={2} title={t('route.steps.calculate')} state={s.result ? 'done' : 'active'}>
+        <div className="btn-row">
+          <button
+            type="button"
+            className="btn btn-primary"
+            data-tour="calculate"
+            onClick={() => void compute()}
+            disabled={s.computing || gridBlocked || s.waypoints.length < 2}
+          >
+            {s.computing ? t('route.computing') : t('route.compute')}
+          </button>
+        </div>
+        {error && (
+          <p className="alert alert-danger" role="alert">
+            {error}
+          </p>
+        )}
+      </Step>
+
+      <Step
+        n={3}
+        title={t('route.steps.review')}
+        state={s.result ? 'active' : 'locked'}
+        hint={t('route.steps.reviewHint')}
+      >
+        <div aria-live="polite">
+          {s.result && primary && (
+            <RouteResults primary={primary} timeline={timeline} elapsedMs={elapsedMs} />
+          )}
+        </div>
+      </Step>
+
+      <Step
+        n={4}
+        title={t('route.steps.simulate')}
+        state={routed ? 'active' : 'locked'}
+        hint={t('route.steps.simulateHint')}
+        tour="play"
+      >
+        <PlayButton />
+      </Step>
+
+      <Step
+        n={5}
+        title={t('route.steps.save')}
+        state={routed ? 'active' : 'locked'}
+        hint={t('route.steps.saveHint')}
+      >
+        {routed && primary && <MissionActions route={primary} timeline={timeline} names={names} />}
+      </Step>
     </section>
   );
 }
 
-function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs: number | null }) {
+function RouteResults({
+  primary,
+  timeline,
+  elapsedMs,
+}: {
+  primary: RouteResult;
+  timeline: ReturnType<typeof buildTimeline> | null;
+  elapsedMs: number | null;
+}) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const s = useApp();
   const result = s.result!;
   const m = primary.metrics;
-  const timeline = useMemo(
-    () =>
-      buildTimeline(
-        primary,
-        s.waypoints.map((w) => w.dwellMin ?? DEFAULT_DWELL_MIN),
-        s.returnToStart,
-        s.evaStartUtcMs,
-        JEZERO,
-      ),
-    [primary, s.waypoints, s.returnToStart, s.evaStartUtcMs],
-  );
   const walkbackS = timeline?.walkbackMarginS ?? m?.walkback.worstMarginS ?? 0;
 
   return (
     <>
-      <h3>{t('route.results')}</h3>
       <div
         className="segmented"
         role="group"
@@ -336,14 +437,6 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
 
           <SlopeColourToggle />
 
-          <PlayButton />
-
-          <MissionActions
-            route={primary}
-            timeline={timeline}
-            names={(w, i) => waypointName(t, w, i, s.waypoints.length)}
-          />
-
           {timeline && (
             <Timeline
               timeline={timeline}
@@ -352,7 +445,7 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
             />
           )}
 
-          <h3>{t('route.why')}</h3>
+          <h4>{t('route.why')}</h4>
           <ul className="explain">
             {s.profile === 'lower-risk' && result.comparison && (
               <li>{explanationText(result.comparison, t, locale)}</li>
@@ -366,7 +459,7 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
 
           <ElevationProfile profile={m.profile} />
 
-          <h3>{t('metrics.bands')}</h3>
+          <h4>{t('metrics.bands')}</h4>
           <table className="data">
             <tbody>
               {(['mild', 'moderate', 'steep'] as const).map((b) => (
@@ -378,7 +471,7 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
             </tbody>
           </table>
 
-          <h3>{t('route.itinerary')}</h3>
+          <h4>{t('route.itinerary')}</h4>
           <table className="data">
             <thead>
               <tr>
@@ -417,9 +510,9 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
         </>
       )}
 
-      <NearbyStopsHint route={primary} />
+      <StopsNearRoute />
 
-      <h3>{t('route.unresolved')}</h3>
+      <h4>{t('route.unresolved')}</h4>
       <p className="lede">{t('route.unresolvedList')}</p>
       <p className="meta">{t('app.prototypeNotice')}</p>
 
@@ -454,26 +547,6 @@ function RouteResults({ primary, elapsedMs }: { primary: RouteResult; elapsedMs:
   );
 }
 
-/** One line in the results pointing to science stops near the route (priced in Science). */
-function NearbyStopsHint({ route }: { route: RouteResult }) {
-  const { t, i18n } = useTranslation();
-  const waypoints = useApp((s) => s.waypoints);
-  const setTab = useApp((s) => s.setTab);
-  const n = nearbyCandidates(
-    route,
-    new Set(waypoints.flatMap((w) => (w.poiId ? [w.poiId] : []))),
-  ).length;
-  if (n === 0) return null;
-  return (
-    <p className="alert alert-info stops-hint">
-      {t('stops.summary', { count: n, distance: formatDistance(CORRIDOR_M, i18n.language) })}{' '}
-      <button type="button" className="link" onClick={() => setTab('science')}>
-        {t('stops.see')}
-      </button>
-    </p>
-  );
-}
-
 /** Starts or stops the route fly-through (disabled with reduced motion). */
 function PlayButton() {
   const { t } = useTranslation();
@@ -483,10 +556,10 @@ function PlayButton() {
   const reduced =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   return (
-    <div className="play-row" data-tour="play">
+    <div className="play-row">
       <button
         type="button"
-        className="btn btn-sm"
+        className="btn btn-primary"
         disabled={reduced}
         title={reduced ? t('route.playReduced') : undefined}
         aria-pressed={playing}

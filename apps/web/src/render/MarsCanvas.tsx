@@ -165,7 +165,7 @@ export function MarsCanvas() {
       // A science marker opens its card; any other click in Jezero inspects the terrain there.
       if (entityId?.startsWith('pois:')) {
         s.selectPoi(entityId.slice('pois:'.length));
-        s.setTab('science');
+        s.setTab('surface');
         return;
       }
       if (s.mode === 'jezero') s.setInspected({ lat, lon });
@@ -786,7 +786,7 @@ async function placeSurfaceMarkers(
         priority: 95, // above the panorama pin next to it
         maxCameraDistanceM: 350_000,
         minCameraDistanceM: 250, // the 3D model takes over up close
-        onClick: () => useApp.getState().setTab('science'),
+        onClick: () => useApp.getState().setTab('surface'),
       },
     ]);
   }
@@ -845,7 +845,7 @@ async function placeSurfaceMarkers(
       onClick: () => {
         const s = useApp.getState();
         s.selectPoi(p.id);
-        s.setTab('science');
+        s.setTab('surface');
       },
     })),
   );

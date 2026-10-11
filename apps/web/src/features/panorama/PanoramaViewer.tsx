@@ -344,7 +344,7 @@ export function PanoramaViewer() {
       const s = useApp.getState();
       close();
       s.selectPoi(poiId);
-      s.setTab('science');
+      s.setTab('surface');
     },
     [close],
   );

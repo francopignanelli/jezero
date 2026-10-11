@@ -304,6 +304,40 @@ def write_mask(hole: np.ndarray, path, width: int = 1024) -> None:
     path.with_suffix(".png.aux.xml").unlink(missing_ok=True)
 
 
+THUMB_W, THUMB_H = 480, 160
+
+
+def write_thumb(src, horizon_fraction: float, path) -> None:
+    """Gallery thumbnail: a 3:1 band around the horizon (a little more ground than sky), 480×160."""
+    ds = gdal.Open(str(src)) if not isinstance(src, gdal.Dataset) else src
+    w, h = ds.RasterXSize, ds.RasterYSize
+    # Mosaics cover less than 180° vertically: when the image is shorter than a third of its width,
+    # take its full height and the middle 3:1 part of it.
+    band_h = min(round(w / 3), h)
+    band_w = min(w, 3 * band_h)
+    left = (w - band_w) // 2
+    top = round(horizon_fraction * h - 0.35 * band_h)
+    top = max(0, min(h - band_h, top))
+    gdal.Translate(str(path), ds, format="WEBP", srcWin=[left, top, band_w, band_h], width=THUMB_W, height=THUMB_H,
+                   resampleAlg="average", creationOptions=["QUALITY=80"])
+    path.with_suffix(".webp.aux.xml").unlink(missing_ok=True)
+
+
+def build_thumbs() -> int:
+    """Thumbnails for the panoramas already built (no re-fit), from their viewer images."""
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    n = 0
+    for p in catalog["panoramas"]:
+        webp = OUT / p["file"].split("/")[-1]
+        if not p.get("geometry") or not webp.exists():
+            continue
+        thumb = webp.with_name(webp.stem.replace("_8k", "") + "_thumb.webp")
+        write_thumb(webp, p["geometry"]["horizonFraction"], thumb)
+        print(f"[panorama] {thumb.name}: {thumb.stat().st_size} bytes")
+        n += 1
+    return n
+
+
 def diagnostic(rgb: np.ndarray, rows: np.ndarray, horizon: np.ndarray, f: dict, path: str) -> None:
     """Top part of the working image with the photo skyline (magenta) and terrain horizon (cyan)."""
     h_row = f["horizonRow"]
@@ -381,6 +415,7 @@ def build(only: str | None = None) -> list[dict]:
         filled, hole = fill_unimaged(viewer.ReadAsArray().astype(np.float32))
         write_rgb(filled, webp)
         write_mask(hole, webp.with_name(webp.stem.replace("_8k", "") + "_mask.png"))
+        write_thumb(webp, geometry["horizonFraction"], webp.with_name(webp.stem.replace("_8k", "") + "_thumb.webp"))
         geometry["unimagedFraction"] = round(float(hole.mean()), 3)
         print(f"[panorama] {p['id']}: az0 {geometry['azimuthAtLeftDeg']}° dir {geometry['direction']:+d}, "
               f"span {f['spanDeg']:.2f}°, vscale {f['verticalScale']}, "

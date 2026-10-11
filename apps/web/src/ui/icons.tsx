@@ -41,6 +41,18 @@ export const IconSun = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
   </svg>
 );
+/** Surface: ridges under a 360° arc. */
+export const IconSurface = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M3 19.5 9 11l4 5.5 3-4 5 7Z" />
+    <path d="M5.5 8.5a8 3 0 0 1 13 0" />
+  </svg>
+);
+export const IconCheck = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="m5 12.5 4.2 4L19 7" />
+  </svg>
+);
 export const IconInfo = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <circle cx="12" cy="12" r="9" />

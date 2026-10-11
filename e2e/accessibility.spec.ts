@@ -17,17 +17,22 @@ async function audit(page: Page, label: string) {
 
 test('panels meet WCAG 2.2 AA (automated rules)', async ({ page }) => {
   await openApp(page);
-  await audit(page, 'Explore');
+  await audit(page, 'Mars');
 
   await page.getByRole('button', { name: 'Layers' }).click();
   await audit(page, 'Layers popover');
   await page.keyboard.press('Escape');
 
   await computeGuided(page);
-  await audit(page, 'Plan with results');
+  await audit(page, 'Marswalk with results');
 
-  await page.getByRole('tab', { name: 'Science' }).click();
-  await audit(page, 'Science');
+  await page.getByRole('tab', { name: 'Surface' }).click();
+  await audit(page, 'Surface');
+
+  await page.getByRole('button', { name: 'Help' }).click();
+  await page.getByRole('menuitem', { name: /Things to try/ }).click();
+  await audit(page, 'Things to try');
+  await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: 'Conditions' }).click();
   await audit(page, 'Conditions');

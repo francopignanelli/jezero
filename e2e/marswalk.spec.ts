@@ -13,7 +13,7 @@ test('guided Marswalk: route, timeline, science stops, no external requests', as
   await expect(page.getByRole('heading', { name: 'EVA timeline' })).toBeVisible();
   await expect(page.locator('.tl-check')).toContainText('before the Sun drops below 10°');
 
-  await page.getByRole('tab', { name: 'Science' }).click();
+  // Science stops near the route are part of the plan review (Marswalk, step 3).
   await expect(page.getByRole('region', { name: /Science stops near your route/ })).toBeVisible();
   await expect(page.locator('.stop').first()).toContainText('+', { timeout: 60_000 });
 
@@ -23,7 +23,7 @@ test('guided Marswalk: route, timeline, science stops, no external requests', as
 
 test('keyboard only: a route by coordinates', async ({ page }) => {
   await openApp(page);
-  await page.getByRole('tab', { name: 'Plan' }).focus();
+  await page.getByRole('tab', { name: 'Marswalk' }).focus();
   await page.keyboard.press('Enter');
   const details = page.getByText('Add by coordinates');
   await details.focus();
@@ -40,16 +40,15 @@ test('keyboard only: a route by coordinates', async ({ page }) => {
   await expect(page.locator('.waypoint')).toHaveCount(2);
   await page.getByRole('button', { name: 'Calculate routes' }).focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator('.metrics').first()).toContainText('km');
+  await expect(page.locator('.metrics').first()).toContainText('km', { timeout: 60_000 });
 });
 
 test('Spanish interface', async ({ page }) => {
   await openApp(page);
-  await page.getByRole('button', { name: 'ES' }).click();
-  await expect(page.getByRole('tab', { name: 'Planificar' })).toBeVisible();
+  await page.getByRole('button', { name: 'ES', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Caminata' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Explorar Marte' })).toBeVisible();
-  await page.getByRole('button', { name: 'EN' }).click();
+  await page.getByRole('button', { name: 'EN', exact: true }).click();
 });
 
 test('share link reopens the same route', async ({ page, context }) => {
@@ -71,8 +70,9 @@ test('share link reopens the same route', async ({ page, context }) => {
 
   const other = await context.newPage();
   await openApp(other, new URL(url).pathname + new URL(url).hash);
-  await expect(other.getByRole('heading', { name: 'Results' })).toBeVisible({ timeout: 60_000 });
-  await expect(other.locator('.metrics .metric dd').first()).toHaveText(distance);
+  const metrics = other.locator('[data-tour="metrics"]');
+  await expect(metrics).toBeVisible({ timeout: 60_000 });
+  await expect(metrics.locator('.metric dd').first()).toHaveText(distance);
   await expect(other.locator('.toast')).toContainText('Opened the shared mission');
 });
 
@@ -85,7 +85,7 @@ test('an invalid share link loads nothing and says so', async ({ page }) => {
 test('Play mission flies along the route and returns control', async ({ page }) => {
   await openApp(page);
   await computeGuided(page);
-  await page.getByRole('button', { name: '▶ Play mission' }).click();
+  await page.getByRole('button', { name: '▶ Simulate the walk' }).click();
   await page.waitForTimeout(6000);
   const mid = await page.evaluate(() => {
     const w = window as unknown as {
@@ -107,7 +107,7 @@ test('Play mission flies along the route and returns control', async ({ page }) 
   await expect(hud).toContainText('EVA clock');
   await expect(hud).toContainText(/Next: .+ in /);
   await page.getByRole('button', { name: '■ Stop' }).click();
-  await expect(page.getByRole('button', { name: '▶ Play mission' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '▶ Simulate the walk' })).toBeVisible();
   await expect(hud).toHaveCount(0);
 });
 
@@ -151,7 +151,8 @@ test('flying to a nearby place glides from the current view (no climb toward orb
   await openApp(page);
   await page.getByRole('button', { name: 'Explore Jezero' }).click();
   await page.waitForTimeout(6000);
-  await page.getByRole('tab', { name: 'Science' }).click();
+  // Explore Jezero opens the Surface tab (clicking it again would hide the panel).
+  await expect(page.getByRole('tab', { name: 'Surface' })).toHaveAttribute('aria-selected', 'true');
   const show = async (i: number) => {
     const card = page.locator('[id^="poi-card-"]').nth(i);
     if (!(await card.evaluate((e) => (e as HTMLDetailsElement).open)))
