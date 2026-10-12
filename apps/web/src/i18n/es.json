@@ -724,7 +724,7 @@
     "tour": {
       "label": "Recorrido automático",
       "start": "Recorrer",
-      "startHint": "Viajar por todas las vistas 360° a lo largo del camino de Perseverance, con los trayectos entre ellas",
+      "startHint": "Viajar por todas las vistas 360° en orden de misión, volando en línea recta de una a otra",
       "startAll": "Recorrer las {{count}} vistas 360° a lo largo del camino",
       "stopOf": "{{n}} de {{total}}",
       "next": "siguiente: {{name}}",
@@ -733,7 +733,7 @@
       "resume": "Seguir el recorrido",
       "skip": "Pasar a la siguiente parada",
       "stop": "Terminar el recorrido",
-      "driving": "Viajando a la parada {{n}} de {{total}}",
+      "driving": "Volando a la parada {{n}} de {{total}}",
       "driven": "recorridos",
       "direct": "en línea recta"
     }

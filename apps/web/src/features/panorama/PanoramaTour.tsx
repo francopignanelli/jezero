@@ -1,11 +1,10 @@
-import { greatCircleDistance } from '@copernico/domain';
+import { greatCircleDistance, initialBearingDeg, normalizeLon180 } from '@copernico/domain';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
 import { PANORAMAS, type Panorama } from '../../data/catalog';
 import { formatDistance } from '../../lib/format';
-import { buildTrack, pointAt } from '../../lib/routeTrack';
-import { roundTrack, simplify } from '../../render/pathGeometry';
+import { simplify } from '../../render/pathGeometry';
 import { currentScene } from '../../render/sceneRegistry';
 import { solText, useMissionData } from './PanoramaHud';
 
@@ -28,27 +27,76 @@ export function startTour(fromId?: string): void {
   s.setPanoramaOpen(TOUR[i]!.id);
 }
 
-/** Drone camera for the drives: behind and above the rover position, looking ahead. */
-const DRONE = { rangeM: 1_100, pitchDeg: -30 };
+/**
+ * The flight between two stops is straight, like a helicopter: it takes off just above the first
+ * panorama, climbs over the middle and lands just above the next one, keeping one heading.
+ */
+const FLIGHT = {
+  takeOffM: 90, // camera height above the ground at the first stop
+  landM: 70, // and at the next one
+  climbPerM: 0.1, // mid-flight rise per metre covered (before terrain clearance)
+  clearanceM: 70, // never closer than this to the ground on the way
+  maxPeakM: 1_500,
+  pitchDeg: [-18, -28] as [number, number], // horizon ahead at take-off, the landing spot at the end
+  samples: 40,
+};
 
-function legPath(
+/** Distance Perseverance drove between two panoramas (its published waypoints), for the caption. */
+function drivenM(
   from: Panorama,
   to: Panorama,
   waypoints: Array<[number, number, number, number, number]>,
-) {
+): number {
   const inner = waypoints
     .filter((w) => w[0] > from.sols[0] && w[0] <= to.sols[0])
     .map((w) => ({ lat: w[1], lon: w[2] }));
-  const raw = [from.position, ...inner, to.position].map((p) => ({ lat: p.lat, lon: p.lon }));
-  // Display smoothing only (corners within ~25 m): the camera glides instead of jerking.
-  return roundTrack(simplify(raw, 15), 25);
+  const path = simplify([from.position, ...inner, to.position], 15);
+  let m = 0;
+  for (let i = 1; i < path.length; i++) m += greatCircleDistance(path[i - 1]!, path[i]!);
+  return m;
+}
+
+/**
+ * Straight flight plan: ground heights along the line give the take-off and landing heights and the
+ * mid-flight rise that keeps FLIGHT.clearanceM above every sampled point.
+ */
+async function planFlight(
+  scene: NonNullable<ReturnType<typeof currentScene>>,
+  from: Panorama,
+  to: Panorama,
+) {
+  const a = from.position;
+  const dLon = normalizeLon180(to.position.lon - a.lon);
+  const n = FLIGHT.samples;
+  const line = Array.from({ length: n }, (_, i) => {
+    const f = i / (n - 1);
+    return { lat: a.lat + (to.position.lat - a.lat) * f, lon: a.lon + dLon * f };
+  });
+  const raw = await scene.sampleTerrain(line);
+  const ground = raw.map((h, i) => (Number.isFinite(h) ? h : (raw[i - 1] ?? 0)));
+  const h0 = ground[0]! + FLIGHT.takeOffM;
+  const h1 = ground[n - 1]! + FLIGHT.landM;
+  const distanceM = greatCircleDistance(a, to.position);
+  let peakM = Math.max(40, FLIGHT.climbPerM * distanceM);
+  for (let i = 1; i < n - 1; i++) {
+    const f = i / (n - 1);
+    const need = (ground[i]! + FLIGHT.clearanceM - (h0 + (h1 - h0) * f)) / Math.sin(Math.PI * f);
+    peakM = Math.max(peakM, need);
+  }
+  return {
+    from: { ...line[0]!, heightM: h0 },
+    to: { ...line[n - 1]!, heightM: h1 },
+    headingDeg: initialBearingDeg(a, to.position), // the direction the viewer turned to
+    peakM: Math.min(FLIGHT.maxPeakM, peakM),
+    // ~3 s for a short hop, at most 6 s.
+    seconds: Math.min(6, Math.max(3, 2.8 + (distanceM / 1000) * 0.45)),
+  };
 }
 
 /**
  * The travel phase of the auto-tour: the viewer has faded out facing the next stop, and the 3D map
- * flies a drone camera along Perseverance's real traverse between the two panoramas (draped on the
- * terrain), with a caption; then the next panorama opens facing the direction of travel. Any map
- * input stops the tour where it is.
+ * flies straight to it (see FLIGHT), with a caption; then the next panorama opens facing the
+ * direction of travel. Any map input stops the tour where it is.
  */
 export function TourTravel() {
   const { t, i18n } = useTranslation();
@@ -71,49 +119,40 @@ export function TourTravel() {
     }
     let cancelled = false;
     let stop = () => {};
+    let release = () => {};
     setVeil(true);
     void (async () => {
-      const points = legPath(from, to, rover?.waypoints ?? []);
-      const heights = await scene.sampleTerrain(points);
+      legRef.current = { from, to, km: drivenM(from, to, rover?.waypoints ?? []) };
+      const plan = await planFlight(scene, from, to);
       if (cancelled) return;
-      const track = buildTrack(
-        points.map((p, i) => ({ ...p, heightM: Number.isFinite(heights[i]!) ? heights[i]! : 0 })),
-      );
-      legRef.current = { from, to, km: track.totalM };
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const seconds = Math.min(10, Math.max(5, 3.5 + (track.totalM / 1000) * 0.9));
-      const sample = (f: number) => ({
-        at: pointAt(track, f * track.totalM),
-        ahead: pointAt(track, Math.min(track.totalM, f * track.totalM + 250)),
+      // Take off just above the first stop; the veil lifts once the tiles there have loaded.
+      const run = scene.flyLine({
+        ...plan,
+        pitchDeg: FLIGHT.pitchDeg,
+        seconds: reduced ? 0.01 : plan.seconds,
+        onTakeOff: () => !cancelled && setVeil(false),
       });
-      // Start behind the first stop, let the tiles arrive under the veil, then reveal and fly.
-      const first = sample(0);
-      scene.lookAlong(first.at, first.ahead, DRONE);
-      await scene.whenTilesLoaded(3_000);
-      if (cancelled) return;
-      setVeil(false);
-      let completed = true;
-      if (!reduced) {
-        const run = scene.playPath(sample, seconds, () => {}, DRONE);
-        stop = run.stop;
-        completed = await run.done;
-      } else {
-        await new Promise((r) => window.setTimeout(r, 1200));
-      }
+      stop = run.stop;
+      release = run.release;
+      const completed = await run.done;
+      if (reduced) await new Promise((r) => window.setTimeout(r, 1200));
       if (cancelled) return;
       if (!completed) {
         setTour(null); // the user took the controls
         return;
       }
       setVeil(true);
-      await new Promise((r) => window.setTimeout(r, reduced ? 0 : 600));
+      await new Promise((r) => window.setTimeout(r, reduced ? 0 : 450));
       if (cancelled) return;
       setTour({ index: TOUR.indexOf(to), phase: 'view', paused: false });
       setPanoramaOpen(to.id);
+      release(); // the next view now covers the map
     })();
     return () => {
       cancelled = true;
       stop();
+      release();
     };
     // The leg is fully described by the stop index.
   }, [travelling, tour?.index, rover]);

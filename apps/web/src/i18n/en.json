@@ -724,7 +724,7 @@
     "tour": {
       "label": "Auto-tour",
       "start": "Tour",
-      "startHint": "Travel through every 360° view along Perseverance’s path, with the drives in between",
+      "startHint": "Travel through every 360° view in mission order, flying straight from one to the next",
       "startAll": "Tour all {{count}} 360° views along the path",
       "stopOf": "{{n}} of {{total}}",
       "next": "next: {{name}}",
@@ -733,7 +733,7 @@
       "resume": "Resume the tour",
       "skip": "Go on to the next stop",
       "stop": "Stop the tour",
-      "driving": "Driving to stop {{n}} of {{total}}",
+      "driving": "Flying to stop {{n}} of {{total}}",
       "driven": "driven",
       "direct": "in a straight line"
     }

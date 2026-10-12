@@ -161,6 +161,13 @@ export interface ViewState {
   maxTiltDeg: number;
 }
 
+/** A camera position: planetocentric lat/lon (deg) and metres above the areoid. */
+export interface CameraPoint {
+  lat: number;
+  lon: number;
+  heightM: number;
+}
+
 export interface LineSpec {
   id: string;
   points: Array<{ lat: number; lon: number; heightM: number }>;
@@ -1012,65 +1019,92 @@ export class MarsScene {
   }
 
   /**
-   * Follow-cam along a path for `seconds`: the camera trails the walker at a low oblique angle and
-   * turns smoothly with the route. `sample(f)` gives the position and a point ahead at fraction f.
-   * Any pointer or wheel input on the map stops it. Resolves when finished or stopped.
+   * Straight "helicopter" flight between two camera positions: one compass heading the whole way,
+   * the position eased along the straight line (no jolt at take-off or arrival), rising `peakM`
+   * above the line between the two heights at mid-flight, and the view tipping from `pitchDeg[0]`
+   * to `pitchDeg[1]`. The camera is first held at the take-off pose until the tiles there have
+   * loaded (`onTakeOff` then fires, e.g. to lift a veil). The caller plans the terrain clearance, so
+   * the exploration limits and Cesium's 220 m collision floor are off meanwhile (they would hold the
+   * camera far above a take-off just over a panorama). They stay off after arrival until
+   * `release()` (e.g. once the next view covers the map), so the camera is not lifted on landing.
+   * Any pointer or wheel input on the map stops it; resolves true on arrival.
    */
-  playPath(
-    sample: (f: number) => {
-      at: { lat: number; lon: number; heightM: number };
-      ahead: { lat: number; lon: number; heightM: number };
-    },
-    seconds: number,
-    onProgress: (f: number) => void,
-    opts: { rangeM?: number; pitchDeg?: number } = {},
-  ): { done: Promise<boolean>; stop: () => void } {
-    const rangeM = opts.rangeM ?? 520;
-    const pitch = CesiumMath.toRadians(opts.pitchDeg ?? -24);
+  flyLine(spec: {
+    from: CameraPoint;
+    to: CameraPoint;
+    headingDeg: number;
+    pitchDeg: [number, number];
+    peakM: number;
+    seconds: number;
+    onTakeOff?: () => void;
+  }): { done: Promise<boolean>; stop: () => void; release: () => void } {
     const camera = this.widget.camera;
     const canvas = this.widget.canvas;
+    const controller = this.widget.scene.screenSpaceCameraController;
+    const { from, to } = spec;
+    const lon0 = normalizeLon180(from.lon);
+    const dLon = normalizeLon180(to.lon - from.lon);
+    const heading = CesiumMath.toRadians(spec.headingDeg);
+    const place = (e: number) => {
+      const heightM =
+        from.heightM + (to.heightM - from.heightM) * e + spec.peakM * Math.sin(Math.PI * e);
+      const pitch = spec.pitchDeg[0] + (spec.pitchDeg[1] - spec.pitchDeg[0]) * e;
+      camera.setView({
+        destination: toCartesian(from.lat + (to.lat - from.lat) * e, lon0 + dLon * e, heightM),
+        orientation: { heading, pitch: CesiumMath.toRadians(pitch), roll: 0 },
+      });
+      this.requestRender();
+    };
     let stopped = false;
-    let heading: number | null = null;
+    let arrived = false;
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      canvas.removeEventListener('pointerdown', stop);
+      canvas.removeEventListener('wheel', stop);
+      if (!this.isDestroyed()) controller.enableCollisionDetection = collide;
+      this.constraints.suspend(false);
+    };
     const stop = () => {
       stopped = true;
+      if (arrived) release();
     };
     canvas.addEventListener('pointerdown', stop, { once: true });
     canvas.addEventListener('wheel', stop, { once: true });
+    // A flight still under way (e.g. into Jezero, when the tour starts right after) would move the
+    // camera every frame too. Cancelling it first: its cancel handler also resets the constraints.
+    camera.cancelFlight();
     this.constraints.suspend(true);
+    const collide = controller.enableCollisionDetection;
+    controller.enableCollisionDetection = false;
     const done = new Promise<boolean>((resolve) => {
-      const t0 = performance.now();
-      let completed = false;
-      const frame = () => {
-        const f = Math.min(1, (performance.now() - t0) / (seconds * 1000));
+      const finish = () => {
+        if (!arrived) release();
+        resolve(arrived);
+      };
+      // Timed by the frames' own timestamps (rAF), from the first frame: steps follow the
+      // displayed frames, and an idle page's stale clock cannot make the start jump.
+      let t0 = -1;
+      const frame = (ts: number) => {
         if (stopped || this.isDestroyed()) return finish();
-        const { at, ahead } = sample(f);
-        const p = toCartesian(at.lat, at.lon, at.heightM);
-        const dLon =
-          (normalizeLon180(ahead.lon) - normalizeLon180(at.lon)) *
-          Math.cos(CesiumMath.toRadians(at.lat));
-        const target = Math.atan2(dLon, ahead.lat - at.lat);
-        // Low-pass the heading so the camera does not jerk at every route vertex.
-        if (heading === null) heading = target;
-        else heading += Math.atan2(Math.sin(target - heading), Math.cos(target - heading)) * 0.05;
-        camera.lookAt(p, new HeadingPitchRange(heading, pitch, rangeM));
-        this.requestRender();
-        onProgress(f);
-        if (f >= 1) {
-          completed = true;
+        if (t0 < 0) t0 = ts;
+        const t = Math.min(1, (ts - t0) / (spec.seconds * 1000));
+        place(t * t * t * (t * (6 * t - 15) + 10)); // smootherstep: no jolt at either end
+        if (t >= 1) {
+          arrived = true;
           return finish();
         }
         window.requestAnimationFrame(frame);
       };
-      const finish = () => {
-        canvas.removeEventListener('pointerdown', stop);
-        canvas.removeEventListener('wheel', stop);
-        if (!this.isDestroyed()) camera.lookAtTransform(Matrix4.IDENTITY);
-        this.constraints.suspend(false);
-        resolve(completed);
-      };
-      window.requestAnimationFrame(frame);
+      place(0);
+      void this.whenTilesLoaded(1_500).then(() => {
+        if (stopped || this.isDestroyed()) return finish();
+        spec.onTakeOff?.();
+        window.requestAnimationFrame(frame);
+      });
     });
-    return { done, stop };
+    return { done, stop, release };
   }
 
   /** Cinematic walk simulation along a route (see walkSim.ts). */
@@ -1089,30 +1123,6 @@ export class MarsScene {
       },
       spec,
     );
-  }
-
-  /** Places the camera behind a point looking toward another (the first frame of playPath). */
-  lookAlong(
-    at: { lat: number; lon: number; heightM: number },
-    ahead: { lat: number; lon: number },
-    opts: { rangeM?: number; pitchDeg?: number } = {},
-  ): void {
-    if (this.isDestroyed()) return;
-    const camera = this.widget.camera;
-    const dLon =
-      (normalizeLon180(ahead.lon) - normalizeLon180(at.lon)) *
-      Math.cos(CesiumMath.toRadians(at.lat));
-    const heading = Math.atan2(dLon, ahead.lat - at.lat);
-    camera.lookAt(
-      toCartesian(at.lat, at.lon, at.heightM),
-      new HeadingPitchRange(
-        heading,
-        CesiumMath.toRadians(opts.pitchDeg ?? -24),
-        opts.rangeM ?? 520,
-      ),
-    );
-    camera.lookAtTransform(Matrix4.IDENTITY);
-    this.requestRender();
   }
 
   setAnnotations(groupId: string, items: Annotation[]): void {
