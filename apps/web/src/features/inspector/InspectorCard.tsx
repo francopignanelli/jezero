@@ -9,9 +9,20 @@ import { IconX } from '../../ui/icons';
 import { routingClient } from '../routes/routingClient';
 
 type Rect = { west: number; south: number; east: number; north: number };
-let ctxRect: Promise<Rect | null> | null = null;
-const inRect = (r: Rect | null, lat: number, lon: number) =>
+const inRect = (r: Rect | null | undefined, lat: number, lon: number) =>
   !!r && lat >= r.south && lat <= r.north && lon >= r.west && lon <= r.east;
+/** Imagery layers from sharpest to coarsest: the first whose footprint holds the point is shown. */
+const TIERS: Array<[ids: string[], label: string]> = [
+  [['hirise', 'hirise-west', 'hirise-rover'], 'HiRISE · MRO'],
+  [['ctx'], 'CTX · MRO'],
+];
+let footprints: Promise<Map<string, Rect | null>> | null = null;
+const loadFootprints = () =>
+  (footprints ??= Promise.all(
+    TIERS.flatMap(([ids]) => ids).map(
+      async (id) => [id, (await loadImageryLayer(id))?.rectangle ?? null] as const,
+    ),
+  ).then((entries) => new Map(entries)));
 
 /**
  * Everything the planner knows about a clicked point: the same grid values the router uses
@@ -37,13 +48,11 @@ export function InspectorCard() {
     void routingClient.inspect(inspected.lat, inspected.lon).then(async (r) => {
       if (cancelled) return;
       setInfo(r);
-      if (r.inCoverage) setImagery('HiRISE · MRO');
-      else {
-        ctxRect ??= loadImageryLayer('ctx').then((m) => m?.rectangle ?? null);
-        const rect = await ctxRect;
-        if (!cancelled)
-          setImagery(inRect(rect, inspected.lat, inspected.lon) ? 'CTX · MRO' : 'Viking Orbiters');
-      }
+      const rects = await loadFootprints();
+      const tier = TIERS.find(([ids]) =>
+        ids.some((id) => inRect(rects.get(id), inspected.lat, inspected.lon)),
+      );
+      if (!cancelled) setImagery(tier?.[1] ?? 'Viking Orbiters');
     });
     return () => {
       cancelled = true;

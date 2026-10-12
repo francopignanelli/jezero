@@ -81,6 +81,14 @@ const IMAGERY: Array<{
     grade: TINTED_GRADE,
   },
   {
+    // The crater rim west of the TRN mosaic (Witch Hazel Hill, Crocodile Bridge), tone-matched to it.
+    id: 'hirise-west',
+    toggle: 'hirise',
+    credit: 'NASA/JPL/University of Arizona HiRISE ESP_085859_1985 (2024-11-19)',
+    tint: GROUND_TINT,
+    grade: TINTED_GRADE,
+  },
+  {
     id: 'hirise-rover',
     toggle: 'hirise',
     credit: 'NASA/JPL/University of Arizona HiRISE ESP_085859_1985 (2024-11-19)',

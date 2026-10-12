@@ -4,6 +4,7 @@ Pyramids (data/build/tiles/imagery/<id>/{z}/{x}/{y}.webp):
   viking    global       z0–5   Viking colorized mosaic (925 m)
   viking-hd regional     z6–8   Viking MDIM 2.1 colorized (232 m) window around Jezero
   hirise-rover rim       z13–18 HiRISE ESP_085859_1985 (25 cm, 2024-11-19) around Perseverance
+  hirise-west  rim       z12–16 the same RDR west of the TRN window (0.5 m), tone-matched to it
   ctx      crater       z6–13  JPL CTX orthomosaic (5 m)
   hirise   operational  z12–16 USGS TRN HiRISE orthomosaic (read at 0.5 m)
 """
@@ -171,42 +172,112 @@ ROVER_BOX = BBox(west=77.2257, south=18.4225, east=77.2420, north=18.4427)
 HIRISE_RDR_SRS = "+proj=eqc +lat_ts=15 +lat_0=0 +lon_0=180 +x_0=0 +y_0=0 +R=3394839.8133 +units=m +no_defs"
 
 
-def build_hirise_rover() -> dict:
-    """25 cm HiRISE around Perseverance's current position on the crater rim (outside the TRN
-    mosaic): crop the downloaded RDR with the label's projection, stretch to 8 bit (0.5–99.5 %),
-    and tile with feathered edges so it blends into CTX."""
-    import math
+RDR_JP2 = "ESP_085859_1985_RED.JP2"
+# The part of ESP_085859_1985 west of the TRN mosaic window (the crater rim: Witch Hazel Hill, the
+# "Crocodile Bridge" stop, Perseverance), overlapping the TRN window by ~0.017° for the blend.
+WEST_BOX = BBox(west=77.2048, south=18.40, east=77.29, north=18.4967)
+# Where the RDR and the local TRN window both have data: the tone match is measured here.
+TONE_BOX = BBox(west=77.2740, south=18.40, east=77.3130, north=18.4960)
 
+
+def _rdr_path():
     from .paths import RAW
 
-    jp2 = RAW / "hirise-rover" / "ESP_085859_1985_RED.JP2"
+    jp2 = RAW / "hirise-rover" / RDR_JP2
     if not jp2.exists():
-        raise FileNotFoundError("download ESP_085859_1985_RED.JP2 into data/raw/hirise-rover (see README)")
-    crop = ensure(WORK / "mosaics") / "hirise_rover_crop.tif"
-    if not crop.exists():
-        r = 3394839.8133
-        k = math.cos(math.radians(15))
-        x = lambda lon: r * k * math.radians(lon - 180)  # noqa: E731
-        y = lambda lat: r * math.radians(lat)  # noqa: E731
-        win = [x(ROVER_BOX.west) - 60, y(ROVER_BOX.north) + 60, x(ROVER_BOX.east) + 60, y(ROVER_BOX.south) - 60]
-        tmp = gdal.Translate("", str(jp2), format="MEM", projWin=win, outputSRS=HIRISE_RDR_SRS)
-        band = tmp.GetRasterBand(1)
-        arr = band.ReadAsArray().astype(np.float32)
-        valid = arr[arr > 0]
-        lo, hi = np.percentile(valid, [0.5, 99.5])
-        byte = np.clip((arr - lo) / max(1.0, hi - lo) * 254 + 1, 1, 255).astype(np.uint8)
-        byte[arr <= 0] = 0
-        out = gdal.GetDriverByName("GTiff").Create(str(crop), tmp.RasterXSize, tmp.RasterYSize, 1, gdal.GDT_Byte,
-                                                   options=["TILED=YES", "COMPRESS=DEFLATE"])
-        out.SetGeoTransform(tmp.GetGeoTransform())
-        out.SetProjection(tmp.GetProjection())
-        out.GetRasterBand(1).WriteArray(byte)
-        out.GetRasterBand(1).SetNoDataValue(0)
-        out = None
-        print(f"[imagery] hirise-rover crop {tmp.RasterXSize}×{tmp.RasterYSize} px, stretch {lo:.0f}–{hi:.0f}")
-    return pyramid("hirise-rover", geographic_mosaic(crop, "hirise-rover", ROVER_BOX, 18, "average", 0),
+        raise FileNotFoundError(f"download {RDR_JP2} into data/raw/hirise-rover (see README)")
+    return jp2
+
+
+def _rdr_window(box: BBox, margin_m: float) -> list[float]:
+    """projWin (ulx, uly, lrx, lry) in the RDR's own projection (see HIRISE_RDR_SRS)."""
+    import math
+
+    r = 3394839.8133
+    k = math.cos(math.radians(15))
+    x = lambda lon: r * k * math.radians(lon - 180)  # noqa: E731
+    y = lambda lat: r * math.radians(lat)  # noqa: E731
+    return [x(box.west) - margin_m, y(box.north) + margin_m, x(box.east) + margin_m, y(box.south) - margin_m]
+
+
+def rdr_tone_lut() -> np.ndarray:
+    """Maps the RDR's raw values to the TRN mosaic's 8-bit tones (quantile matching on TONE_BOX),
+    so the rim imagery continues the TRN mosaic instead of reading as a different picture."""
+    from .paths import RAW
+
+    cached = ensure(WORK / "mosaics") / "hirise_rdr_tone_lut.npy"
+    if cached.exists():
+        return np.load(cached)
+    trn = next((RAW / "hirise-ortho-trn").glob("*.tif"))
+    res = pixel_deg(14)  # ~2.3 m: a common grid; the match uses value distributions, not pixels
+    common = dict(format="MEM", dstSRS=geographic_srs().ExportToWkt(), xRes=res, yRes=res,
+                  outputBounds=(TONE_BOX.west, TONE_BOX.south, TONE_BOX.east, TONE_BOX.north),
+                  resampleAlg="average", srcNodata=0, dstNodata=0)
+    a = gdal.Warp("", str(_rdr_path()), srcSRS=HIRISE_RDR_SRS, **common).ReadAsArray().astype(np.float64)
+    b = gdal.Warp("", str(trn), **common).ReadAsArray().astype(np.float64)
+    valid = (a > 0) & (b > 0)
+    q = np.linspace(0.5, 99.5, 199)
+    src_q = np.percentile(a[valid], q)
+    dst_q = np.percentile(b[valid], q)
+    top = int(np.ceil(src_q[-1] * 1.5)) + 2
+    lut = np.clip(np.interp(np.arange(top), src_q, dst_q), 1, 255).astype(np.uint8)
+    lut[0] = 0  # nodata stays nodata
+    np.save(cached, lut)
+    print(f"[imagery] RDR tone match on {int(valid.sum())} px: RDR {src_q[0]:.0f}–{src_q[-1]:.0f} "
+          f"→ TRN {dst_q[0]:.0f}–{dst_q[-1]:.0f}")
+    return lut
+
+
+def toned_rdr_crop(name: str, box: BBox, res_m: float | None) -> Path:
+    """Crop of the RDR (label projection) at `res_m` (None: native 25 cm), tone-matched to the TRN
+    mosaic, as 8-bit GeoTIFF with nodata 0. Written in row blocks (the west crop is ~110 MP)."""
+    crop = ensure(WORK / "mosaics") / f"{name}.tif"
+    if crop.exists():
+        return crop
+    lut = rdr_tone_lut()
+    opts = dict(format="GTiff", projWin=_rdr_window(box, 60), outputSRS=HIRISE_RDR_SRS,
+                creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"])
+    if res_m:
+        opts.update(xRes=res_m, yRes=res_m, resampleAlg="average")
+    raw = WORK / "mosaics" / f"{name}_raw.tif"
+    src = gdal.Translate(str(raw), str(_rdr_path()), **opts)
+    w, h = src.RasterXSize, src.RasterYSize
+    out = gdal.GetDriverByName("GTiff").Create(str(crop), w, h, 1, gdal.GDT_Byte,
+                                               options=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"])
+    out.SetGeoTransform(src.GetGeoTransform())
+    out.SetProjection(src.GetProjection())
+    band = src.GetRasterBand(1)
+    for y0 in range(0, h, 1024):
+        rows = min(1024, h - y0)
+        block = band.ReadAsArray(0, y0, w, rows)
+        out.GetRasterBand(1).WriteArray(lut[np.clip(block, 0, len(lut) - 1)], 0, y0)
+    out.GetRasterBand(1).SetNoDataValue(0)
+    out = src = None
+    raw.unlink(missing_ok=True)
+    print(f"[imagery] {name}: {w}×{h} px, toned to the TRN mosaic")
+    return crop
+
+
+def build_hirise_rover() -> dict:
+    """25 cm HiRISE around Perseverance's current position on the crater rim (outside the TRN
+    mosaic): the RDR cropped with the label's projection, tone-matched to the TRN mosaic, tiled to
+    z18 with feathered edges."""
+    crop = toned_rdr_crop("hirise_rover_toned", ROVER_BOX, None)
+    return pyramid("hirise-rover", geographic_mosaic(crop, "hirise-rover-toned", ROVER_BOX, 18, "average", 0),
                    ROVER_BOX, 13, 18, {"datasetId": "hirise-rdr-rover", "observation": "ESP_085859_1985",
-                                       "acquired": "2024-11-19T11:28:57Z"}, feather_deg=0.0018)
+                                       "acquired": "2024-11-19T11:28:57Z", "tone": "matched to hirise-ortho-trn"},
+                   feather_deg=0.0018)
+
+
+def build_hirise_west() -> dict:
+    """The crater rim west of the TRN window (Witch Hazel Hill, Crocodile Bridge, the flights between
+    the panoramas there) from the same RDR, read at 0.5 m like the TRN layer and tone-matched to it,
+    so the whole tour is seen on one consistent HiRISE picture instead of falling back to 5 m CTX."""
+    crop = toned_rdr_crop("hirise_west_toned", WEST_BOX, 0.5)
+    return pyramid("hirise-west", geographic_mosaic(crop, "hirise-west", WEST_BOX, 16, "average", 0),
+                   WEST_BOX, 12, 16, {"datasetId": "hirise-rdr-rover", "observation": "ESP_085859_1985",
+                                      "acquired": "2024-11-19T11:28:57Z", "tone": "matched to hirise-ortho-trn"},
+                   feather_deg=0.004)
 
 
 def build() -> list[dict]:

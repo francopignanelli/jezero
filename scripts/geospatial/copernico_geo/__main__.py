@@ -18,7 +18,7 @@ def main(argv: list[str]) -> int:
     sub.add_parser("imagery-relief", help="Viking globe + 232 m window with MOLA shaded relief")
     sub.add_parser("loading-bg", help="loading-screen background from the Milky Way map")
     sub.add_parser("terrain-rim", help="rebuild terrain tiles over the crater rim with the MSR 1 m DTM")
-    sub.add_parser("imagery-rover", help="25 cm HiRISE around Perseverance's current position")
+    sub.add_parser("imagery-rover", help="HiRISE ESP_085859_1985 on the rim: 25 cm around Perseverance + 0.5 m west of the TRN window, tone-matched")
     pano = sub.add_parser("panoramas", help="360° viewer images + compass/horizon measured from the skyline")
     pano.add_argument("--only", help="one panorama id")
     sub.add_parser("panorama-thumbs", help="gallery thumbnails for the panoramas already built")
@@ -77,10 +77,10 @@ def main(argv: list[str]) -> int:
             print(f"[imagery] {layer['id']}: {layer['tiles']} tiles (with relief)")
         return 0
     if args.cmd == "imagery-rover":
-        from .imagery import build_hirise_rover
+        from .imagery import build_hirise_rover, build_hirise_west
 
-        layer = build_hirise_rover()
-        print(f"[imagery] hirise-rover: {layer['tiles']} tiles")
+        for layer in (build_hirise_west(), build_hirise_rover()):
+            print(f"[imagery] {layer['id']}: {layer['tiles']} tiles")
         return 0
     if args.cmd == "imagery-hd":
         from .imagery import build_viking_hd

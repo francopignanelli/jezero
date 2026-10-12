@@ -26,6 +26,8 @@ gitignored and never committed.
 | `data/build/tiles/imagery/viking` | Viking colorized, z0–5 | 2,730 tiles |
 | `data/build/tiles/imagery/ctx` | CTX 5 m, crater, z6–13 | 7,656 tiles |
 | `data/build/tiles/imagery/hirise` | HiRISE, read at 0.5 m, AOI z12–16 | built by `run.sh imagery` |
+| `data/build/tiles/imagery/hirise-west` | HiRISE ESP_085859_1985 (2024-11-19) read at 0.5 m, 77.205–77.29°E × 18.40–18.497°N (crater rim west of the TRN window), z12–16, tone-matched to the TRN mosaic (quantile mapping on their overlap) | built by `run.sh imagery-rover` |
+| `data/build/tiles/imagery/hirise-rover` | The same RDR at 25 cm around Perseverance, z13–18, same tone match | built by `run.sh imagery-rover` |
 | `data/build/rover/` | Perseverance waypoints (703, sols 13–1980), traverse (556 drives), 22 sample sites, 73 Ingenuity flights | ~0.9 MB |
 | `data/build/environment/meda.json` | Per-sol MEDA summaries, sols 1740–1859 (Release 16): 112 sols with data | 60 KB |
 | `data/build/sky/stars.json` | Yale Bright Star Catalog (J2000), 8,404 stars with V ≤ 6.5, proper motion to 2026.75 | 246 KB |

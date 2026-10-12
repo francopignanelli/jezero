@@ -744,6 +744,7 @@ export class MarsScene {
     }
     // HiRISE only once it fills the view: half-loaded 25 cm–0.5 m tiles over CTX read as patches.
     fade(this.rasters.get('hirise'), 12_000, 6_000);
+    fade(this.rasters.get('hirise-west'), 12_000, 6_000);
     fade(this.rasters.get('hirise-rover'), 12_000, 6_000);
     // Viking colour washed over the grey tiers (alpha blend ≈ colour from 232 m, detail from 5 m /
     // 25 cm). It follows the CTX fade so the globe and the crater blend without a seam.
