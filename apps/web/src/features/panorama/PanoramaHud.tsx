@@ -8,7 +8,7 @@ import {
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DATA_VERSION, dataUrl } from '../../config';
-import { PANORAMA_CREDIT, PANORAMAS, POIS, type Panorama } from '../../data/catalog';
+import { PANORAMA_CREDIT, PANORAMAS, POIS, samplePhotos, type Panorama } from '../../data/catalog';
 import {
   loadRover,
   loadSamples,
@@ -17,6 +17,7 @@ import {
 } from '../../data/surfaceData';
 import { formatDegrees, formatDistance, formatElevation } from '../../lib/format';
 import { IconChevron, IconPlay } from '../../ui/icons';
+import { SamplePhotos } from '../science/SamplePhotos';
 
 /** A place drawn inside the photo at its true direction. */
 export interface Target {
@@ -181,7 +182,7 @@ export function InfoPanel({ pano, rover, samples }: PanelProps) {
           <ul className="pano-list">
             {nearby.map(({ x, d }) => (
               <li key={x.sampleNumber}>
-                <span className="pano-dot pano-dot-sample" aria-hidden="true" />
+                <SamplePhotos photos={samplePhotos(x.sampleNumber)} size="sm" />
                 <span className="pano-row-text">
                   <strong>
                     #{x.sampleNumber} {x.name}

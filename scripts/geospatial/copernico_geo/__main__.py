@@ -22,6 +22,7 @@ def main(argv: list[str]) -> int:
     pano = sub.add_parser("panoramas", help="360° viewer images + compass/horizon measured from the skyline")
     pano.add_argument("--only", help="one panorama id")
     sub.add_parser("panorama-thumbs", help="gallery thumbnails for the panoramas already built")
+    sub.add_parser("sample-images", help="sample photos (scripts/data/fetch-sample-images.ts) as WebP + thumbnails")
     sub.add_parser("terrain", help="build quantized-mesh terrain tiles (needs 'operational')")
     sub.add_parser("all", help="operational, imagery, terrain")
     sub.add_parser("sky", help="convert the Milky Way PNG from scripts/data/build-sky.ts to WebP")
@@ -53,6 +54,11 @@ def main(argv: list[str]) -> int:
         from .terrain import RIM, build as build_terrain
 
         build_terrain(only=RIM)
+        return 0
+    if args.cmd == "sample-images":
+        from .samples import build as build_samples
+
+        print(f"[samples] {build_samples()} sample photos")
         return 0
     if args.cmd == "panorama-thumbs":
         from .panorama import build_thumbs

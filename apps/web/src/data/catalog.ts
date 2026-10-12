@@ -1,6 +1,7 @@
 import datasetsJson from '../../../../data/catalog/datasets.json';
 import panoramasJson from '../../../../data/catalog/panoramas.json';
 import poisJson from '../../../../data/catalog/pois.json';
+import sampleImagesJson from '../../../../data/catalog/sample-images.json';
 
 export interface DatasetEntry {
   id: string;
@@ -87,3 +88,24 @@ export const PANORAMAS: Panorama[] = (panoramasJson as unknown as { panoramas: P
 );
 export const panoramaForPoi = (poiId: string): Panorama | undefined =>
   PANORAMAS.find((p) => p.poiId === poiId);
+
+/** One NASA photo per Perseverance sample (data/catalog/sample-images.json). */
+export interface SampleImage {
+  number: number;
+  name: string;
+  camera: string;
+  /** site: drill hole and abraded patch; patch: abraded patch before coring; area: where it was
+   * taken; tube: inside the sample tube; closeup: the rock beside the core. */
+  kind: 'site' | 'patch' | 'area' | 'tube' | 'closeup';
+  sol: number | null;
+  credit: string;
+  sourceUrl: string;
+  file: string;
+  thumb: string;
+}
+const SAMPLE_IMAGES = new Map(
+  (sampleImagesJson as unknown as { images: SampleImage[] }).images.map((i) => [i.number, i]),
+);
+/** Photos for a sample entry, whose number may cover two cores (e.g. "12 & 13"). */
+export const samplePhotos = (sampleNumber: string): SampleImage[] =>
+  (sampleNumber.match(/\d+/g) ?? []).flatMap((n) => SAMPLE_IMAGES.get(Number(n)) ?? []);

@@ -3360,3 +3360,108 @@ details.samples > summary {
 .surface-to-360 {
   margin: 12px 0 4px;
 }
+
+/* Sample photos: thumbnails in lists, a large view on click. */
+.sample-list {
+  display: grid;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sample-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--fs-sm);
+}
+.sample-text {
+  display: grid;
+  gap: 2px;
+}
+.sample-text > span:not(.meta) {
+  color: var(--text-muted);
+}
+.sample-photos {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+}
+.sample-thumb {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface-3);
+  cursor: zoom-in;
+}
+.sample-thumb:hover {
+  border-color: var(--mars);
+}
+.sample-thumb img {
+  display: block;
+  object-fit: cover;
+}
+.sample-photos-md .sample-thumb img {
+  width: 64px;
+  height: 48px;
+}
+.sample-photos-sm .sample-thumb img {
+  width: 44px;
+  height: 33px;
+}
+.sample-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60; /* above the 360° viewer */
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(4 6 9 / 0.78);
+  backdrop-filter: blur(4px);
+  animation: fade-in 0.2s ease;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.sample-dialog {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  max-width: min(1040px, 100%);
+  max-height: 100%;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.sample-dialog img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 170px);
+  border-radius: 6px;
+  object-fit: contain;
+}
+.sample-dialog figcaption {
+  display: grid;
+  gap: 3px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.sample-dialog figcaption strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+.sample-credit {
+  font-size: var(--fs-xs);
+}
+.sample-dialog-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: rgb(10 12 16 / 0.7);
+}

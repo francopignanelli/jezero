@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type LayerId } from '../../app/store';
-import { POIS, panoramaForPoi } from '../../data/catalog';
+import { POIS, panoramaForPoi, samplePhotos } from '../../data/catalog';
 import {
   loadRover,
   loadSamples,
@@ -11,6 +11,7 @@ import {
 import { formatCoordinate } from '../../lib/format';
 import { Icon360 } from '../../ui/icons';
 import { flyToRover } from './rover';
+import { SamplePhotos } from './SamplePhotos';
 
 /** Route-planning coverage of the operational region (see data/build/regions/jezero/grid.json). */
 const COVERAGE = { west: 77.28, east: 77.48, south: 18.4, north: 18.52 };
@@ -190,30 +191,32 @@ export function SurfacePanel() {
         })}
       </div>
 
-      <details className="samples">
+      <details className="samples" open data-tour="samples">
         <summary>
           <h3 style={{ display: 'inline' }}>{t('science.samplesCount', { n: samples.length })}</h3>
         </summary>
-        <table className="data">
-          <tbody>
-            {samples.map((s) => (
-              <tr key={s.sampleNumber}>
-                <th scope="row">{s.name}</th>
-                <td>
+        <p className="meta">{t('samplePhoto.listNote')}</p>
+        <ul className="sample-list">
+          {samples.map((s) => (
+            <li key={s.sampleNumber}>
+              <SamplePhotos photos={samplePhotos(s.sampleNumber)} />
+              <span className="sample-text">
+                <strong>{s.name}</strong>
+                <span>
                   {t('science.sampleMeta', {
                     n: s.sampleNumber,
                     sol: s.sol,
                     date: s.earthDate,
                     rock: s.rockType,
                   })}
-                  {s.positionCorrectedFromEastingNorthing && (
-                    <div className="meta">{t('science.corrected')}</div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+                {s.positionCorrectedFromEastingNorthing && (
+                  <span className="meta">{t('science.corrected')}</span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
       </details>
     </section>
   );

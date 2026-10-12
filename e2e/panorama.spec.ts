@@ -138,3 +138,33 @@ test('auto-tour: looks around, flies straight to the next panorama, and can stop
   await expect(tourBar).toHaveCount(0);
   await expect(page.getByRole('dialog', { name: 'Van Zyl Overlook' })).toBeVisible();
 });
+
+test('sample photos: thumbnails in Surface and the 360° panel, enlarged on click', async ({
+  page,
+}) => {
+  const external = trackExternalRequests(page);
+  await openApp(page);
+  await page.getByRole('tab', { name: 'Surface' }).click();
+  await page.getByRole('button', { name: 'Photo of sample 25, Sapphire Canyon' }).click();
+  const photo = page.getByRole('dialog', { name: 'Sample 25 · Sapphire Canyon' });
+  await expect(photo).toBeVisible();
+  await expect(photo).toContainText('Drill hole and abraded patch');
+  await expect(photo).toContainText('NASA/JPL-Caltech');
+  await expect
+    .poll(() => photo.locator('img').evaluate((i) => (i as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(500);
+  await page.keyboard.press('Escape');
+  await expect(photo).toHaveCount(0);
+
+  // In a 360° view the nearby samples show their photos too; Esc closes only the photo.
+  await page.getByRole('tab', { name: '360° views' }).click();
+  await page.locator('.pano-card', { hasText: 'Three Forks' }).click();
+  const pano = page.getByRole('dialog', { name: 'Three Forks sample depot' });
+  await expect(pano).toBeVisible();
+  await page.getByRole('button', { name: /^Photo of sample 12/ }).click();
+  await expect(page.getByRole('dialog', { name: /^Sample 12/ })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: /^Sample 12/ })).toHaveCount(0);
+  await expect(pano).toBeVisible();
+  expect(external).toEqual([]);
+});

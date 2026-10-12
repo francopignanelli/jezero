@@ -808,5 +808,21 @@
   },
   "panoramasTab": {
     "intro": "Stand where Perseverance stood: real panoramas stitched from its Mastcam-Z images, in mission order. Open one to look around, or let the tour fly straight from one to the next."
+  },
+  "samplePhoto": {
+    "kind": {
+      "site": "Drill hole and abraded patch",
+      "patch": "Abraded patch before coring",
+      "area": "Where the sample was taken",
+      "tube": "The core inside its sample tube",
+      "closeup": "The rock beside the core, close up"
+    },
+    "sol": "sol {{sol}}",
+    "view": "Photo of sample {{n}}, {{name}}",
+    "title": "Sample {{n}} · {{name}}",
+    "close": "Close the photo",
+    "credit": "Image: {{credit}}",
+    "source": "NASA page",
+    "listNote": "Each sample with NASA’s photo of where it was drilled (or of the core in its tube). Click a photo to enlarge it."
   }
 }

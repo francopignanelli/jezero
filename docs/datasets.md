@@ -28,6 +28,7 @@ gitignored and never committed.
 | `data/build/tiles/imagery/hirise` | HiRISE, read at 0.5 m, AOI z12–16 | built by `run.sh imagery` |
 | `data/build/tiles/imagery/hirise-west` | HiRISE ESP_085859_1985 (2024-11-19) read at 0.5 m, 77.205–77.29°E × 18.40–18.497°N (crater rim west of the TRN window), z12–16, tone-matched to the TRN mosaic (quantile mapping on their overlap) | built by `run.sh imagery-rover` |
 | `data/build/tiles/imagery/hirise-rover` | The same RDR at 25 cm around Perseverance, z13–18, same tone match | built by `run.sh imagery-rover` |
+| `data/build/rover/samples/` | One NASA photo per sample (30): where each core was drilled (drill hole and abraded patch), the area, the core in its tube (CacheCam) or a close-up (WATSON). From NASA's "Mars Rock Samples" page; catalog with camera, sol, credit, source URL, size and SHA-256 in `data/catalog/sample-images.json`. WebP ≤1024 px + 360 px thumbnails (palette PNGs expanded to RGB first) | `npx tsx scripts/data/fetch-sample-images.ts`, then `run.sh sample-images`; 4.4 MB |
 | `data/build/rover/` | Perseverance waypoints (703, sols 13–1980), traverse (556 drives), 22 sample sites, 73 Ingenuity flights | ~0.9 MB |
 | `data/build/environment/meda.json` | Per-sol MEDA summaries, sols 1740–1859 (Release 16): 112 sols with data | 60 KB |
 | `data/build/sky/stars.json` | Yale Bright Star Catalog (J2000), 8,404 stars with V ≤ 6.5, proper motion to 2026.75 | 246 KB |

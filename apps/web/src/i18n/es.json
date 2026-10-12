@@ -808,5 +808,21 @@
   },
   "panoramasTab": {
     "intro": "Parate donde estuvo Perseverance: panorámicas reales unidas a partir de sus imágenes de Mastcam-Z, en orden de misión. Abrí una para mirar alrededor, o dejá que el recorrido vuele en línea recta de una a otra."
+  },
+  "samplePhoto": {
+    "kind": {
+      "site": "Perforación y parche raspado",
+      "patch": "Parche raspado antes de perforar",
+      "area": "Donde se tomó la muestra",
+      "tube": "El núcleo dentro de su tubo de muestra",
+      "closeup": "La roca junto a la perforación, de cerca"
+    },
+    "sol": "sol {{sol}}",
+    "view": "Foto de la muestra {{n}}, {{name}}",
+    "title": "Muestra {{n}} · {{name}}",
+    "close": "Cerrar la foto",
+    "credit": "Imagen: {{credit}}",
+    "source": "Página de la NASA",
+    "listNote": "Cada muestra con la foto de la NASA de donde se perforó (o del núcleo en su tubo). Tocá una foto para agrandarla."
   }
 }
