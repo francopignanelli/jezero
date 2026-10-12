@@ -692,13 +692,11 @@
       "sol": "Sol",
       "info": "About this panorama",
       "infoToggle": "Show or hide information",
-      "unimaged": "Show the areas the camera did not image",
       "fullscreen": "Full screen",
       "zoom": "Zoom",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
       "about": "Why this place matters",
-      "openCard": "Open its science card",
       "moment": "Mission moment",
       "driven": "Driven since landing",
       "elevation": "Elevation",
@@ -706,16 +704,15 @@
       "fromLanding": "From the landing site",
       "samples": "Samples collected nearby",
       "noSamples": "No samples were collected within 600 m of this stop.",
-      "around": "Places around you",
-      "look": "Look",
       "walkHere": "Go to the 360° view at {{name}}",
       "source": "Source and accuracy",
-      "unimagedNote": "About {{percent}}% of the image was not photographed: the rover’s own body blocks the camera’s view down. Those areas are filled smoothly from the surrounding photo (no invented detail); the hatched-square button shows them.",
+      "unimagedNote": "About {{percent}}% of the image was not photographed: the rover’s own body blocks the camera’s view down. Those areas are filled smoothly from the surrounding photo (no invented detail) and are always shown hatched.",
       "minimap": "Map: your position, the direction you are looking and nearby panoramas",
       "timeline": "Panoramas along the mission",
       "landing": "Landing",
       "prev": "Previous panorama: {{name}} (sol {{sol}})",
-      "next": "Next panorama: {{name}} (sol {{sol}})"
+      "next": "Next panorama: {{name}} (sol {{sol}})",
+      "what": "What you are looking at"
     },
     "about": {
       "van-zyl": "Perseverance parked at this overlook for 13 days in April 2021 (sols 53–64) while the Ingenuity helicopter made its first flights over the field in front of it.",
@@ -736,6 +733,18 @@
       "driving": "Flying to stop {{n}} of {{total}}",
       "driven": "driven",
       "direct": "in a straight line"
+    },
+    "intro": {
+      "butler-landing": "You are standing where Perseverance landed on 18 February 2021, on the flat floor of Jezero Crater, an ancient lake bed on Mars. This was one of its first full looks around: dark, wind-worn rocks and sand, with the cliffs of an old river delta about 2.5 km to the west and the crater rim on the horizon.",
+      "van-zyl": "You are on a low rise of the crater floor, about 100 m from the landing spot. The flat, rock-strewn ground in front of you was chosen as the \"airfield\" of the Ingenuity helicopter.",
+      "seitah-1": "You are on Artuby Ridge, a low ridge of the crater floor about 1 km south-west of the landing site, looking into Séítah (\"amid the sand\" in Navajo): a field of sand ripples and rock ridges that Perseverance explored in 2021.",
+      "wildcat-ridge": "You are at the foot of the river delta, at a gap in its front called Hawksbill Gap, about 2.7 km north-west of the landing site. The layered cliffs around you are the edge of the fan of sediment that an ancient river built into the lake.",
+      "enchanted-lake": "You are at the base of the delta front, about 2.8 km west of the landing site, where the sediment carried by the ancient river met the floor of the lake. The rocks here were laid down in water, layer by layer.",
+      "three-forks": "You are on the flat ground at the foot of the delta, about 2.5 km west of the landing site. The low ridge on the horizon is the front of the delta: the edge of the fan of sediment that an ancient river built into the lake.",
+      "belva": "You are on top of the delta, about 5 km north-west of the landing site, at the edge of Belva, an impact crater about 900 m wide that formed later and cut into the delta.",
+      "bright-angel": "You are in Neretva Vallis, the ancient river channel that fed the lake, at the north-western edge of the delta, about 9 km from the landing site. Among the pale rocks around you is the one the team named \"Cheyava Falls\".",
+      "witch-hazel-hill": "You are high on the inner slope of the crater rim, at Witch Hazel Hill, about 10 km west of the landing site. These rocks are older than the lake: some were broken or melted by the impact that made Jezero.",
+      "crocodile-bridge": "You are on the rim of Jezero Crater, about 12 km west of the landing site, after the climb Perseverance made through 2024 and 2025. The rocks up here formed long before the lake, and were reshaped by the impact that made the crater."
     }
   },
   "view": {

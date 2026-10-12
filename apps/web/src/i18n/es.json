@@ -692,13 +692,11 @@
       "sol": "Sol",
       "info": "Sobre esta panorámica",
       "infoToggle": "Mostrar u ocultar la información",
-      "unimaged": "Mostrar las zonas que la cámara no fotografió",
       "fullscreen": "Pantalla completa",
       "zoom": "Zoom",
       "zoomIn": "Acercar",
       "zoomOut": "Alejar",
       "about": "Por qué importa este lugar",
-      "openCard": "Abrir su ficha científica",
       "moment": "Momento de la misión",
       "driven": "Recorrido desde el aterrizaje",
       "elevation": "Elevación",
@@ -706,16 +704,15 @@
       "fromLanding": "Desde el sitio de aterrizaje",
       "samples": "Muestras recolectadas cerca",
       "noSamples": "No se recolectaron muestras a menos de 600 m de esta parada.",
-      "around": "Lugares a tu alrededor",
-      "look": "Mirar",
       "walkHere": "Ir a la vista 360° de {{name}}",
       "source": "Fuente y precisión",
-      "unimagedNote": "Cerca del {{percent}}% de la imagen no se fotografió: el propio cuerpo del rover tapa la vista de la cámara hacia abajo. Esas zonas se rellenan suavemente a partir de la foto que las rodea (sin inventar detalle); el botón del cuadrado rayado las muestra.",
+      "unimagedNote": "Alrededor del {{percent}}% de la imagen no se fotografió: el propio cuerpo del rover tapa la vista de la cámara hacia abajo. Esas zonas se completan de forma suave a partir de la foto alrededor (sin inventar detalles) y siempre se muestran rayadas.",
       "minimap": "Mapa: tu posición, hacia dónde mirás y las panorámicas cercanas",
       "timeline": "Panorámicas a lo largo de la misión",
       "landing": "Aterrizaje",
       "prev": "Panorámica anterior: {{name}} (sol {{sol}})",
-      "next": "Panorámica siguiente: {{name}} (sol {{sol}})"
+      "next": "Panorámica siguiente: {{name}} (sol {{sol}})",
+      "what": "Qué estás viendo"
     },
     "about": {
       "van-zyl": "Perseverance se estacionó en este mirador durante 13 días en abril de 2021 (soles 53–64) mientras el helicóptero Ingenuity hacía sus primeros vuelos sobre el campo de enfrente.",
@@ -736,6 +733,18 @@
       "driving": "Volando a la parada {{n}} de {{total}}",
       "driven": "recorridos",
       "direct": "en línea recta"
+    },
+    "intro": {
+      "butler-landing": "Estás donde aterrizó Perseverance el 18 de febrero de 2021, en el fondo plano del cráter Jezero, el lecho de un antiguo lago en Marte. Fue una de sus primeras miradas completas alrededor: rocas oscuras gastadas por el viento y arena, con los acantilados de un viejo delta de río a unos 2,5 km al oeste y el borde del cráter en el horizonte.",
+      "van-zyl": "Estás sobre una pequeña loma del fondo del cráter, a unos 100 m del punto de aterrizaje. El terreno plano y lleno de piedras de enfrente se eligió como \"aeródromo\" del helicóptero Ingenuity.",
+      "seitah-1": "Estás en Artuby Ridge, una loma baja del fondo del cráter a 1 km al suroeste del sitio de aterrizaje, mirando hacia Séítah (\"en medio de la arena\" en navajo): un campo de ondas de arena y crestas de roca que Perseverance exploró en 2021.",
+      "wildcat-ridge": "Estás al pie del delta del río, en una abertura de su frente llamada Hawksbill Gap, a unos 2,7 km al noroeste del sitio de aterrizaje. Los acantilados en capas que te rodean son el borde del abanico de sedimentos que un antiguo río construyó dentro del lago.",
+      "enchanted-lake": "Estás en la base del frente del delta, a unos 2,8 km al oeste del sitio de aterrizaje, donde los sedimentos que traía el antiguo río llegaban al fondo del lago. Estas rocas se formaron en el agua, capa por capa.",
+      "three-forks": "Estás en el terreno plano al pie del delta, a unos 2,5 km al oeste del sitio de aterrizaje. La loma baja del horizonte es el frente del delta: el borde del abanico de sedimentos que un antiguo río construyó dentro del lago.",
+      "belva": "Estás arriba del delta, a unos 5 km al noroeste del sitio de aterrizaje, en el borde de Belva, un cráter de impacto de unos 900 m de ancho que se formó después y cortó el delta.",
+      "bright-angel": "Estás en Neretva Vallis, el antiguo cauce del río que alimentaba el lago, en el borde noroeste del delta, a unos 9 km del sitio de aterrizaje. Entre las rocas claras que te rodean está la que el equipo llamó \"Cheyava Falls\".",
+      "witch-hazel-hill": "Estás en lo alto de la ladera interna del borde del cráter, en Witch Hazel Hill, a unos 10 km al oeste del sitio de aterrizaje. Estas rocas son más antiguas que el lago: algunas se rompieron o fundieron con el impacto que formó Jezero.",
+      "crocodile-bridge": "Estás en el borde del cráter Jezero, a unos 12 km al oeste del sitio de aterrizaje, después de la subida que hizo Perseverance durante 2024 y 2025. Las rocas de acá arriba se formaron mucho antes que el lago y las transformó el impacto que creó el cráter."
     }
   },
   "view": {

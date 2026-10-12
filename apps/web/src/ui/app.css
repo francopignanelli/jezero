@@ -2274,21 +2274,6 @@ details.samples > summary {
   color: var(--text-muted);
   font-size: 0.8rem !important;
 }
-.pano-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--mars-strong);
-  font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-.pano-link:hover {
-  text-decoration: underline;
-}
 .pano-facts {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2326,26 +2311,6 @@ details.samples > summary {
 .pano-list li > .pano-dot {
   margin: 0 2px;
 }
-.pano-row {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 6px 8px;
-  margin: 0 -8px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.pano-row:hover,
-.pano-row:focus-visible {
-  background: rgb(255 255 255 / 0.06);
-}
 .pano-row-text {
   flex: 1;
   min-width: 0;
@@ -2364,16 +2329,6 @@ details.samples > summary {
   font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
 }
-.pano-row-action {
-  color: var(--text-faint);
-  font-size: 0.74rem;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-.pano-row:hover .pano-row-action,
-.pano-row:focus-visible .pano-row-action {
-  opacity: 1;
-}
 .pano-dot {
   flex: none;
   width: 9px;
@@ -2389,13 +2344,6 @@ details.samples > summary {
 }
 .pano-dot-sample {
   background: var(--sample);
-}
-.pano-chip {
-  border: 0;
-  cursor: pointer;
-  font: inherit;
-  font-size: 10.5px;
-  font-weight: 700;
 }
 
 /* Mini-map */
@@ -3362,4 +3310,28 @@ details.samples > summary {
     right: 12px;
     bottom: 76px;
   }
+}
+
+/* 360° info panel: plain-language intro first, the source folded at the end. */
+.pano-panel .pano-intro {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.pano-panel .pano-intro + h3 {
+  margin-top: 14px;
+}
+.pano-panel details.pano-source {
+  padding: 12px 0 2px;
+}
+.pano-panel details.pano-source summary {
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.pano-panel details.pano-source[open] summary {
+  margin-bottom: 8px;
 }

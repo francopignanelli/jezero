@@ -13,7 +13,6 @@ import {
   IconPlay,
   IconPlus,
   IconSkip,
-  IconUnimaged,
   IconX,
 } from '../../ui/icons';
 import {
@@ -38,14 +37,13 @@ void main() { v_ndc = a_pos; gl_Position = vec4(a_pos, 0.0, 1.0); }`;
 // left in it is undone (photo elevation = true elevation + tilt). All measured by the pipeline.
 // Above the photographed strip the sky continues as a plain gradient from the photo's top rows.
 // u_mask marks the areas the camera did not image (the rover's own body), filled smoothly by the
-// pipeline; u_maskShow hatches them on request.
+// pipeline; they are always shown hatched, so the filled ground is never mistaken for photo.
 const FS = `#version 300 es
 precision highp float;
 in vec2 v_ndc;
 out vec4 outColor;
 uniform sampler2D u_pano;
 uniform sampler2D u_mask;
-uniform float u_maskShow;
 uniform float u_yaw;
 uniform float u_pitch;
 uniform vec2 u_tanHalf;
@@ -86,12 +84,10 @@ void main() {
   vec3 photo = textureGrad(u_pano, uv, gx, gy).rgb;
   // Feather the top 3% of the photo into the extrapolated sky so there is no seam.
   if (uv.y < 0.03) photo = mix(textureLod(u_pano, vec2(uv.x, 0.0), 6.0).rgb, photo, smoothstep(0.0, 0.03, uv.y));
-  if (u_maskShow > 0.0) {
-    float m = texture(u_mask, uv).r;
-    float stripe = step(0.5, fract((gl_FragCoord.x + gl_FragCoord.y) / 18.0));
-    vec3 hatch = mix(vec3(0.42, 0.78, 0.92), vec3(0.12, 0.26, 0.34), stripe);
-    photo = mix(photo, mix(photo, hatch, 0.6), m * u_maskShow);
-  }
+  float m = texture(u_mask, uv).r;
+  float stripe = step(0.5, fract((gl_FragCoord.x + gl_FragCoord.y) / 18.0));
+  vec3 hatch = mix(vec3(0.42, 0.78, 0.92), vec3(0.12, 0.26, 0.34), stripe);
+  photo = mix(photo, mix(photo, hatch, 0.45), m);
   outColor = vec4(photo, 1.0);
 }`;
 
@@ -223,7 +219,7 @@ const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
  * are measured (skyline matched to the terrain horizon), so places nearby are drawn at their true
  * direction and other panoramas can be walked to. The HUD adds the mission context (season, sol,
  * odometry, nearby samples), a mini-map with the view cone and a timeline of all panoramas.
- * Drag or arrow keys to look, wheel or +/− to zoom; I info, U unimaged areas, F full screen,
+ * Drag or arrow keys to look, wheel or +/− to zoom; I info, F full screen,
  * [ and ] previous / next panorama.
  */
 export function PanoramaViewer() {
@@ -247,10 +243,7 @@ export function PanoramaViewer() {
   const [failed, setFailed] = useState(false);
   const [targets, setTargets] = useState<Target[]>([]);
   const [panelOpen, setPanelOpen] = useState(() => window.innerWidth >= 900);
-  const [maskOn, setMaskOn] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const maskOnRef = useRef(false);
-  maskOnRef.current = maskOn;
   const targetsRef = useRef<Target[]>([]);
   targetsRef.current = targets;
   const redraw = useRef<() => void>(() => {});
@@ -283,19 +276,6 @@ export function PanoramaViewer() {
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void rootRef.current?.requestFullscreen?.();
-  }, []);
-
-  /** Smoothly turns the view to a place (its direction, and its elevation within the photo). */
-  const turnTo = useCallback((tg: Target) => {
-    const v = view.current;
-    const delta = ((tg.azimuthDeg - v.yawDeg + 540) % 360) - 180;
-    turn.current = {
-      from: { ...v },
-      to: { ...v, yawDeg: v.yawDeg + delta, pitch: tg.elevationDeg * RAD },
-      start: performance.now(),
-      ms: 750,
-    };
-    redraw.current();
   }, []);
 
   const walk = useCallback(
@@ -339,6 +319,7 @@ export function PanoramaViewer() {
     if (cur) setTour({ ...cur, paused: !cur.paused });
   }, [setTour]);
 
+  /** A place label on the photo opens that place's card in the Surface tab. */
   const showPoi = useCallback(
     (poiId: string) => {
       const s = useApp.getState();
@@ -369,7 +350,7 @@ export function PanoramaViewer() {
 
   useEffect(() => {
     redraw.current();
-  }, [targets, maskOn, panelOpen, tour]);
+  }, [targets, panelOpen, tour]);
 
   // Keyboard shortcuts that change React state (the effect below handles looking and zooming).
   useEffect(() => {
@@ -380,7 +361,6 @@ export function PanoramaViewer() {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key.toLowerCase();
       if (k === 'i') setPanelOpen((o) => !o);
-      else if (k === 'u') setMaskOn((o) => !o);
       else if (k === 'f') toggleFullscreen();
       else if (e.key === ' ' && tourRef.current.touring) togglePause();
       else if (e.key === '[' && sorted[i - 1]) walk(sorted[i - 1]!.id);
@@ -403,7 +383,6 @@ export function PanoramaViewer() {
     }
     let raf = 0;
     let disposed = false;
-    let maskMix = maskOnRef.current ? 1 : 0;
     // A new panorama keeps the heading but starts level.
     view.current.pitch = 0;
     turn.current = null;
@@ -530,12 +509,6 @@ export function PanoramaViewer() {
         if (stay.current >= TOUR_STAY_S) leaveRef.current();
         again = true;
       }
-      const maskGoal = maskOnRef.current ? 1 : 0;
-      if (Math.abs(maskMix - maskGoal) > 0.01) {
-        maskMix += (maskGoal - maskMix) * Math.min(1, dt * 9);
-        again = true;
-      } else maskMix = maskGoal;
-
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = Math.round(canvas.clientWidth * dpr);
       const h = Math.round(canvas.clientHeight * dpr);
@@ -559,7 +532,6 @@ export function PanoramaViewer() {
       gl.uniform1f(uni('u_span'), g.spanDeg * RAD);
       gl.uniform1f(uni('u_tilt'), g.tiltDeg * RAD);
       gl.uniform1f(uni('u_tiltAz'), g.tiltTowardAzimuthDeg * RAD);
-      gl.uniform1f(uni('u_maskShow'), maskMix);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.uniform1i(uni('u_pano'), 0);
@@ -802,16 +774,6 @@ export function PanoramaViewer() {
           <button
             type="button"
             className="pano-icon"
-            aria-pressed={maskOn}
-            aria-label={t('panorama.hud.unimaged')}
-            title={`${t('panorama.hud.unimaged')} (U)`}
-            onClick={() => setMaskOn((o) => !o)}
-          >
-            <IconUnimaged />
-          </button>
-          <button
-            type="button"
-            className="pano-icon"
             aria-pressed={panelOpen}
             aria-label={t('panorama.hud.infoToggle')}
             title={`${t('panorama.hud.infoToggle')} (I)`}
@@ -832,17 +794,7 @@ export function PanoramaViewer() {
         </div>
       </header>
 
-      {panelOpen && (
-        <InfoPanel
-          pano={pano}
-          targets={targets}
-          rover={rover}
-          samples={samples}
-          onTurnTo={turnTo}
-          onWalk={walk}
-          onShowPoi={showPoi}
-        />
-      )}
+      {panelOpen && <InfoPanel pano={pano} rover={rover} samples={samples} />}
       <MiniMap pano={pano} rover={rover} coneRef={coneRef} onWalk={walk} />
       {touring && tour && (
         <div className="pano-tour" role="group" aria-label={t('panorama.tour.label')}>

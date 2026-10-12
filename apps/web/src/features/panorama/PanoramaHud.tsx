@@ -103,24 +103,16 @@ export function PanoramaTitle({ pano }: { pano: Panorama }) {
 
 interface PanelProps {
   pano: Panorama;
-  targets: Target[];
   rover: RoverSnapshot | null;
   samples: SampleSite[];
-  onTurnTo(t: Target): void;
-  onWalk(id: string): void;
-  onShowPoi(id: string): void;
 }
 
-/** Side panel: why the place matters, the mission moment, nearby samples, places around, source. */
-export function InfoPanel({
-  pano,
-  targets,
-  rover,
-  samples,
-  onTurnTo,
-  onWalk,
-  onShowPoi,
-}: PanelProps) {
+/**
+ * Side panel, kept short: what you are looking at and where (plain words, for anyone), why the
+ * place matters, the mission moment, samples collected nearby, and the source (folded). Places
+ * around are on the photo and the mini-map, so they are not listed again here.
+ */
+export function InfoPanel({ pano, rover, samples }: PanelProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const lang = locale.startsWith('es') ? 'es' : 'en';
@@ -135,25 +127,14 @@ export function InfoPanel({
     .filter((n) => n.d <= NEARBY_SAMPLE_M)
     .sort((a, b) => a.d - b.d)
     .slice(0, 4);
-  const places = [...targets].sort((a, b) => a.distanceM - b.distanceM).slice(0, 8);
 
   return (
     <aside className="pano-panel" aria-label={t('panorama.hud.info')}>
       <section>
+        <h3>{t('panorama.hud.what')}</h3>
+        <p className="pano-intro">{t(`panorama.intro.${pano.id}`)}</p>
         <h3>{t('panorama.hud.about')}</h3>
-        {poi ? (
-          <>
-            <p>{poi.why[lang]}</p>
-            <p className="pano-muted">
-              <strong>{t('science.investigate')}:</strong> {poi.investigate[lang]}
-            </p>
-            <button type="button" className="pano-link" onClick={() => onShowPoi(poi.id)}>
-              {t('panorama.hud.openCard')} <IconChevron width={14} height={14} />
-            </button>
-          </>
-        ) : (
-          <p>{t(`panorama.about.${pano.id}`)}</p>
-        )}
+        <p>{poi ? poi.why[lang] : t(`panorama.about.${pano.id}`)}</p>
       </section>
 
       <section>
@@ -216,45 +197,8 @@ export function InfoPanel({
         )}
       </section>
 
-      {places.length > 0 && (
-        <section>
-          <h3>{t('panorama.hud.around')}</h3>
-          <ul className="pano-list">
-            {places.map((p) => (
-              <li key={p.key}>
-                <button type="button" className="pano-row" onClick={() => onTurnTo(p)}>
-                  <span
-                    className={`pano-dot ${p.kind === 'panorama' ? 'pano-dot-pano' : 'pano-dot-poi'}`}
-                    aria-hidden="true"
-                  />
-                  <span className="pano-row-text">
-                    <strong>{p.name}</strong>
-                    <small>
-                      {formatDistance(p.distanceM, locale)} · {compass16(p.azimuthDeg)}{' '}
-                      {Math.round(p.azimuthDeg)}°
-                      {p.hidden ? ` · ${t('panorama.behindTerrain')}` : ''}
-                    </small>
-                  </span>
-                  <span className="pano-row-action">{t('panorama.hud.look')}</span>
-                </button>
-                {(p.kind === 'panorama' || p.panoramaId) && (
-                  <button
-                    type="button"
-                    className="annotation-chip pano-chip"
-                    aria-label={t('panorama.hud.walkHere', { name: p.name })}
-                    onClick={() => onWalk(p.kind === 'panorama' ? p.id : p.panoramaId!)}
-                  >
-                    360°
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="pano-source">
-        <h3>{t('panorama.hud.source')}</h3>
+      <details className="pano-source">
+        <summary>{t('panorama.hud.source')}</summary>
         <p>{t('panorama.caption', { sols: solText(pano), date: pano.date })}</p>
         <p className="pano-muted">
           {PANORAMA_CREDIT} · {pano.reference}
@@ -269,7 +213,7 @@ export function InfoPanel({
             })}
           </p>
         )}
-      </section>
+      </details>
     </aside>
   );
 }

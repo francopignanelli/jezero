@@ -1021,9 +1021,10 @@ export class MarsScene {
   /**
    * Straight "helicopter" flight between two camera positions: one compass heading the whole way,
    * the position eased along the straight line (no jolt at take-off or arrival), rising `peakM`
-   * above the line between the two heights at mid-flight, and the view tipping from `pitchDeg[0]`
-   * to `pitchDeg[1]`. The camera is first held at the take-off pose until the tiles there have
-   * loaded (`onTakeOff` then fires, e.g. to lift a veil). The caller plans the terrain clearance, so
+   * above the line between the two heights at mid-flight. The view tilts to keep `aimAt` (the
+   * destination) ahead, between `pitchDeg` [shallowest, steepest]. Before take-off, the tiles of
+   * the landing view and then of the take-off view are loaded while the camera waits (`onTakeOff`
+   * then fires, e.g. to lift a veil), so the flight starts and arrives over sharp imagery. The caller plans the terrain clearance, so
    * the exploration limits and Cesium's 220 m collision floor are off meanwhile (they would hold the
    * camera far above a take-off just over a panorama). They stay off after arrival until
    * `release()` (e.g. once the next view covers the map), so the camera is not lifted on landing.
@@ -1033,6 +1034,7 @@ export class MarsScene {
     from: CameraPoint;
     to: CameraPoint;
     headingDeg: number;
+    aimAt: CameraPoint;
     pitchDeg: [number, number];
     peakM: number;
     seconds: number;
@@ -1045,12 +1047,22 @@ export class MarsScene {
     const lon0 = normalizeLon180(from.lon);
     const dLon = normalizeLon180(to.lon - from.lon);
     const heading = CesiumMath.toRadians(spec.headingDeg);
+    const aim = spec.aimAt;
+    const mPerDegLat = (Math.PI / 180) * MARS_SPHERE_RADIUS_M;
     const place = (e: number) => {
+      const lat = from.lat + (to.lat - from.lat) * e;
+      const lon = lon0 + dLon * e;
       const heightM =
         from.heightM + (to.heightM - from.heightM) * e + spec.peakM * Math.sin(Math.PI * e);
-      const pitch = spec.pitchDeg[0] + (spec.pitchDeg[1] - spec.pitchDeg[0]) * e;
+      // Look down at the destination: the angle steepens as it comes closer (never sideways).
+      const ahead = Math.hypot(
+        (aim.lat - lat) * mPerDegLat,
+        normalizeLon180(aim.lon - lon) * mPerDegLat * Math.cos(CesiumMath.toRadians(lat)),
+      );
+      const toward = -CesiumMath.toDegrees(Math.atan2(heightM - aim.heightM, ahead));
+      const pitch = Math.min(spec.pitchDeg[0], Math.max(spec.pitchDeg[1], toward));
       camera.setView({
-        destination: toCartesian(from.lat + (to.lat - from.lat) * e, lon0 + dLon * e, heightM),
+        destination: toCartesian(lat, lon, heightM),
         orientation: { heading, pitch: CesiumMath.toRadians(pitch), roll: 0 },
       });
       this.requestRender();
@@ -1097,12 +1109,17 @@ export class MarsScene {
         }
         window.requestAnimationFrame(frame);
       };
-      place(0);
-      void this.whenTilesLoaded(1_500).then(() => {
+      // Landing view first (cached), then the take-off view; both under the caller's veil.
+      void (async () => {
+        place(1);
+        await this.whenTilesLoaded(1_000);
+        if (stopped || this.isDestroyed()) return finish();
+        place(0);
+        await this.whenTilesLoaded(1_200);
         if (stopped || this.isDestroyed()) return finish();
         spec.onTakeOff?.();
         window.requestAnimationFrame(frame);
-      });
+      })();
     });
     return { done, stop, release };
   }

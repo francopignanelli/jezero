@@ -28,16 +28,20 @@ export function startTour(fromId?: string): void {
 }
 
 /**
- * The flight between two stops is straight, like a helicopter: it takes off just above the first
- * panorama, climbs over the middle and lands just above the next one, keeping one heading.
+ * The flight between two stops is straight, like a helicopter: it takes off above the first
+ * panorama, climbs over the middle and comes down looking onto the next one, keeping one heading.
+ * Heights and angles favour sharp imagery: from a few hundred metres, looking down, the 0.64 m
+ * HiRISE tiles are drawn near their resolution and fewer tiles have to stream in mid-flight (a
+ * low, shallow view magnifies them and loads far-off terrain, which looked blurred).
  */
 const FLIGHT = {
-  takeOffM: 90, // camera height above the ground at the first stop
-  landM: 70, // and at the next one
-  climbPerM: 0.1, // mid-flight rise per metre covered (before terrain clearance)
-  clearanceM: 70, // never closer than this to the ground on the way
+  takeOffM: 250, // camera height above the ground at the first stop
+  landM: 380, // and when it arrives looking down at the next one
+  landPitchDeg: 50, // the next stop is centred at this angle below the horizon on arrival
+  climbPerM: 0.12, // mid-flight rise per metre covered (before terrain clearance)
+  clearanceM: 120, // never closer than this to the ground on the way
   maxPeakM: 1_500,
-  pitchDeg: [-18, -28] as [number, number], // horizon ahead at take-off, the landing spot at the end
+  pitchDeg: [-30, -55] as [number, number], // shallowest and steepest view while aiming ahead
   samples: 40,
 };
 
@@ -75,17 +79,28 @@ async function planFlight(
   const raw = await scene.sampleTerrain(line);
   const ground = raw.map((h, i) => (Number.isFinite(h) ? h : (raw[i - 1] ?? 0)));
   const h0 = ground[0]! + FLIGHT.takeOffM;
-  const h1 = ground[n - 1]! + FLIGHT.landM;
   const distanceM = greatCircleDistance(a, to.position);
+  // Arrive short of the next stop, so it is centred below at FLIGHT.landPitchDeg.
+  const shortM = Math.min(
+    0.8 * distanceM,
+    FLIGHT.landM / Math.tan((FLIGHT.landPitchDeg * Math.PI) / 180),
+  );
+  const fEnd = distanceM > 0 ? 1 - shortM / distanceM : 1;
+  const end = { lat: a.lat + (to.position.lat - a.lat) * fEnd, lon: a.lon + dLon * fEnd };
+  const groundEnd = ground[Math.round(fEnd * (n - 1))]!;
+  const h1 = Math.max(groundEnd, ground[n - 1]!) + FLIGHT.landM;
   let peakM = Math.max(40, FLIGHT.climbPerM * distanceM);
+  // Ground samples are along the whole line; the flight covers it up to fEnd.
   for (let i = 1; i < n - 1; i++) {
-    const f = i / (n - 1);
+    const f = i / (n - 1) / fEnd;
+    if (f >= 1) break;
     const need = (ground[i]! + FLIGHT.clearanceM - (h0 + (h1 - h0) * f)) / Math.sin(Math.PI * f);
     peakM = Math.max(peakM, need);
   }
   return {
     from: { ...line[0]!, heightM: h0 },
-    to: { ...line[n - 1]!, heightM: h1 },
+    to: { ...end, heightM: h1 },
+    aimAt: { ...to.position, heightM: ground[n - 1]! },
     headingDeg: initialBearingDeg(a, to.position), // the direction the viewer turned to
     peakM: Math.min(FLIGHT.maxPeakM, peakM),
     // ~3 s for a short hop, at most 6 s.

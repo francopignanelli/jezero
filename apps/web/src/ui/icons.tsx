@@ -80,12 +80,6 @@ export const IconExpand = (p: SVGProps<SVGSVGElement>) => (
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
 );
-export const IconUnimaged = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base} {...p}>
-    <rect x="3.5" y="3.5" width="17" height="17" rx="2" strokeDasharray="3 2.4" />
-    <path d="M8 16l8-8M8 11l3-3M13 16l3-3" />
-  </svg>
-);
 export const IconPlus = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="M12 5v14M5 12h14" />

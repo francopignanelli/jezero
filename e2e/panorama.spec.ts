@@ -61,7 +61,7 @@ test('walking from one panorama to another loads the next view (no black screen)
   expect(lost).toBe(false);
 });
 
-test('360° HUD: mission facts, look at a place, unimaged areas and the next panorama', async ({
+test('360° HUD: plain-language intro, mission facts, always-marked unimaged areas, next panorama', async ({
   page,
 }) => {
   await openApp(page);
@@ -71,21 +71,21 @@ test('360° HUD: mission facts, look at a place, unimaged areas and the next pan
   const dialog = page.getByRole('dialog', { name: 'Three Forks sample depot' });
   await expect(dialog).toBeVisible();
   const panel = page.locator('.pano-panel');
+  // What and where first, for anyone; then why it matters, the mission moment and samples.
+  await expect(panel).toContainText('What you are looking at');
+  await expect(panel.locator('.pano-intro')).toContainText('foot of the delta');
   await expect(panel).toContainText('Mission moment');
   await expect(panel).toContainText('Driven since landing');
   await expect(panel).toContainText('Samples collected nearby');
-
-  // "Look" turns the view to the place; the heading readout names what is straight ahead.
-  await page.locator('.pano-row', { hasText: 'Hawksbill Gap' }).click();
-  await expect(page.locator('.pano-facing')).toHaveText(/Hawksbill Gap/, { timeout: 5_000 });
-
-  const unimaged = page.getByRole('button', { name: 'Show the areas the camera did not image' });
-  await unimaged.click();
-  await expect(unimaged).toHaveAttribute('aria-pressed', 'true');
+  // Simpler panel: no list of places (they are on the photo and the mini-map), no card link.
+  await expect(panel).not.toContainText('Places around you');
+  await expect(panel).not.toContainText('Open its science card');
+  // The unimaged areas are always marked: no toggle any more.
+  await expect(page.getByRole('button', { name: /did not image/ })).toHaveCount(0);
 
   await page.getByRole('button', { name: /^Next panorama: Belva crater/ }).click();
   await expect(page.getByRole('dialog', { name: 'Belva crater' })).toBeVisible();
-  await expect(page.locator('.pano-facing')).not.toHaveText(/Hawksbill Gap/);
+  await expect(panel.locator('.pano-intro')).toContainText('Belva');
 });
 
 test('auto-tour: looks around, flies straight to the next panorama, and can stop', async ({
