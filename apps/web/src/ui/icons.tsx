@@ -48,6 +48,13 @@ export const IconSurface = (p: SVGProps<SVGSVGElement>) => (
     <path d="M5.5 8.5a8 3 0 0 1 13 0" />
   </svg>
 );
+/** 360° views: a ring around the viewer. */
+export const Icon360 = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <ellipse cx="12" cy="13" rx="9" ry="4" />
+    <path d="M12 3.5v6M9.5 7 12 9.5 14.5 7" />
+  </svg>
+);
 export const IconCheck = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="m5 12.5 4.2 4L19 7" />

@@ -29,7 +29,8 @@
     "mars": "Marte",
     "surface": "Superficie",
     "marswalk": "Caminata",
-    "conditions": "Condiciones"
+    "conditions": "Condiciones",
+    "panoramas": "Vistas 360°"
   },
   "explore": {
     "title": "Explorar Marte",
@@ -44,9 +45,10 @@
     "why": "Un cráter de 45 km que tuvo un lago hace unos 3.500 millones de años; el delta que dejó el río todavía se conserva en su lado oeste. El rover Perseverance de la NASA lo explora desde febrero de 2021 y recoge muestras de roca para un posible regreso a la Tierra.",
     "nextTitle": "Qué podés hacer",
     "next": {
-      "surface": "Vistas 360° reales, el rover, sitios científicos y mapas del suelo",
+      "surface": "El rover, sitios científicos y mapas del suelo",
       "marswalk": "Planificar una caminata paso a paso y simularla",
-      "conditions": "Hora, Sol, estación y clima medido"
+      "conditions": "Hora, Sol, estación y clima medido",
+      "panoramas": "Parate donde estuvo el rover: panorámicas reales y un recorrido entre ellas"
     }
   },
   "layers": {
@@ -436,7 +438,7 @@
       },
       "surface": {
         "title": "Superficie",
-        "body": "Vistas 360° reales, Perseverance en 3D, sitios científicos y mapas del suelo."
+        "body": "Perseverance en 3D, sitios científicos y mapas de qué está hecho el suelo."
       },
       "marswalk": {
         "title": "Caminata",
@@ -445,9 +447,13 @@
       "conditions": {
         "title": "Condiciones",
         "body": "Hora, Sol, estación y el clima que midió Perseverance."
+      },
+      "panoramas": {
+        "title": "Vistas 360°",
+        "body": "Panorámicas reales tomadas por Perseverance, y un recorrido que vuela entre ellas."
       }
     },
-    "tour": "Hacer el recorrido (4 capítulos cortos)",
+    "tour": "Hacer el recorrido (5 capítulos cortos)",
     "explore": "Explorar por mi cuenta",
     "later": "El botón ? de arriba tiene el recorrido, un modo demo y “Cosas para probar”, una lista de todo lo que hace Copernico. ¿Dudas con alguna palabra?",
     "glossary": "Abrir el glosario",
@@ -479,8 +485,8 @@
         "body": "Un modelo 3D de Marte hecho con imágenes y datos de elevación de orbitadores de la NASA. Arrastrá para girarlo; usá la rueda o pellizcá para acercarte. Las formaciones principales están rotuladas en sus posiciones oficiales, y el cráter Jezero, en naranja, es donde pasa todo en Copernico.\nLas estrellas y la Vía Láctea del fondo están donde realmente están, vistas desde Marte a la hora planificada de la caminata.\nTocá Siguiente, o dejá que el recorrido haga un paso por vos con “Hacelo por mí”. Esc sale del recorrido cuando quieras."
       },
       "panels": {
-        "title": "Cuatro pestañas, una por actividad",
-        "body": "Marte (el planeta), Superficie (Jezero de cerca: vistas 360°, el rover, sitios científicos), Caminata (planificar y simular una caminata) y Condiciones (hora, Sol y datos del clima). Cada pestaña lleva la cámara a su lugar. Tocá de nuevo la pestaña abierta para ocultar el panel."
+        "title": "Cinco pestañas, una por actividad",
+        "body": "Marte (el planeta), Superficie (Jezero de cerca: el rover, mapas del suelo, sitios científicos), Vistas 360° (panorámicas reales y un recorrido entre ellas), Caminata (planificar y simular una caminata) y Condiciones (hora, Sol y datos del clima). Cada pestaña lleva la cámara a su lugar. Tocá de nuevo la pestaña abierta para ocultar el panel."
       },
       "jezero": {
         "title": "Volá al cráter Jezero",
@@ -771,14 +777,15 @@
   },
   "surface": {
     "title": "Superficie de Jezero",
-    "intro": "Jezero de cerca: vistas 360° reales tomadas por Perseverance, el propio rover, mapas del suelo y los sitios científicos.",
+    "intro": "Jezero de cerca: el propio rover, mapas de qué está hecho el suelo y los sitios científicos.",
     "panoramas": "Panorámicas 360° ({{count}})",
     "panoramasNote": "Unidas a partir de imágenes de Mastcam-Z y ubicadas donde las tomó el rover, en orden de misión.",
     "panoSol": "Sol {{sol}} · {{date}}",
     "showOnMap": "Mostrar en el mapa:",
     "groundTitle": "De qué está hecho el suelo",
     "ground": "Mapas orbitales de minerales, arena o roca, pendiente y altura, cada uno con leyenda y nota de fuente (ⓘ en Capas).",
-    "inspectTip": "Consejo: tocá cualquier lugar del cráter para ver la altura, la pendiente y el tipo de suelo."
+    "inspectTip": "Consejo: tocá cualquier lugar del cráter para ver la altura, la pendiente y el tipo de suelo.",
+    "to360": "Panorámicas reales tomadas por Perseverance, y un recorrido que vuela de una a otra"
   },
   "checklist": {
     "title": "Cosas para probar",
@@ -798,5 +805,8 @@
       "save": "Guardar, compartir o exportar una misión",
       "conditions": "Cambiar la hora planificada de la EVA"
     }
+  },
+  "panoramasTab": {
+    "intro": "Parate donde estuvo Perseverance: panorámicas reales unidas a partir de sus imágenes de Mastcam-Z, en orden de misión. Abrí una para mirar alrededor, o dejá que el recorrido vuele en línea recta de una a otra."
   }
 }

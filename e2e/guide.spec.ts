@@ -12,7 +12,7 @@ test('first visit: welcome, then the guided tour drives the app to the end', asy
     .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
     .analyze();
   expect(a11y.violations.map((v) => v.id)).toEqual([]);
-  await page.getByRole('button', { name: 'Take the tour (4 short chapters)' }).click();
+  await page.getByRole('button', { name: 'Take the tour (5 short chapters)' }).click();
   await expect(welcome).toHaveCount(0);
 
   const card = page.locator('.tour-card');

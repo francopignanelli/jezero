@@ -12,7 +12,13 @@ import { flyToRover } from '../science/rover';
  * tour.steps.<id>.
  */
 export type ChapterId = Tab;
-export const CHAPTERS: readonly ChapterId[] = ['mars', 'surface', 'marswalk', 'conditions'];
+export const CHAPTERS: readonly ChapterId[] = [
+  'mars',
+  'surface',
+  'panoramas',
+  'marswalk',
+  'conditions',
+];
 
 export interface TourStep {
   id: string;
@@ -84,25 +90,6 @@ export const TOUR: TourStep[] = [
     settleMs: 6500,
   },
   {
-    id: 'panoramas',
-    chapter: 'surface',
-    target: 'panoramas',
-    prepare: () => {
-      calm();
-      show('surface');
-    },
-    action: () => useApp.getState().setPanoramaOpen('crocodile-bridge'),
-  },
-  {
-    id: 'panoramaView',
-    chapter: 'surface',
-    prepare: () => {
-      const s = useApp.getState();
-      if (!s.panoramaOpen) s.setPanoramaOpen('crocodile-bridge');
-    },
-    demoMs: 9000,
-  },
-  {
     id: 'rover',
     chapter: 'surface',
     target: 'rover',
@@ -142,6 +129,26 @@ export const TOUR: TourStep[] = [
       s.selectPoi(TOUR_POI.id);
       s.flyTo(TOUR_POI.lat, TOUR_POI.lon);
     },
+  },
+  // ---- 360° views ----
+  {
+    id: 'panoramas',
+    chapter: 'panoramas',
+    target: 'panoramas',
+    prepare: () => {
+      calm();
+      show('panoramas');
+    },
+    action: () => useApp.getState().setPanoramaOpen('crocodile-bridge'),
+  },
+  {
+    id: 'panoramaView',
+    chapter: 'panoramas',
+    prepare: () => {
+      const s = useApp.getState();
+      if (!s.panoramaOpen) s.setPanoramaOpen('crocodile-bridge');
+    },
+    demoMs: 9000,
   },
   // ---- Marswalk ----
   {

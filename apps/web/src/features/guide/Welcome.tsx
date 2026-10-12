@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
-import { IconGlobe, IconRoute, IconSun, IconSurface } from '../../ui/icons';
+import { Icon360, IconGlobe, IconRoute, IconSun, IconSurface } from '../../ui/icons';
 
 const WELCOMED_KEY = 'copernico.welcomed';
 
@@ -58,6 +58,7 @@ export function Welcome() {
   const cards = [
     { icon: IconGlobe, key: 'mars' },
     { icon: IconSurface, key: 'surface' },
+    { icon: Icon360, key: 'panoramas' },
     { icon: IconRoute, key: 'marswalk' },
     { icon: IconSun, key: 'conditions' },
   ] as const;

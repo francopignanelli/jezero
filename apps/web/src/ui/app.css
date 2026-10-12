@@ -1639,7 +1639,7 @@ details.samples > summary {
 }
 .welcome-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   margin: 0 0 18px;
   padding: 0;
@@ -3334,4 +3334,29 @@ details.samples > summary {
 }
 .pano-panel details.pano-source[open] summary {
   margin-bottom: 8px;
+}
+
+/* 360° tab: one panorama per row, larger thumbnails, mission order numbers. */
+.pano-cards-wide {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.pano-cards-wide .pano-card img {
+  aspect-ratio: 3 / 1;
+}
+.pano-card-n {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--mars);
+  color: #1a0d06;
+  font-size: 0.7rem;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+.surface-to-360 {
+  margin: 12px 0 4px;
 }

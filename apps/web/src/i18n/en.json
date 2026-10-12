@@ -29,7 +29,8 @@
     "mars": "Mars",
     "surface": "Surface",
     "marswalk": "Marswalk",
-    "conditions": "Conditions"
+    "conditions": "Conditions",
+    "panoramas": "360° views"
   },
   "explore": {
     "title": "Explore Mars",
@@ -44,9 +45,10 @@
     "why": "A 45 km crater that held a lake about 3.5 billion years ago; the river delta it left is still preserved on its western side. NASA's Perseverance rover has explored it since February 2021, collecting rock samples for possible return to Earth.",
     "nextTitle": "What you can do",
     "next": {
-      "surface": "Real 360° views, the rover, science sites and maps of the ground",
+      "surface": "The rover, science sites and maps of the ground",
       "marswalk": "Plan a walk step by step, then simulate it",
-      "conditions": "Time, Sun, season and measured weather"
+      "conditions": "Time, Sun, season and measured weather",
+      "panoramas": "Stand where the rover stood: real panoramas and a tour between them"
     }
   },
   "layers": {
@@ -436,7 +438,7 @@
       },
       "surface": {
         "title": "Surface",
-        "body": "Real 360° views, Perseverance in 3D, science sites and maps of the ground."
+        "body": "Perseverance in 3D, science sites and maps of what the ground is made of."
       },
       "marswalk": {
         "title": "Marswalk",
@@ -445,9 +447,13 @@
       "conditions": {
         "title": "Conditions",
         "body": "Time, Sun, season and the weather Perseverance measured."
+      },
+      "panoramas": {
+        "title": "360° views",
+        "body": "Real panoramas taken by Perseverance, and a tour that flies between them."
       }
     },
-    "tour": "Take the tour (4 short chapters)",
+    "tour": "Take the tour (5 short chapters)",
     "explore": "Explore on my own",
     "later": "The ? button at the top has the tour, a demo mode and “Things to try”, a checklist of everything Copernico can do. Unsure about a word?",
     "glossary": "Open the glossary",
@@ -479,8 +485,8 @@
         "body": "A 3D model of Mars built from NASA orbiter images and elevation data. Drag to turn it; scroll or pinch to zoom. Major features are labelled at their official positions, and Jezero Crater, in orange, is where everything in Copernico happens.\nThe stars and the Milky Way behind it are where they really are, seen from Mars at the planned walk time.\nPress Next, or let the tour do a step for you with “Do it for me”. Esc leaves the tour at any time."
       },
       "panels": {
-        "title": "Four tabs, one per activity",
-        "body": "Mars (the planet), Surface (Jezero up close: 360° views, the rover, science sites), Marswalk (plan and simulate a walk) and Conditions (time, Sun and weather data). Each tab takes the camera to its place. Click the open tab again to hide the panel."
+        "title": "Five tabs, one per activity",
+        "body": "Mars (the planet), Surface (Jezero up close: the rover, maps of the ground, science sites), 360° views (real panoramas and a tour between them), Marswalk (plan and simulate a walk) and Conditions (time, Sun and weather data). Each tab takes the camera to its place. Click the open tab again to hide the panel."
       },
       "jezero": {
         "title": "Fly to Jezero Crater",
@@ -771,14 +777,15 @@
   },
   "surface": {
     "title": "Jezero surface",
-    "intro": "Jezero up close: real 360° views taken by Perseverance, the rover itself, maps of the ground and the science sites.",
+    "intro": "Jezero up close: the rover itself, maps of what the ground is made of, and the science sites.",
     "panoramas": "360° panoramas ({{count}})",
     "panoramasNote": "Stitched from Mastcam-Z images and placed where the rover took them, in mission order.",
     "panoSol": "Sol {{sol}} · {{date}}",
     "showOnMap": "Show on the map:",
     "groundTitle": "What the ground is made of",
     "ground": "Orbital maps of minerals, sand versus rock, slope and height, each with a legend and a source note (ⓘ in Layers).",
-    "inspectTip": "Tip: click anywhere in the crater to see the height, slope and ground type there."
+    "inspectTip": "Tip: click anywhere in the crater to see the height, slope and ground type there.",
+    "to360": "Real panoramas taken by Perseverance, and a tour that flies from one to the next"
   },
   "checklist": {
     "title": "Things to try",
@@ -798,5 +805,8 @@
       "save": "Save, share or export a mission",
       "conditions": "Change the planned EVA time"
     }
+  },
+  "panoramasTab": {
+    "intro": "Stand where Perseverance stood: real panoramas stitched from its Mastcam-Z images, in mission order. Open one to look around, or let the tour fly straight from one to the next."
   }
 }

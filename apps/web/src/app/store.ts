@@ -4,8 +4,8 @@ import { create } from 'zustand';
 import type { OverlayKind } from '../features/routes/overlays';
 
 export type Mode = 'orbit' | 'jezero';
-/** One tab per activity: the planet, the Jezero surface, planning a Marswalk, conditions. */
-export type Tab = 'mars' | 'surface' | 'marswalk' | 'conditions';
+/** One tab per activity: the planet, the Jezero surface, its 360° views, a Marswalk, conditions. */
+export type Tab = 'mars' | 'surface' | 'panoramas' | 'marswalk' | 'conditions';
 
 export type LayerId =
   | 'viking'
@@ -126,7 +126,7 @@ interface AppState {
   setSceneReady(v: boolean): void;
   setMode(mode: Mode): void;
   setTab(tab: Tab): void;
-  /** Opens a tab and takes the camera to its place: Mars → orbit, Surface/Marswalk → Jezero. */
+  /** Opens a tab and takes the camera to its place: Mars → orbit, conditions stays, others → Jezero. */
   goTo(tab: Tab): void;
   setPanelOpen(open: boolean): void;
   setLayer(id: LayerId, visible: boolean): void;

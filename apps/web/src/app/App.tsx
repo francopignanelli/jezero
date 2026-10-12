@@ -8,6 +8,7 @@ import { Glossary } from '../features/guide/Glossary';
 import { Tour } from '../features/guide/Tour';
 import { TourTravel } from '../features/panorama/PanoramaTour';
 import { PanoramaViewer } from '../features/panorama/PanoramaViewer';
+import { PanoramasPanel } from '../features/panorama/PanoramasPanel';
 import { Welcome } from '../features/guide/Welcome';
 import { InspectorCard } from '../features/inspector/InspectorCard';
 import { LayersControl } from '../features/layers/LayersControl';
@@ -19,7 +20,7 @@ import { RoutePanel } from '../features/routes/RoutePanel';
 import { SurfacePanel } from '../features/science/SurfacePanel';
 import { FEATURES } from '../config';
 import { MarsCanvas } from '../render/MarsCanvas';
-import { IconGlobe, IconRoute, IconSun, IconSurface, IconX } from '../ui/icons';
+import { Icon360, IconGlobe, IconRoute, IconSun, IconSurface, IconX } from '../ui/icons';
 import { LoadingScreen } from './LoadingScreen';
 import { PrototypeNotice } from './PrototypeNotice';
 import { Toast } from './Toast';
@@ -33,6 +34,7 @@ const TABS: Array<{
 }> = [
   { id: 'mars', icon: IconGlobe, panel: MarsPanel },
   { id: 'surface', icon: IconSurface, panel: SurfacePanel },
+  { id: 'panoramas', icon: Icon360, panel: PanoramasPanel },
   { id: 'marswalk', icon: IconRoute, panel: RoutePanel },
   { id: 'conditions', icon: IconSun, panel: EnvironmentPanel },
 ];

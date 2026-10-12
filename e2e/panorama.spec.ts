@@ -6,9 +6,9 @@ test('360° panorama: opens from the gallery, loads the local image, closes with
 }) => {
   const external = trackExternalRequests(page);
   await openApp(page);
-  await page.getByRole('tab', { name: 'Surface' }).click();
+  await page.getByRole('tab', { name: '360° views' }).click();
   const image = page.waitForResponse((r) => r.url().includes('_8k.webp') && r.ok());
-  await page.locator('.pano-card', { hasText: 'Crocodile Bridge' }).click(); // 360° gallery, Surface tab
+  await page.locator('.pano-card', { hasText: 'Crocodile Bridge' }).click(); // gallery in the 360° tab
 
   const dialog = page.getByRole('dialog', { name: /Crocodile Bridge/ });
   await expect(dialog).toBeVisible();
@@ -92,7 +92,7 @@ test('auto-tour: looks around, flies straight to the next panorama, and can stop
   page,
 }) => {
   await openApp(page);
-  await page.getByRole('tab', { name: 'Surface' }).click();
+  await page.getByRole('tab', { name: '360° views' }).click();
   await page.getByRole('button', { name: /^Tour all \d+ 360° views along the path$/ }).click();
   await expect(page.getByRole('dialog', { name: 'Octavia E. Butler Landing' })).toBeVisible();
   const tourBar = page.locator('.pano-tour');

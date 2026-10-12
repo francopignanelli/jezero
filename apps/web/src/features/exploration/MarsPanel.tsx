@@ -2,11 +2,12 @@ import type { ComponentType, SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type Tab } from '../../app/store';
 import { MISSIONS } from '../../data/catalog';
-import { IconRoute, IconSun, IconSurface } from '../../ui/icons';
+import { Icon360, IconRoute, IconSun, IconSurface } from '../../ui/icons';
 
 /** What each of the other tabs is for, so every part of the app can be reached from here. */
 const NEXT: Array<{ tab: Tab; icon: ComponentType<SVGProps<SVGSVGElement>> }> = [
   { tab: 'surface', icon: IconSurface },
+  { tab: 'panoramas', icon: Icon360 },
   { tab: 'marswalk', icon: IconRoute },
   { tab: 'conditions', icon: IconSun },
 ];

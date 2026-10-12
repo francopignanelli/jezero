@@ -29,6 +29,9 @@ test('panels meet WCAG 2.2 AA (automated rules)', async ({ page }) => {
   await page.getByRole('tab', { name: 'Surface' }).click();
   await audit(page, 'Surface');
 
+  await page.getByRole('tab', { name: '360° views' }).click();
+  await audit(page, '360° views');
+
   await page.getByRole('button', { name: 'Help' }).click();
   await page.getByRole('menuitem', { name: /Things to try/ }).click();
   await audit(page, 'Things to try');

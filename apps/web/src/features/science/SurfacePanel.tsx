@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type LayerId } from '../../app/store';
-import { dataUrl, DATA_VERSION } from '../../config';
-import { PANORAMAS, POIS, panoramaForPoi, type Panorama } from '../../data/catalog';
+import { POIS, panoramaForPoi } from '../../data/catalog';
 import {
   loadRover,
   loadSamples,
@@ -10,7 +9,7 @@ import {
   type SampleSite,
 } from '../../data/surfaceData';
 import { formatCoordinate } from '../../lib/format';
-import { startTour, TOUR as PANORAMA_ORDER } from '../panorama/PanoramaTour';
+import { Icon360 } from '../../ui/icons';
 import { flyToRover } from './rover';
 
 /** Route-planning coverage of the operational region (see data/build/regions/jezero/grid.json). */
@@ -43,49 +42,6 @@ function LayerChips({ ids, tour }: { ids: LayerId[]; tour?: string }) {
   );
 }
 
-/** 360° panoramas in mission order, each a card that opens it. */
-function PanoramaGallery() {
-  const { t, i18n } = useTranslation();
-  const open = useApp((s) => s.setPanoramaOpen);
-  const card = (p: Panorama) => (
-    <li key={p.id}>
-      <button type="button" className="pano-card" onClick={() => open(p.id)}>
-        <img
-          src={dataUrl(`${p.file.replace('_8k.webp', '_thumb.webp')}?v=${DATA_VERSION}`)}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          width={320}
-          height={107}
-          onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = 'hidden')}
-        />
-        <span className="pano-card-text">
-          <strong>{p.title}</strong>
-          <span>
-            {t('surface.panoSol', {
-              sol: p.sols[0],
-              date: new Date(p.date).toLocaleDateString(i18n.language, {
-                year: 'numeric',
-                month: 'short',
-              }),
-            })}
-          </span>
-        </span>
-      </button>
-    </li>
-  );
-  return (
-    <section className="pano-gallery" aria-labelledby="pano-gallery-title" data-tour="panoramas">
-      <h3 id="pano-gallery-title">{t('surface.panoramas', { count: PANORAMAS.length })}</h3>
-      <p className="meta">{t('surface.panoramasNote')}</p>
-      <button type="button" className="btn btn-primary btn-block" onClick={() => startTour()}>
-        {t('panorama.tour.startAll', { count: PANORAMAS.length })}
-      </button>
-      <ul className="pano-cards">{PANORAMA_ORDER.map(card)}</ul>
-    </section>
-  );
-}
-
 export function SurfacePanel() {
   const { t, i18n } = useTranslation();
   const lang = i18n.language.startsWith('es') ? 'es' : 'en';
@@ -93,6 +49,7 @@ export function SurfacePanel() {
   const flyTo = useApp((s) => s.flyTo);
   const openPanorama = useApp((s) => s.setPanoramaOpen);
   const setMode = useApp((s) => s.setMode);
+  const goTo = useApp((s) => s.goTo);
   const [rover, setRover] = useState<RoverSnapshot | null>(null);
   const [samples, setSamples] = useState<SampleSite[]>([]);
   const selectedPoiId = useApp((s) => s.selectedPoiId);
@@ -126,7 +83,13 @@ export function SurfacePanel() {
       <h2 id="surface-title">{t('surface.title')}</h2>
       <p className="lede">{t('surface.intro')}</p>
 
-      <PanoramaGallery />
+      <button type="button" className="next-tab surface-to-360" onClick={() => goTo('panoramas')}>
+        <Icon360 />
+        <span>
+          <strong>{t('nav.panoramas')}</strong>
+          <span>{t('surface.to360')}</span>
+        </span>
+      </button>
 
       {rover && (
         <div className="card" data-tour="rover">
