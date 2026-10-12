@@ -712,7 +712,7 @@
       "noSamples": "No se recolectaron muestras a menos de 600 m de esta parada.",
       "walkHere": "Ir a la vista 360° de {{name}}",
       "source": "Fuente y precisión",
-      "unimagedNote": "Alrededor del {{percent}}% de la imagen no se fotografió: el propio cuerpo del rover tapa la vista de la cámara hacia abajo. Esas zonas se completan de forma suave a partir de la foto alrededor (sin inventar detalles) y siempre se muestran rayadas.",
+      "unimagedNote": "Alrededor del {{percent}}% de la imagen no se fotografió: el propio cuerpo del rover tapa la vista de la cámara hacia abajo. Esas zonas se completan de forma suave a partir de la foto alrededor (sin inventar detalles) y siempre se marcan: un poco más oscuras, con líneas diagonales tenues.",
       "minimap": "Mapa: tu posición, hacia dónde mirás y las panorámicas cercanas",
       "timeline": "Panorámicas a lo largo de la misión",
       "landing": "Aterrizaje",

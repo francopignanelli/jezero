@@ -265,10 +265,10 @@ def fill_unimaged(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     The black no-data regions are found (near-black, large and contiguous: an opening drops dark
     specks in real shadows), widened by 3 px to drop JPEG fringes, and filled by push-pull from the
-    surrounding photo. The fill is darkened and desaturated with depth into the hole so it reads as
-    a soft shadowed area rather than as terrain, and blended over a few pixels at its edge.
+    surrounding photo, only slightly darker deep inside (at most 8 %), so the area keeps the photo's
+    own colours instead of reading as a dark blot, and blended over a few pixels at its edge.
     Nothing is invented: it is a smooth extension of the edge colours, and the mask is shipped so
-    the viewer can show exactly which areas were filled."""
+    the viewer can mark exactly which areas were filled."""
     black = rgb.sum(axis=0) < 24
     hole = _shift_reduce(_shift_reduce(black, 4, np.minimum), 4, np.maximum)  # opening: drop specks
     hole = _shift_reduce(hole, 3, np.maximum)  # cover the JPEG fringe at the edge
@@ -279,8 +279,7 @@ def fill_unimaged(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     depth = _box_blur(hole.astype(np.float32), 48)
     t = np.clip((depth - 0.35) / 0.65, 0, 1)
     t = t * t * (3 - 2 * t)
-    grey = fill.mean(axis=0, keepdims=True)
-    fill = (grey + (fill - grey) * (1 - 0.45 * t)) * (1 - 0.5 * t)
+    fill = fill * (1 - 0.08 * t)
     soft = _box_blur(hole.astype(np.float32), 2)
     out = rgb * (1 - soft) + fill * soft
     return np.clip(out, 0, 255), hole

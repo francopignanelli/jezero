@@ -712,7 +712,7 @@
       "noSamples": "No samples were collected within 600 m of this stop.",
       "walkHere": "Go to the 360° view at {{name}}",
       "source": "Source and accuracy",
-      "unimagedNote": "About {{percent}}% of the image was not photographed: the rover’s own body blocks the camera’s view down. Those areas are filled smoothly from the surrounding photo (no invented detail) and are always shown hatched.",
+      "unimagedNote": "About {{percent}}% of the image was not photographed: the rover’s own body blocks the camera’s view down. Those areas are filled smoothly from the surrounding photo (no invented detail) and are always marked: slightly darker, with faint diagonal lines.",
       "minimap": "Map: your position, the direction you are looking and nearby panoramas",
       "timeline": "Panoramas along the mission",
       "landing": "Landing",

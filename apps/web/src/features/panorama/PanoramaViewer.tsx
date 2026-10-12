@@ -84,10 +84,16 @@ void main() {
   vec3 photo = textureGrad(u_pano, uv, gx, gy).rgb;
   // Feather the top 3% of the photo into the extrapolated sky so there is no seam.
   if (uv.y < 0.03) photo = mix(textureLod(u_pano, vec2(uv.x, 0.0), 6.0).rgb, photo, smoothstep(0.0, 0.03, uv.y));
-  float m = texture(u_mask, uv).r;
-  float stripe = step(0.5, fract((gl_FragCoord.x + gl_FragCoord.y) / 18.0));
-  vec3 hatch = mix(vec3(0.42, 0.78, 0.92), vec3(0.12, 0.26, 0.34), stripe);
-  photo = mix(photo, mix(photo, hatch, 0.45), m);
+  // Unimaged (filled) areas: marked in the photo's own colour, not a foreign hatch: faint diagonal
+  // lines of the same hue over the smooth fill, with soft edges (the outline of the missing frames
+  // is stair-stepped).
+  vec2 px = 1.5 / vec2(textureSize(u_mask, 0));
+  float m = 0.0;
+  for (int i = -1; i <= 1; i++)
+    for (int j = -1; j <= 1; j++) m += texture(u_mask, uv + vec2(i, j) * px).r;
+  m = smoothstep(0.15, 0.85, m / 9.0);
+  float line = smoothstep(0.32, 0.48, abs(fract((gl_FragCoord.x + gl_FragCoord.y) / 16.0) - 0.5));
+  photo = mix(photo, photo * (0.91 + 0.09 * line), m);
   outColor = vec4(photo, 1.0);
 }`;
 
