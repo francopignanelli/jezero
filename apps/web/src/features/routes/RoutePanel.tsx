@@ -26,6 +26,7 @@ import { Timeline } from './Timeline';
 import { computeRoutes } from './compute';
 import { StopsNearRoute } from '../science/StopsNearRoute';
 import { loadGuidedMarswalk } from '../exploration/guided';
+import { prefersReducedMotion } from '../../lib/motion';
 
 function waypointName(t: TFunction, w: WaypointEntry, i: number, count: number): string {
   if (w.label) return w.label;
@@ -553,8 +554,7 @@ function PlayButton() {
   const playing = useApp((s) => s.playing);
   const setPlay = useApp((s) => s.setPlay);
   const setPanelOpen = useApp((s) => s.setPanelOpen);
-  const reduced =
-    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = prefersReducedMotion();
   return (
     <div className="play-row">
       <button

@@ -52,6 +52,7 @@ import { startWalk, type WalkRun, type WalkSpec } from './walkSim';
 import { installCameraConstraints, maxTiltDeg } from './cameraConstraints';
 import { flightPeak, flightSeconds, viewpoint } from './flight';
 import { SkyRenderer, type SkyQuality } from './sky';
+import { M_PER_DEG } from '../lib/math';
 
 /**
  * The render body is the IAU 2015 Mars reference SPHERE (R = 3 396 190 m), not Cesium's flattened
@@ -1049,7 +1050,6 @@ export class MarsScene {
     const dLon = normalizeLon180(to.lon - from.lon);
     const heading = CesiumMath.toRadians(spec.headingDeg);
     const aim = spec.aimAt;
-    const mPerDegLat = (Math.PI / 180) * MARS_SPHERE_RADIUS_M;
     const place = (e: number) => {
       const lat = from.lat + (to.lat - from.lat) * e;
       const lon = lon0 + dLon * e;
@@ -1057,8 +1057,8 @@ export class MarsScene {
         from.heightM + (to.heightM - from.heightM) * e + spec.peakM * Math.sin(Math.PI * e);
       // Look down at the destination: the angle steepens as it comes closer (never sideways).
       const ahead = Math.hypot(
-        (aim.lat - lat) * mPerDegLat,
-        normalizeLon180(aim.lon - lon) * mPerDegLat * Math.cos(CesiumMath.toRadians(lat)),
+        (aim.lat - lat) * M_PER_DEG,
+        normalizeLon180(aim.lon - lon) * M_PER_DEG * Math.cos(CesiumMath.toRadians(lat)),
       );
       const toward = -CesiumMath.toDegrees(Math.atan2(heightM - aim.heightM, ahead));
       const pitch = Math.min(spec.pitchDeg[0], Math.max(spec.pitchDeg[1], toward));
@@ -1232,10 +1232,9 @@ export class MarsScene {
     if (!t || this.isDestroyed()) return;
     const h = CesiumMath.toRadians(headingDeg);
     const horizontal = rangeM * Math.cos(CesiumMath.toRadians(elevationDeg));
-    const mPerDeg = (Math.PI / 180) * MARS_SPHERE_RADIUS_M;
-    const lat = t.lat - (horizontal * Math.cos(h)) / mPerDeg;
+    const lat = t.lat - (horizontal * Math.cos(h)) / M_PER_DEG;
     const lon =
-      t.lon - (horizontal * Math.sin(h)) / (mPerDeg * Math.cos(CesiumMath.toRadians(t.lat)));
+      t.lon - (horizontal * Math.sin(h)) / (M_PER_DEG * Math.cos(CesiumMath.toRadians(t.lat)));
     const pose = async () => {
       const [ground] = await this.sampleTerrain([{ lat, lon }]);
       const height = Math.max(

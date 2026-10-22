@@ -7,6 +7,7 @@ import { formatDistance } from '../../lib/format';
 import { simplify } from '../../render/pathGeometry';
 import { currentScene } from '../../render/sceneRegistry';
 import { solText, useMissionData } from './PanoramaHud';
+import { prefersReducedMotion } from '../../lib/motion';
 
 /** Panoramas in mission order: the tour visits them along the traverse. */
 export const TOUR = [...PANORAMAS].sort((a, b) => a.sols[0] - b.sols[0]);
@@ -140,7 +141,7 @@ export function TourTravel() {
       legRef.current = { from, to, km: drivenM(from, to, rover?.waypoints ?? []) };
       const plan = await planFlight(scene, from, to);
       if (cancelled) return;
-      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const reduced = prefersReducedMotion();
       // Take off just above the first stop; the veil lifts once the tiles there have loaded.
       const run = scene.flyLine({
         ...plan,

@@ -20,6 +20,44 @@ export interface TerrainLayers {
 export const BLOCK = { none: 0, nodata: 1, excluded: 2, slope: 3 } as const;
 export type BlockReason = (typeof BLOCK)[keyof typeof BLOCK];
 
+/** The 8 grid neighbours (dc, dr): straight steps first, then diagonals. */
+export const NEIGHBOURS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+  [1, 1],
+  [1, -1],
+  [-1, 1],
+  [-1, -1],
+];
+
+/**
+ * Index of the cell one step (dc, dr) from (col, row), or -1 when the step leaves the grid, lands on
+ * a blocked cell, or cuts diagonally past a blocked corner. The planner and the reachability search
+ * share it, so both apply exactly the same hard constraints.
+ */
+export function stepTarget(
+  t: PreparedTerrain,
+  cols: number,
+  rows: number,
+  col: number,
+  row: number,
+  dc: number,
+  dr: number,
+): number {
+  const nc = col + dc;
+  const nr = row + dr;
+  if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) return -1;
+  const next = nr * cols + nc;
+  if (t.block[next] !== BLOCK.none) return -1;
+  if (dc !== 0 && dr !== 0) {
+    if (t.block[row * cols + nc] !== BLOCK.none || t.block[nr * cols + col] !== BLOCK.none)
+      return -1;
+  }
+  return next;
+}
+
 export interface PreparedTerrain {
   layers: TerrainLayers;
   params: EvaParams;

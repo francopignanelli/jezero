@@ -6,6 +6,7 @@ import { formatDistance, formatElevation } from '../../lib/format';
 import { profileAt } from '../../lib/routeTrack';
 import { IconPause, IconPlay, IconX } from '../../ui/icons';
 import { walkControls, walkFeed, type WalkStatus } from './walkFeed';
+import { prefersReducedMotion } from '../../lib/motion';
 
 const BAND_COLOUR = { mild: '#3ff0c0', moderate: '#fde725', steep: '#f89540' } as const;
 
@@ -196,8 +197,7 @@ export function SimulateButton() {
   });
   const show = useApp((s) => s.mode === 'jezero' && !s.playing && !s.panoramaOpen && !s.tour);
   const setPlay = useApp((s) => s.setPlay);
-  const reduced =
-    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = prefersReducedMotion();
   if (!ready || !show || reduced) return null;
   return (
     <button type="button" className="simulate-fab" onClick={() => setPlay(Date.now(), true)}>

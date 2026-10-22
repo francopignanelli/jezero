@@ -8,6 +8,8 @@ import {
   type Mat3,
   type SkyBody,
 } from '@copernico/domain';
+import { compileProgram, finishEquirectTexture } from './gl';
+import { smoothstep } from '../lib/math';
 
 /**
  * Scientifically positioned space background rendered BEHIND the (transparent) Cesium canvas, so the
@@ -184,24 +186,6 @@ void main() {
   outColor = vec4(c * a, a);
 }`;
 
-function compile(gl: WebGL2RenderingContext, vs: string, fs: string): WebGLProgram {
-  const make = (type: number, src: string) => {
-    const s = gl.createShader(type)!;
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-      throw new Error(gl.getShaderInfoLog(s) ?? 'shader');
-    return s;
-  };
-  const p = gl.createProgram()!;
-  gl.attachShader(p, make(gl.VERTEX_SHADER, vs));
-  gl.attachShader(p, make(gl.FRAGMENT_SHADER, fs));
-  gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
-    throw new Error(gl.getProgramInfoLog(p) ?? 'link');
-  return p;
-}
-
 const transpose = (m: Mat3): Mat3 => [m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]];
 /** WebGL mat3 uniforms are column-major: upload the transpose of a row-major matrix. */
 const glMat = (m: Mat3) => new Float32Array(transpose(m));
@@ -273,9 +257,9 @@ export class SkyRenderer {
     });
     if (!gl) throw new Error('WebGL2 unavailable for sky');
     this.gl = gl;
-    this.skyProgram = compile(gl, SKY_VS, SKY_FS);
-    this.starProgram = compile(gl, STAR_VS, STAR_FS);
-    this.sunProgram = compile(gl, SUN_VS, SUN_FS);
+    this.skyProgram = compileProgram(gl, SKY_VS, SKY_FS);
+    this.starProgram = compileProgram(gl, STAR_VS, STAR_FS);
+    this.sunProgram = compileProgram(gl, SUN_VS, SUN_FS);
 
     this.quad = gl.createVertexArray()!;
     gl.bindVertexArray(this.quad);
@@ -383,7 +367,7 @@ export class SkyRenderer {
       gl.deleteTexture(texture);
       return null;
     }
-    this.finishTexture();
+    finishEquirectTexture(gl);
     return texture;
   }
 
@@ -421,23 +405,8 @@ export class SkyRenderer {
       await new Promise((r) => requestAnimationFrame(r));
     }
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    this.finishTexture();
+    finishEquirectTexture(gl);
     return texture;
-  }
-
-  /** Mip chain and sampling for the texture bound to TEXTURE_2D. */
-  private finishTexture(): void {
-    const gl = this.gl;
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
-    if (aniso) {
-      const max = gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number;
-      gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, max));
-    }
   }
 
   private pointVao(
@@ -649,9 +618,4 @@ export class SkyRenderer {
       ctx.fillText(b.id, x + 6 * dpr, y - 6 * dpr);
     }
   }
-}
-
-function smoothstep(e0: number, e1: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
 }

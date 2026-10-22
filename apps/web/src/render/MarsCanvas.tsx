@@ -24,6 +24,7 @@ import { registerScene } from './sceneRegistry';
 import type { Tint } from './tint';
 import { MarsScene, type LayerGrade, type LineSpec, type LonLatRect } from './marsScene';
 import { densify, removeSpikes, roundTrack, simplify, type LatLonPoint } from './pathGeometry';
+import { smoothstep } from '../lib/math';
 
 /**
  * Imagery tiers, bottom to top. `toggle` is the layer-panel switch that controls the tier. The
@@ -660,10 +661,6 @@ function coverageMask(outer: LonLatRect, inner: LonLatRect): HTMLCanvasElement {
   const x1 = ((inner.east - outer.west) / (outer.east - outer.west)) * w;
   const y0 = ((outer.north - inner.north) / (outer.north - outer.south)) * h;
   const y1 = ((outer.north - inner.south) / (outer.north - outer.south)) * h;
-  const smooth = (e0: number, e1: number, v: number) => {
-    const t = Math.min(1, Math.max(0, (v - e0) / (e1 - e0)));
-    return t * t * (3 - 2 * t);
-  };
   const edgeFade = 0.14 * Math.min(w, h);
   const img = ctx.createImageData(w, h);
   const d = img.data;
@@ -678,10 +675,10 @@ function coverageMask(outer: LonLatRect, inner: LonLatRect): HTMLCanvasElement {
       if (outside > 0) {
         const toEdge = Math.min(x, w - 1 - x, y, h - 1 - y);
         // Dark from ≈ 90 m outside the line: a wider ramp made the terrain just outside look included.
-        const a = 0.7 * smooth(0, 2, outside) * smooth(0, edgeFade, toEdge);
+        const a = 0.7 * smoothstep(0, 2, outside) * smoothstep(0, edgeFade, toEdge);
         d.set([10, 8, 7, Math.round(a * 255)], i);
       } else {
-        const a = 0.16 * (1 - smooth(0, 50, inside));
+        const a = 0.16 * (1 - smoothstep(0, 50, inside));
         d.set([255, 204, 150, Math.round(a * 255)], i);
       }
     }

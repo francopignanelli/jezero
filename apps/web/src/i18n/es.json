@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "Copernico",
-    "tagline": "Planificación de caminatas marcianas con datos de misiones de la NASA",
     "skipToMain": "Saltar al contenido principal",
     "prototypeNotice": "Prototipo de investigación y educación. Las rutas muestran menor riesgo estimado, nunca seguridad garantizada.",
     "prototypeShort": "Prototipo · las rutas muestran menor riesgo estimado, no seguridad garantizada",
@@ -60,9 +59,7 @@
       "science": "Ciencia",
       "surface": "Misiones de superficie"
     },
-    "show": "Mostrar {{name}}",
     "about": "Sobre esta capa",
-    "unavailable": "Aún no disponible: datos no generados",
     "loadGridFirst": "Entrá a Jezero para calcular esta capa",
     "items": {
       "viking": "Mosaico global en color",
@@ -145,7 +142,6 @@
   "route": {
     "title": "Planificar una caminata",
     "intro": "Cinco pasos: elegí las paradas, calculá, revisá, simulá y guardá o compartí. Las rutas quedan dentro del contorno de cobertura.",
-    "waypoints": "Puntos de ruta",
     "start": "Inicio",
     "stop": "Parada {{n}}",
     "destination": "Destino",
@@ -170,11 +166,8 @@
     "loadingGrid": "Cargando la grilla de terreno de Jezero…",
     "gridUnavailable": "La grilla de terreno de Jezero no está disponible. La planificación de rutas está desactivada.",
     "needTwo": "Agregá al menos dos puntos.",
-    "results": "Resultados",
     "noRoute": "Ninguna ruta cumple las restricciones",
-    "summary": "Resumen",
     "itinerary": "Itinerario",
-    "compare": "Comparar alternativas",
     "why": "Por qué esta ruta",
     "unresolved": "Peligros que los datos no pueden resolver",
     "unresolvedList": "Rocas menores a ~1,5 m, relieve menor a ~0,5 m, artefactos del modelo de elevación, huecos sueltos o cubiertos de polvo, resistencia del suelo y límites del traje en la gravedad marciana.",
@@ -205,18 +198,15 @@
   },
   "metrics": {
     "distance": "Distancia",
-    "distance3d": "Distancia 3D",
     "gain": "Ascenso acumulado",
     "loss": "Descenso acumulado",
     "maxSlope": "Pendiente máxima del terreno",
-    "maxGrade": "Inclinación máxima del trayecto",
     "duration": "Duración estimada",
     "durationRange": "Rango según modelos de velocidad: {{min}} – {{max}}",
     "walkback": "Margen de regreso",
     "walkbackOk": "sobran {{margin}}",
     "walkbackFail": "excedido por {{margin}}",
     "bands": "Distancia por clase de pendiente",
-    "farthest": "Máxima distancia al inicio",
     "walkbackBasis": "límite EVA {{cap}} · ingreso {{ingress}}",
     "walkbackRule": "Menor margen a lo largo de la ruta: límite de EVA − (tiempo transcurrido + tiempo para volver al inicio + ingreso al hábitat). Regla derivada de EVAs lunares, marcada como supuesto para Marte.",
     "walkbackStops": "incluye paradas"
@@ -247,7 +237,6 @@
   },
   "science": {
     "pois": "Puntos de interés",
-    "samples": "Muestras de Perseverance",
     "rover": "Perseverance",
     "roverLatest": "Última posición publicada: sol {{sol}} (fuente actualizada el {{date}})",
     "roverOutside": "Fuera de la cobertura para rutas",
@@ -274,9 +263,7 @@
     "kinds": {
       "calculated": "Calculado",
       "observed": "Medido",
-      "historical_summary": "Resumen histórico",
-      "modeled": "Estimación de modelo",
-      "illustrative": "Ilustrativo"
+      "historical_summary": "Resumen histórico"
     },
     "measurementsTitle": "Mediciones (MEDA)",
     "measurementsPending": "Las mediciones de MEDA se publican en el PDS unos 3–4 meses después de tomarse. Los últimos datos publicados llegan al 13-05-2026 (sol 1859). Se están preparando para esta aplicación.",
@@ -331,14 +318,7 @@
     "notConnected": "No conectado"
   },
   "errors": {
-    "webgl": "Tu navegador o dispositivo no puede mostrar el globo 3D (WebGL 2 no disponible). Los resultados de rutas siguen disponibles como texto.",
-    "dataMissing": "Algunas capas no están disponibles: {{what}}",
-    "retry": "Reintentar"
-  },
-  "units": {
-    "m": "{{value}} m",
-    "km": "{{value}} km",
-    "deg": "{{value}}°"
+    "webgl": "Tu navegador o dispositivo no puede mostrar el globo 3D (WebGL 2 no disponible). Los resultados de rutas siguen disponibles como texto."
   },
   "loading": {
     "subtitle": "Preparando Marte: datos orbitales, terreno y el cielo visto desde Jezero",
@@ -369,10 +349,7 @@
     "unreachable": "No alcanzable dentro del límite de pendiente",
     "add": "Agregar parada",
     "addAria": "Agregar {{name}} como parada y recalcular",
-    "method": "Desvío = el mismo planificador con la parada insertada en el tramo más cercano, menos ese tramo sin ella. Solo tiempo de caminata; no incluye el tiempo en la parada.",
-    "summary_one": "{{count}} parada científica a menos de {{distance}} de esta ruta",
-    "summary_other": "{{count}} paradas científicas a menos de {{distance}} de esta ruta",
-    "see": "Ver costo de los desvíos"
+    "method": "Desvío = el mismo planificador con la parada insertada en el tramo más cercano, menos ese tramo sin ella. Solo tiempo de caminata; no incluye el tiempo en la parada."
   },
   "inspector": {
     "title": "Inspector de puntos",
@@ -392,7 +369,6 @@
     "rough": "Rugoso a escala fina (pendientes de 2 m)",
     "lowTi": "Inercia térmica baja: posible material suelto",
     "addWaypoint": "Agregar como punto de ruta",
-    "hint": "Hacé clic en el terreno para inspeccionar un punto.",
     "loading": "Leyendo la grilla…",
     "gridPending": "Entrá a Jezero para leer la grilla de rutas."
   },

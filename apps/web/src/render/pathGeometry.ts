@@ -1,11 +1,10 @@
-import { DEG_TO_RAD, MARS_SPHERE_RADIUS_M } from '@copernico/domain';
+import { DEG_TO_RAD } from '@copernico/domain';
+import { M_PER_DEG } from '../lib/math';
 
 export interface LatLonPoint {
   lat: number;
   lon: number;
 }
-
-const M_PER_DEG = MARS_SPHERE_RADIUS_M * DEG_TO_RAD;
 
 /** Local metric offsets (east, north) in metres; adequate for display over a few tens of km. */
 function toLocal(p: LatLonPoint, ref: LatLonPoint): [number, number] {

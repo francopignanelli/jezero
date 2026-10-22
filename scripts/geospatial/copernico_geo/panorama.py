@@ -322,6 +322,12 @@ def write_thumb(src, horizon_fraction: float, path) -> None:
     path.with_suffix(".webp.aux.xml").unlink(missing_ok=True)
 
 
+def _viewer_files(webp) -> list:
+    """The viewer image of a panorama and its mask and thumbnail."""
+    stem = webp.stem.replace("_8k", "")
+    return [webp, webp.with_name(stem + "_mask.png"), webp.with_name(stem + "_thumb.webp")]
+
+
 def build_thumbs() -> int:
     """Thumbnails for the panoramas already built (no re-fit), from their viewer images."""
     catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
@@ -329,6 +335,8 @@ def build_thumbs() -> int:
     for p in catalog["panoramas"]:
         webp = OUT / p["file"].split("/")[-1]
         if not p.get("geometry") or not webp.exists():
+            continue
+        if p["geometry"]["medianResidualDeg"] > catalog["maxResidualDeg"]:
             continue
         thumb = webp.with_name(webp.stem.replace("_8k", "") + "_thumb.webp")
         write_thumb(webp, p["geometry"]["horizonFraction"], thumb)
@@ -410,6 +418,12 @@ def build(only: str | None = None) -> list[dict]:
         p["geometry"] = geometry
         diagnostic(rgb, rows, horizon, f, str(diag_dir / f"{p['id']}_skyline.png"))
         webp = OUT / p["file"].split("/")[-1]
+        if f["medianResidualDeg"] > catalog["maxResidualDeg"]:
+            # Not offered by the app (catalog maxResidualDeg): keep the measurement, ship no images.
+            for path in _viewer_files(webp):
+                path.unlink(missing_ok=True)
+            print(f"[panorama] {p['id']}: residual {f['medianResidualDeg']}° above {catalog['maxResidualDeg']}°, not shipped")
+            continue
         viewer = gdal.Translate("", str(src), format="MEM", width=VIEWER_PX, height=0, resampleAlg="average")
         filled, hole = fill_unimaged(viewer.ReadAsArray().astype(np.float32))
         write_rgb(filled, webp)

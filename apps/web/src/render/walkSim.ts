@@ -17,6 +17,7 @@ import {
 import { normalizeLon180 } from '@copernico/domain';
 import { pointAt, type Track } from '../lib/routeTrack';
 import { flightPeak } from './flight';
+import { smoothstep } from '../lib/math';
 
 /**
  * Cinematic walk simulation along a computed route. Everything moves inside the render loop
@@ -69,10 +70,6 @@ const MIN_CLEARANCE_M = 70;
 const SLOW_NEAR_STOP_M = 90;
 const HOLD_AT_STOP_S = 0.8;
 
-const smoothstep = (e0: number, e1: number, x: number) => {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
-};
 /** Fraction of the remaining gap to close this frame for a time constant tau (frame-rate free). */
 const follow = (dt: number, tau: number) => 1 - Math.exp(-dt / tau);
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));

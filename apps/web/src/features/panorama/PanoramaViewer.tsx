@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
 import { DATA_VERSION, dataUrl } from '../../config';
 import { PANORAMAS, POIS, type Panorama } from '../../data/catalog';
+import { compileProgram, finishEquirectTexture } from '../../render/gl';
 import { currentScene } from '../../render/sceneRegistry';
 import {
   IconExpand,
@@ -26,6 +27,7 @@ import {
   type Target,
 } from './PanoramaHud';
 import { startTour, TOUR, TOUR_PAN_DEG_S, TOUR_STAY_S } from './PanoramaTour';
+import { prefersReducedMotion } from '../../lib/motion';
 
 const VS = `#version 300 es
 in vec2 a_pos;
@@ -96,24 +98,6 @@ void main() {
   photo = mix(photo, photo * (0.91 + 0.09 * line), m);
   outColor = vec4(photo, 1.0);
 }`;
-
-function compile(gl: WebGL2RenderingContext): WebGLProgram {
-  const make = (type: number, src: string) => {
-    const s = gl.createShader(type)!;
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
-      throw new Error(gl.getShaderInfoLog(s) ?? 'shader');
-    return s;
-  };
-  const p = gl.createProgram()!;
-  gl.attachShader(p, make(gl.VERTEX_SHADER, VS));
-  gl.attachShader(p, make(gl.FRAGMENT_SHADER, FS));
-  gl.linkProgram(p);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
-    throw new Error(gl.getProgramInfoLog(p) ?? 'link');
-  return p;
-}
 
 const RAD = Math.PI / 180;
 const MAST_M = 2; // Mastcam-Z above the ground (as in the pipeline)
@@ -396,11 +380,11 @@ export function PanoramaViewer() {
     leavingRef.current = false;
     loadedRef.current = false;
     setLeaving(false);
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = prefersReducedMotion();
     let lastCone = '';
     let lastFacing: string | null = null; // write on the first frame (clears the previous panorama's)
     let lastFrame = performance.now();
-    const program = compile(gl);
+    const program = compileProgram(gl, VS, FS);
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
     const buf = gl.createBuffer();
@@ -566,13 +550,7 @@ export function PanoramaViewer() {
         if (disposed) return;
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
-        if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, 8);
+        finishEquirectTexture(gl);
         setLoaded(true);
         loadedRef.current = true;
         if (tourRef.current.touring && !reduced) {

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useApp } from '../../app/store';
 import { IconX } from '../../ui/icons';
 import { TOUR } from './steps';
+import { prefersReducedMotion } from '../../lib/motion';
 
 const DONE_KEY = 'copernico.tourDone';
 /** Step to resume from when the tour was closed part-way. */
@@ -20,7 +21,6 @@ const store = {
 /** Demo mode: reading time for a step (ms) from the length of its text. */
 const readingMs = (text: string) => Math.min(9_000, Math.max(5_000, 2_500 + 25 * text.length));
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const anchor = (id: string) => document.querySelector<HTMLElement>(`[data-tour="${id}"]`);
 
 async function waitForAnchor(id: string, timeoutMs = 8000): Promise<HTMLElement | null> {
@@ -128,10 +128,13 @@ export function Tour() {
     setBox(null);
     void (async () => {
       await step.prepare?.();
-      if (step.settleMs && !reducedMotion()) await sleep(step.settleMs);
+      if (step.settleMs && !prefersReducedMotion()) await sleep(step.settleMs);
       const el = step.target ? await waitForAnchor(step.target) : null;
       if (cancelled) return;
-      el?.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
+      el?.scrollIntoView({
+        block: 'nearest',
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      });
       setReady(true);
     })();
     return () => {

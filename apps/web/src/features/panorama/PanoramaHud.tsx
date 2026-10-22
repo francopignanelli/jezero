@@ -1,10 +1,4 @@
-import {
-  DEG_TO_RAD,
-  greatCircleDistance,
-  MARS_SPHERE_RADIUS_M,
-  mars24,
-  marsYear,
-} from '@copernico/domain';
+import { DEG_TO_RAD, greatCircleDistance, mars24, marsYear } from '@copernico/domain';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DATA_VERSION, dataUrl } from '../../config';
@@ -18,6 +12,7 @@ import {
 import { formatDegrees, formatDistance, formatElevation } from '../../lib/format';
 import { IconChevron, IconPlay } from '../../ui/icons';
 import { SamplePhotos } from '../science/SamplePhotos';
+import { M_PER_DEG } from '../../lib/math';
 
 /** A place drawn inside the photo at its true direction. */
 export interface Target {
@@ -38,7 +33,6 @@ const COMPASS16 = 'N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW'.split(' 
 export const compass16 = (deg: number): string =>
   COMPASS16[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16]!;
 
-const M_PER_DEG = MARS_SPHERE_RADIUS_M * DEG_TO_RAD;
 const NEARBY_SAMPLE_M = 600;
 
 let roverPromise: Promise<RoverSnapshot | null> | null = null;

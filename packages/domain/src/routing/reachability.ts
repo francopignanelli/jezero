@@ -1,6 +1,6 @@
 import { cellCenter } from '../raster/grid';
 import { traverseSupercover } from './polyline';
-import { BLOCK, type PreparedTerrain } from './terrain';
+import { BLOCK, NEIGHBOURS, stepTarget, type PreparedTerrain } from './terrain';
 
 /**
  * Flood fill of the cells reachable from `start` under the hard constraints, using the same
@@ -19,22 +19,11 @@ export function reachableFrom(t: PreparedTerrain, start: number): Uint8Array {
     const cur = queue[head++]!;
     const col = cur % cols;
     const row = (cur / cols) | 0;
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
-        if (dc === 0 && dr === 0) continue;
-        const nc = col + dc;
-        const nr = row + dr;
-        if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
-        const next = nr * cols + nc;
-        if (seen[next] || t.block[next] !== BLOCK.none) continue;
-        if (dc !== 0 && dr !== 0) {
-          if (t.block[row * cols + nc] !== BLOCK.none || t.block[nr * cols + col] !== BLOCK.none) {
-            continue;
-          }
-        }
-        seen[next] = 1;
-        queue[tail++] = next;
-      }
+    for (const [dc, dr] of NEIGHBOURS) {
+      const next = stepTarget(t, cols, rows, col, row, dc, dr);
+      if (next < 0 || seen[next]) continue;
+      seen[next] = 1;
+      queue[tail++] = next;
     }
   }
   return seen;

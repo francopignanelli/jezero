@@ -1,6 +1,6 @@
 import { costLowerBound, evaluateStep, type RouteProfile } from './cost';
 import { MinHeap } from './heap';
-import { BLOCK, type PreparedTerrain } from './terrain';
+import { BLOCK, NEIGHBOURS, stepTarget, type PreparedTerrain } from './terrain';
 
 export interface PathSearchResult {
   /** Cell indices from start to goal inclusive, or null if the goal is unreachable. */
@@ -8,17 +8,6 @@ export interface PathSearchResult {
   cost: number;
   expandedNodes: number;
 }
-
-const NEIGHBOURS: ReadonlyArray<readonly [number, number]> = [
-  [1, 0],
-  [-1, 0],
-  [0, 1],
-  [0, -1],
-  [1, 1],
-  [1, -1],
-  [-1, 1],
-  [-1, -1],
-];
 
 /**
  * Minimal horizontal ground length (m) of an 8-connected grid path spanning |dc| × |dr| cells,
@@ -78,16 +67,9 @@ export function findPath(
     const col = cur % cols;
     const row = (cur / cols) | 0;
     for (const [dc, dr] of NEIGHBOURS) {
-      const nc = col + dc;
+      const next = stepTarget(t, cols, rows, col, row, dc, dr);
+      if (next < 0) continue;
       const nr = row + dr;
-      if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
-      const next = nr * cols + nc;
-      if (t.block[next] !== BLOCK.none) continue;
-      if (dc !== 0 && dr !== 0) {
-        if (t.block[row * cols + nc] !== BLOCK.none || t.block[nr * cols + col] !== BLOCK.none) {
-          continue;
-        }
-      }
       const width = (t.rowWidthM[row]! + t.rowWidthM[nr]!) / 2;
       const step = evaluateStep(
         t,

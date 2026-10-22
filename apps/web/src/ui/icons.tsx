@@ -30,11 +30,6 @@ export const IconRoute = (p: SVGProps<SVGSVGElement>) => (
     <path d="M8 17c6 0 2-9 8-10" />
   </svg>
 );
-export const IconScience = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base} {...p}>
-    <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3" />
-  </svg>
-);
 export const IconSun = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <circle cx="12" cy="12" r="4" />

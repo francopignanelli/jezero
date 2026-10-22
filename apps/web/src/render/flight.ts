@@ -1,17 +1,18 @@
-import { Cartesian3, Cartographic, type Ellipsoid, Matrix4, Transforms } from 'cesium';
+import { greatCircleDistance } from '@copernico/domain';
+import {
+  Cartesian3,
+  Cartographic,
+  type Ellipsoid,
+  Math as CesiumMath,
+  Matrix4,
+  Transforms,
+} from 'cesium';
 
 /** Climb per metre of ground covered, before subtracting what the height change already gives. */
 const HOP_PER_M = 0.18;
 const MIN_SECONDS = 1.2;
 /** Trips at least this long (straight-line metres) take the full requested duration. */
 const FULL_DURATION_M = 12_000;
-
-const centralAngle = (a: Cartographic, b: Cartographic) => {
-  const s =
-    Math.sin((b.latitude - a.latitude) / 2) ** 2 +
-    Math.cos(a.latitude) * Math.cos(b.latitude) * Math.sin((b.longitude - a.longitude) / 2) ** 2;
-  return 2 * Math.asin(Math.min(1, Math.sqrt(s)));
-};
 
 /**
  * `maximumHeight` for camera.flyTo / flyToBoundingSphere. Cesium uses it as the peak of the flight
@@ -25,7 +26,11 @@ export function flightPeak(from: Cartesian3, to: Cartesian3, ellipsoid: Ellipsoi
   const a = Cartographic.fromCartesian(from, ellipsoid);
   const b = Cartographic.fromCartesian(to, ellipsoid);
   if (!a || !b) return 0;
-  const ground = ellipsoid.maximumRadius * centralAngle(a, b);
+  const deg = (c: Cartographic) => ({
+    lat: CesiumMath.toDegrees(c.latitude),
+    lon: CesiumMath.toDegrees(c.longitude),
+  });
+  const ground = greatCircleDistance(deg(a), deg(b), ellipsoid.maximumRadius);
   const hop = Math.max(0, HOP_PER_M * ground - 0.5 * Math.abs(a.height - b.height));
   return Math.max(a.height, b.height) + hop;
 }

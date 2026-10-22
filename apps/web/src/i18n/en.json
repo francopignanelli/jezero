@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "Copernico",
-    "tagline": "Marswalk planning with NASA mission data",
     "skipToMain": "Skip to main content",
     "prototypeNotice": "Research and education prototype. Routes show lower estimated risk, never guaranteed safety.",
     "prototypeShort": "Prototype · routes show lower estimated risk, not guaranteed safety",
@@ -60,9 +59,7 @@
       "science": "Science",
       "surface": "Surface missions"
     },
-    "show": "Show {{name}}",
     "about": "About this layer",
-    "unavailable": "Not available yet: data not built",
     "loadGridFirst": "Enter Jezero to compute this layer",
     "items": {
       "viking": "Global color mosaic",
@@ -145,7 +142,6 @@
   "route": {
     "title": "Plan a Marswalk",
     "intro": "Five steps: choose the stops, calculate, review, simulate, then save or share. Routes stay inside the coverage outline.",
-    "waypoints": "Waypoints",
     "start": "Start",
     "stop": "Stop {{n}}",
     "destination": "Destination",
@@ -170,11 +166,8 @@
     "loadingGrid": "Loading Jezero terrain grid…",
     "gridUnavailable": "The Jezero terrain grid is not available. Route planning is disabled.",
     "needTwo": "Add at least two waypoints.",
-    "results": "Results",
     "noRoute": "No route satisfies the constraints",
-    "summary": "Summary",
     "itinerary": "Itinerary",
-    "compare": "Compare alternatives",
     "why": "Why this route",
     "unresolved": "Hazards the data cannot resolve",
     "unresolvedList": "Rocks smaller than ~1.5 m, relief below ~0.5 m, DTM artifacts, loose or dust-covered voids, soil strength, and suit limits at Mars gravity.",
@@ -205,18 +198,15 @@
   },
   "metrics": {
     "distance": "Distance",
-    "distance3d": "3D distance",
     "gain": "Elevation gain",
     "loss": "Elevation loss",
     "maxSlope": "Max terrain slope",
-    "maxGrade": "Max path grade",
     "duration": "Estimated duration",
     "durationRange": "Range across speed models: {{min}} – {{max}}",
     "walkback": "Walk-back margin",
     "walkbackOk": "{{margin}} to spare",
     "walkbackFail": "exceeded by {{margin}}",
     "bands": "Distance by slope band",
-    "farthest": "Farthest from start",
     "walkbackBasis": "{{cap}} EVA limit · {{ingress}} ingress",
     "walkbackRule": "Smallest margin along the route: EVA limit − (time elapsed + time to walk back to the start + suit ingress). Lunar-derived rule, labelled as an assumption for Mars.",
     "walkbackStops": "incl. stop time"
@@ -247,7 +237,6 @@
   },
   "science": {
     "pois": "Points of interest",
-    "samples": "Perseverance samples",
     "rover": "Perseverance",
     "roverLatest": "Latest published position: sol {{sol}} (source updated {{date}})",
     "roverOutside": "Outside route-planning coverage",
@@ -274,9 +263,7 @@
     "kinds": {
       "calculated": "Calculated",
       "observed": "Measured",
-      "historical_summary": "Historical summary",
-      "modeled": "Model estimate",
-      "illustrative": "Illustrative"
+      "historical_summary": "Historical summary"
     },
     "measurementsTitle": "Measurements (MEDA)",
     "measurementsPending": "MEDA measurements are published on the PDS about 3–4 months after they are taken. The newest released data end on 2026-05-13 (sol 1859). They are being prepared for this app.",
@@ -331,14 +318,7 @@
     "notConnected": "Not connected"
   },
   "errors": {
-    "webgl": "Your browser or device cannot display the 3D globe (WebGL 2 unavailable). Route results remain available as text.",
-    "dataMissing": "Some data layers are not available: {{what}}",
-    "retry": "Retry"
-  },
-  "units": {
-    "m": "{{value}} m",
-    "km": "{{value}} km",
-    "deg": "{{value}}°"
+    "webgl": "Your browser or device cannot display the 3D globe (WebGL 2 unavailable). Route results remain available as text."
   },
   "loading": {
     "subtitle": "Preparing Mars: orbital data, terrain and the sky as seen from Jezero",
@@ -369,10 +349,7 @@
     "unreachable": "Not reachable within the slope limit",
     "add": "Add stop",
     "addAria": "Add {{name}} as a stop and recalculate",
-    "method": "Detour = the same planner with the stop inserted on the leg it is nearest to, minus that leg without it. Walking time only; time spent at the stop is not included.",
-    "summary_one": "{{count}} science stop within {{distance}} of this route",
-    "summary_other": "{{count}} science stops within {{distance}} of this route",
-    "see": "See detour costs"
+    "method": "Detour = the same planner with the stop inserted on the leg it is nearest to, minus that leg without it. Walking time only; time spent at the stop is not included."
   },
   "inspector": {
     "title": "Point inspector",
@@ -392,7 +369,6 @@
     "rough": "Rough at fine scale (2 m slopes)",
     "lowTi": "Low thermal inertia: possibly loose material",
     "addWaypoint": "Add as waypoint",
-    "hint": "Click the terrain to inspect a point.",
     "loading": "Reading the grid…",
     "gridPending": "Enter Jezero to read the route-planning grid."
   },

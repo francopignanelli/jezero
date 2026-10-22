@@ -81,9 +81,13 @@ export interface Panorama {
   geometry?: PanoramaGeometry;
 }
 export const PANORAMA_CREDIT = 'NASA/JPL-Caltech/ASU/MSSS';
-/** Only panoramas whose viewing geometry was measured reliably are offered in the app. */
-export const PANORAMA_MAX_RESIDUAL_DEG = 0.15;
-export const PANORAMAS: Panorama[] = (panoramasJson as unknown as { panoramas: Panorama[] }).panoramas.filter(
+/**
+ * Only panoramas whose viewing geometry was measured reliably are offered in the app. The limit
+ * lives in the catalog, so the pipeline ships no images for the others.
+ */
+const panoramaCatalog = panoramasJson as unknown as { maxResidualDeg: number; panoramas: Panorama[] };
+export const PANORAMA_MAX_RESIDUAL_DEG = panoramaCatalog.maxResidualDeg;
+export const PANORAMAS: Panorama[] = panoramaCatalog.panoramas.filter(
   (p) => p.geometry && p.geometry.medianResidualDeg <= PANORAMA_MAX_RESIDUAL_DEG,
 );
 export const panoramaForPoi = (poiId: string): Panorama | undefined =>

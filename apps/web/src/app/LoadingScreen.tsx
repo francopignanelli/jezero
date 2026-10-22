@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type LoadingState } from './store';
+import { prefersReducedMotion } from '../lib/motion';
 
 type Status = 'pending' | 'active' | 'done' | 'failed';
 
@@ -87,7 +88,7 @@ export function LoadingScreen() {
     const boot = document.getElementById('boot');
     if (!boot) return;
     boot.setAttribute('aria-busy', 'false');
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = prefersReducedMotion();
     const leave = window.setTimeout(() => boot.classList.add('is-leaving'), reduced ? 0 : 650);
     const remove = window.setTimeout(() => boot.remove(), reduced ? 0 : 1600);
     return () => {

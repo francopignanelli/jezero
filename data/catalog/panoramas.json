@@ -1,4 +1,5 @@
 {
+  "maxResidualDeg": 0.15,
   "notes": "Real Mastcam-Z 360° mosaics, placed at the rover position on their sol (MMGIS traverse in data/build/rover/rover.json, filled by scripts/data/fetch-panoramas.ts). 'geometry' is measured by scripts/geospatial/run.sh panoramas (skyline matched to the terrain horizon) and must not be edited by hand. ASU collection: free public use with credit NASA/JPL-Caltech/ASU/MSSS (https://mastcamz.asu.edu/mastcam-zs-360-panorama-collection/).",
   "panoramas": [
     {

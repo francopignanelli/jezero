@@ -1,5 +1,6 @@
 import { Cartesian3, Cartographic, Math as CesiumMath, type Scene } from 'cesium';
 import { greatCircleDistance, normalizeLon180 } from '@copernico/domain';
+import { smoothstep } from '../lib/math';
 
 /**
  * The controlled exploration volume. Close-up flight is allowed only over Jezero; elsewhere the
@@ -34,11 +35,6 @@ export const JEZERO_ZONE: ExplorationZone = {
 
 /** Terrain floor assumed when the terrain height below the camera is not yet known (Jezero rim top). */
 const UNKNOWN_TERRAIN_M = -1_700;
-
-function smoothstep(e0: number, e1: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
-}
 
 /**
  * A spot where the camera may come down close to the ground (e.g. around the 3D rover model):

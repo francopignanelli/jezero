@@ -1,18 +1,7 @@
 import { RAD_TO_DEG } from '../geo/angles';
 import { stepTimeS } from '../traversal/speed';
 import { MinHeap } from './heap';
-import { BLOCK, type PreparedTerrain } from './terrain';
-
-const NEIGHBOURS: ReadonlyArray<readonly [number, number]> = [
-  [1, 0],
-  [-1, 0],
-  [0, 1],
-  [0, -1],
-  [1, 1],
-  [1, -1],
-  [-1, 1],
-  [-1, -1],
-];
+import { BLOCK, NEIGHBOURS, stepTarget, type PreparedTerrain } from './terrain';
 
 /**
  * Walking time (s, default speed model with the timeline factor) between `start` and every
@@ -43,17 +32,9 @@ export function travelTimes(
     const col = cur % cols;
     const row = (cur / cols) | 0;
     for (const [dc, dr] of NEIGHBOURS) {
-      const nc = col + dc;
+      const next = stepTarget(t, cols, rows, col, row, dc, dr);
+      if (next < 0) continue;
       const nr = row + dr;
-      if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
-      const next = nr * cols + nc;
-      if (t.block[next] !== BLOCK.none) continue;
-      if (
-        dc !== 0 &&
-        dr !== 0 &&
-        (t.block[row * cols + nc] !== BLOCK.none || t.block[nr * cols + col] !== BLOCK.none)
-      )
-        continue;
       const width = (t.rowWidthM[row]! + t.rowWidthM[nr]!) / 2;
       const lengthH = Math.hypot(dc * width, dr * t.cellHeightM);
       const dz = sign * (z[next]! - z[cur]!);
