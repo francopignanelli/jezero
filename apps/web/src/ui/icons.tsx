@@ -36,6 +36,16 @@ export const IconSun = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
   </svg>
 );
+/** Rover: body on a mast, three wheels (the rover game). */
+export const IconRover = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M4 14h16l-1.5-4h-13Z" />
+    <path d="M15 10V5.5h3" />
+    <circle cx="6" cy="18" r="2" />
+    <circle cx="12" cy="18" r="2" />
+    <circle cx="18" cy="18" r="2" />
+  </svg>
+);
 /** Surface: ridges under a 360° arc. */
 export const IconSurface = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>

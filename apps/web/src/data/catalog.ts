@@ -37,14 +37,18 @@ export interface Poi {
 }
 
 export const DATASETS: DatasetEntry[] = (datasetsJson as { datasets: DatasetEntry[] }).datasets;
-export const datasetById = (id: string): DatasetEntry | undefined => DATASETS.find((d) => d.id === id);
+export const datasetById = (id: string): DatasetEntry | undefined =>
+  DATASETS.find((d) => d.id === id);
 
 export const POIS: Poi[] = (poisJson as { pois: Poi[] }).pois;
-export const GUIDED_MISSION = (poisJson as { guidedMission: { id: string; waypoints: string[]; returnToStart: boolean } })
-  .guidedMission;
+export const GUIDED_MISSION = (
+  poisJson as { guidedMission: { id: string; waypoints: string[]; returnToStart: boolean } }
+).guidedMission;
 
 /** NASA missions represented in the layers (missions, not instruments). */
-export const MISSIONS = [...new Set(DATASETS.filter((d) => !d.role.includes('sky-reference')).map((d) => d.mission))];
+export const MISSIONS = [
+  ...new Set(DATASETS.filter((d) => !d.role.includes('sky-reference')).map((d) => d.mission)),
+];
 
 /** Measured by scripts/geospatial/run.sh panoramas (skyline matched to the terrain horizon). */
 export interface PanoramaGeometry {
@@ -85,7 +89,10 @@ export const PANORAMA_CREDIT = 'NASA/JPL-Caltech/ASU/MSSS';
  * Only panoramas whose viewing geometry was measured reliably are offered in the app. The limit
  * lives in the catalog, so the pipeline ships no images for the others.
  */
-const panoramaCatalog = panoramasJson as unknown as { maxResidualDeg: number; panoramas: Panorama[] };
+const panoramaCatalog = panoramasJson as unknown as {
+  maxResidualDeg: number;
+  panoramas: Panorama[];
+};
 export const PANORAMA_MAX_RESIDUAL_DEG = panoramaCatalog.maxResidualDeg;
 export const PANORAMAS: Panorama[] = panoramaCatalog.panoramas.filter(
   (p) => p.geometry && p.geometry.medianResidualDeg <= PANORAMA_MAX_RESIDUAL_DEG,

@@ -35,7 +35,10 @@ export interface IngenuityFlight {
 
 export interface TraverseCollection {
   type: 'FeatureCollection';
-  features: Array<{ properties: { sol: number }; geometry: { type: 'LineString'; coordinates: Array<[number, number]> } }>;
+  features: Array<{
+    properties: { sol: number };
+    geometry: { type: 'LineString'; coordinates: Array<[number, number]> };
+  }>;
 }
 
 /** One request per file per session: the map, the Science panel and the 360° HUD share it. */
@@ -56,16 +59,21 @@ function json<T>(path: string): Promise<T | null> {
 
 export const loadRover = () => json<RoverSnapshot>('rover/rover.json');
 export const loadTraverse = () => json<TraverseCollection>('rover/traverse.geojson');
-export const loadSamples = () => json<{ samples: SampleSite[]; retrievedUtc: string }>('rover/samples.json');
+export const loadSamples = () =>
+  json<{ samples: SampleSite[]; retrievedUtc: string }>('rover/samples.json');
 export const loadIngenuity = () => json<{ flights: IngenuityFlight[] }>('rover/ingenuity.json');
 export const loadCoverage = () =>
-  json<{ features: Array<{ geometry: { type: 'Polygon'; coordinates: Array<Array<[number, number]>> } }> }>(
-    'regions/jezero/coverage.geojson',
-  );
+  json<{
+    features: Array<{ geometry: { type: 'Polygon'; coordinates: Array<Array<[number, number]>> } }>;
+  }>('regions/jezero/coverage.geojson');
 export const loadImageryLayer = (id: string) =>
-  json<{ id: string; rectangle: { west: number; south: number; east: number; north: number }; minLevel: number; maxLevel: number; tiles: number }>(
-    `tiles/imagery/${id}/layer.json`,
-  );
+  json<{
+    id: string;
+    rectangle: { west: number; south: number; east: number; north: number };
+    minLevel: number;
+    maxLevel: number;
+    tiles: number;
+  }>(`tiles/imagery/${id}/layer.json`);
 
 export type CrismComposite = 'car' | 'maf';
 
@@ -81,7 +89,9 @@ export interface CrismManifest {
     south: number;
     north: number;
     mPerPixel: number;
-    composites: Partial<Record<CrismComposite, { file: string; bands: string[]; description: string }>>;
+    composites: Partial<
+      Record<CrismComposite, { file: string; bands: string[]; description: string }>
+    >;
   }>;
 }
 

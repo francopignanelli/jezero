@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Drive NASA's Perseverance rover over the real terrain of Jezero Crater and collect its samples."
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Jezero Sample Run · Copernico</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23c8653a'/%3E%3Ccircle cx='11' cy='12' r='3' fill='%238e3f20'/%3E%3Ccircle cx='20' cy='19' r='2' fill='%238e3f20'/%3E%3C/svg%3E"
+    />
+    <!-- First-paint loader (CSS only), removed by src/game/GameApp.tsx once the scene is ready. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #020306;
+      }
+      .game-boot {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: grid;
+        place-items: center;
+        color: #eceae6;
+        font-family:
+          'IBM Plex Sans',
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        background: radial-gradient(ellipse at 50% 60%, #2a140b, #020306 72%);
+        transition: opacity 0.6s ease;
+      }
+      .game-boot.is-leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .game-boot-inner {
+        display: grid;
+        justify-items: center;
+        gap: 18px;
+        text-align: center;
+      }
+      .game-boot-planet {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #f0a070, #c8653a 45%, #5a2412 100%);
+        box-shadow: 0 0 40px rgb(224 120 74 / 0.35);
+      }
+      .game-boot-bar {
+        width: 220px;
+        height: 3px;
+        border-radius: 2px;
+        background: rgb(255 255 255 / 0.12);
+        overflow: hidden;
+      }
+      .game-boot-bar::after {
+        content: '';
+        display: block;
+        width: 40%;
+        height: 100%;
+        background: #e0784a;
+        animation: game-boot-slide 1.4s ease-in-out infinite;
+      }
+      @keyframes game-boot-slide {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(250%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .game-boot-bar::after {
+          animation: none;
+          width: 100%;
+          opacity: 0.6;
+        }
+      }
+      .game-boot small {
+        color: #a4adba;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-boot" role="status">
+      <div class="game-boot-inner">
+        <div class="game-boot-planet" aria-hidden="true"></div>
+        <strong id="game-boot-title">Jezero Sample Run</strong>
+        <div class="game-boot-bar" aria-hidden="true"></div>
+        <small id="game-boot-text">Landing Perseverance in Jezero…</small>
+      </div>
+    </div>
+    <script>
+      // Same language as the planner (src/i18n), before the bundle loads.
+      try {
+        var lang = localStorage.getItem('copernico.lang');
+        if (lang === 'es' || (!lang && navigator.language.toLowerCase().indexOf('es') === 0)) {
+          document.documentElement.lang = 'es';
+          document.getElementById('game-boot-title').textContent = 'Carrera de muestras en Jezero';
+          document.getElementById('game-boot-text').textContent =
+            'Aterrizando Perseverance en Jezero…';
+        }
+      } catch (e) {}
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/game/main.tsx"></script>
+  </body>
+</html>

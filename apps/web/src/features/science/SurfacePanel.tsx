@@ -115,6 +115,9 @@ export function SurfacePanel() {
             <button type="button" className="btn" onClick={() => void flyToRover()}>
               {t('science.flyTo')}
             </button>
+            <a className="btn" href="./play.html">
+              {t('surface.drive')}
+            </a>
           </div>
           <p className="meta">{t('surface.showOnMap')}</p>
           <LayerChips ids={MISSION_LAYERS} />

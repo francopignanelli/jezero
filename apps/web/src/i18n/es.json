@@ -48,6 +48,10 @@
       "marswalk": "Planificar una caminata paso a paso y simularla",
       "conditions": "Hora, Sol, estación y clima medido",
       "panoramas": "Parate donde estuvo el rover: panorámicas reales y un recorrido entre ellas"
+    },
+    "game": {
+      "title": "Conduce Perseverance",
+      "body": "Un juego en el terreno real: recoge las muestras"
     }
   },
   "layers": {
@@ -761,7 +765,8 @@
     "groundTitle": "De qué está hecho el suelo",
     "ground": "Mapas orbitales de minerales, arena o roca, pendiente y altura, cada uno con leyenda y nota de fuente (ⓘ en Capas).",
     "inspectTip": "Consejo: tocá cualquier lugar del cráter para ver la altura, la pendiente y el tipo de suelo.",
-    "to360": "Panorámicas reales tomadas por Perseverance, y un recorrido que vuela de una a otra"
+    "to360": "Panorámicas reales tomadas por Perseverance, y un recorrido que vuela de una a otra",
+    "drive": "Condúcelo (juego)"
   },
   "checklist": {
     "title": "Cosas para probar",
@@ -800,5 +805,118 @@
     "credit": "Imagen: {{credit}}",
     "source": "Página de la NASA",
     "listNote": "Cada muestra con la foto de la NASA de donde se perforó (o del núcleo en su tubo). Tocá una foto para agrandarla."
+  },
+  "game": {
+    "title": "Carrera de muestras en Jezero",
+    "tagline": "Conduce Perseverance sobre el terreno real del cráter Jezero y recoge las muestras que tomó, en los lugares donde las tomó.",
+    "back": "Volver a Copernico",
+    "loading": "Aterrizando Perseverance en Jezero…",
+    "loadingMission": "Yendo al punto de partida…",
+    "failed": "El juego no pudo iniciarse: falta el terreno o el modelo del rover, o este dispositivo no puede mostrar WebGL 2.",
+    "chooseMission": "Elige una misión",
+    "missions": {
+      "floor": {
+        "name": "Fondo del cráter",
+        "desc": "Cinco sitios cerca del lugar de aterrizaje: las rocas volcánicas del fondo de Jezero."
+      },
+      "delta": {
+        "name": "Frente del delta",
+        "desc": "Cinco sitios al pie del antiguo delta del río; luego deja los tubos en el depósito de Three Forks."
+      },
+      "margin": {
+        "name": "Cima del delta y margen",
+        "desc": "Siete sitios en unos 9 km, subiendo el delta hasta Neretva Vallis. Un viaje largo: cuida la batería."
+      }
+    },
+    "sites_one": "{{count}} sitio",
+    "sites_other": "{{count}} sitios",
+    "tubes_one": "{{count}} tubo",
+    "tubes_other": "{{count}} tubos",
+    "best": "Récord {{time}}",
+    "start": "Empezar",
+    "howTitle": "Cómo se juega",
+    "how": {
+      "drive": "Conduce con W A S D o las flechas. Mantén Mayús para ir más rápido (gasta más batería).",
+      "core": "Detente dentro de un anillo y mantén Espacio (o E) para extraer la muestra.",
+      "slope": "Las pendientes de más de 30° detienen el rover, como detendrían al real.",
+      "power": "La batería se recarga despacio con la fuente de energía nuclear del rover (su MMRTG), más rápido si está parado.",
+      "keys": "C cámara · M mapa · Esc pausa · arrastra para mirar alrededor · rueda para acercar."
+    },
+    "realNote": "Terreno real (el modelo de elevación de 1 m e imágenes de HiRISE) y sitios de muestreo reales (NASA/JPL MMGIS). Para que quepa en minutos, el juego va unas 140 veces más rápido que Perseverance (velocidad máxima 4,2 cm/s).",
+    "hud": {
+      "battery": "Batería",
+      "speed": "Velocidad",
+      "tilt": "Inclinación",
+      "time": "Tiempo",
+      "driven": "Recorrido",
+      "samples": "Muestras",
+      "next": "Siguiente",
+      "depot": "Depósito",
+      "camera": "Cámara",
+      "map": "Mapa",
+      "pause": "Pausa",
+      "cameraModes": {
+        "chase": "Cerca",
+        "far": "Amplia",
+        "top": "Desde arriba"
+      },
+      "direction": "{{name}}, a {{distance}}"
+    },
+    "prompt": {
+      "stopToCore": "Detente para extraer la muestra de {{name}}",
+      "holdToCore": "Mantén Espacio para extraer {{name}}",
+      "coring": "Extrayendo {{name}}…",
+      "stopToDrop": "Detente para dejar los tubos",
+      "holdToDrop": "Mantén Espacio para dejar los tubos en el depósito de Three Forks",
+      "dropping": "Dejando los tubos…",
+      "toDepot": "Todas las muestras listas: llévalas al depósito de Three Forks",
+      "steep": "Demasiado empinado: Perseverance está diseñado para pendientes de hasta 30°",
+      "edge": "Borde del modelo de terreno de 1 m: da la vuelta",
+      "power": "Batería agotada: recargando con el MMRTG…",
+      "tilt": "Inclinación {{deg}}: cuidado"
+    },
+    "touch": {
+      "forward": "Avanzar",
+      "back": "Retroceder",
+      "left": "Girar a la izquierda",
+      "right": "Girar a la derecha",
+      "boost": "Más rápido",
+      "core": "Extraer muestra"
+    },
+    "pause": {
+      "title": "En pausa",
+      "resume": "Continuar",
+      "restart": "Reiniciar misión",
+      "missions": "Misiones"
+    },
+    "card": {
+      "title": "Muestra recogida",
+      "number": "Muestra {{number}}",
+      "numbers": "Muestras {{number}}",
+      "cored": "Perseverance la extrajo el sol {{sol}} ({{date}}).",
+      "at": "Afloramiento {{outcrop}}, {{location}}",
+      "continue": "Seguir conduciendo",
+      "finish": "Terminar misión",
+      "why": {
+        "atmospheric": "La roca se desmoronó al perforar, así que este tubo guarda una muestra del aire marciano.",
+        "igneous": "Roca ígnea, cristalizada a partir de roca fundida. Fechada en un laboratorio en la Tierra, diría cuándo se formó el fondo de Jezero.",
+        "sedimentary": "Roca sedimentaria, depositada en el agua por el río y el lago que llenaron Jezero. Rocas así son las que más probablemente conservan señales de vida antigua.",
+        "mixed": "Granos de roca sedimentaria e ígnea, arrastrados por el río desde toda la región.",
+        "regolith": "Regolito: roca suelta y polvo de la superficie. Muestra cómo afectaría el suelo marciano a los astronautas y a su equipo.",
+        "carbonate": "Carbonato cementado con sílice: minerales que crecen en el agua y pueden atrapar huellas del entorno en que se formaron."
+      }
+    },
+    "complete": {
+      "title": "Misión cumplida",
+      "time": "Tiempo",
+      "driven": "Recorrido",
+      "energy": "Energía usada",
+      "tubes": "Tubos llenados",
+      "newBest": "¡Nuevo récord!",
+      "best": "Récord: {{time}}",
+      "real": "Perseverance tomó estas muestras entre el sol {{first}} y el sol {{last}}: {{sols}} soles, unos {{months}} meses en la Tierra.",
+      "again": "Jugar otra vez",
+      "other": "Otras misiones"
+    }
   }
 }

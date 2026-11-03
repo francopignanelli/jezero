@@ -2891,6 +2891,8 @@ details.samples > summary {
 }
 .next-tab {
   display: flex;
+  box-sizing: border-box;
+  text-decoration: none;
   align-items: center;
   gap: 12px;
   width: 100%;

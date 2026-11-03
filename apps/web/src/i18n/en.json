@@ -48,6 +48,10 @@
       "marswalk": "Plan a walk step by step, then simulate it",
       "conditions": "Time, Sun, season and measured weather",
       "panoramas": "Stand where the rover stood: real panoramas and a tour between them"
+    },
+    "game": {
+      "title": "Drive Perseverance",
+      "body": "A game on the real terrain: collect the samples"
     }
   },
   "layers": {
@@ -761,7 +765,8 @@
     "groundTitle": "What the ground is made of",
     "ground": "Orbital maps of minerals, sand versus rock, slope and height, each with a legend and a source note (ⓘ in Layers).",
     "inspectTip": "Tip: click anywhere in the crater to see the height, slope and ground type there.",
-    "to360": "Real panoramas taken by Perseverance, and a tour that flies from one to the next"
+    "to360": "Real panoramas taken by Perseverance, and a tour that flies from one to the next",
+    "drive": "Drive it (game)"
   },
   "checklist": {
     "title": "Things to try",
@@ -800,5 +805,118 @@
     "credit": "Image: {{credit}}",
     "source": "NASA page",
     "listNote": "Each sample with NASA’s photo of where it was drilled (or of the core in its tube). Click a photo to enlarge it."
+  },
+  "game": {
+    "title": "Jezero Sample Run",
+    "tagline": "Drive Perseverance over the real terrain of Jezero Crater and collect the samples it took, at the places where it took them.",
+    "back": "Back to Copernico",
+    "loading": "Landing Perseverance in Jezero…",
+    "loadingMission": "Driving to the start…",
+    "failed": "The game could not start: the terrain or the rover model is missing, or this device cannot display WebGL 2.",
+    "chooseMission": "Choose a mission",
+    "missions": {
+      "floor": {
+        "name": "Crater floor",
+        "desc": "Five sites near the landing site: the volcanic rocks of Jezero's floor."
+      },
+      "delta": {
+        "name": "Delta front",
+        "desc": "Five sites at the foot of the ancient river delta, then leave the tubes at the Three Forks depot."
+      },
+      "margin": {
+        "name": "Delta top and margin",
+        "desc": "Seven sites over about 9 km, up the delta to Neretva Vallis. A long drive: mind the battery."
+      }
+    },
+    "sites_one": "{{count}} site",
+    "sites_other": "{{count}} sites",
+    "tubes_one": "{{count}} tube",
+    "tubes_other": "{{count}} tubes",
+    "best": "Best {{time}}",
+    "start": "Start",
+    "howTitle": "How to play",
+    "how": {
+      "drive": "Drive with W A S D or the arrow keys. Hold Shift to go faster (it uses more battery).",
+      "core": "Stop inside a ring and hold Space (or E) to core the sample.",
+      "slope": "Slopes over 30° stop the rover, as they would stop the real one.",
+      "power": "The battery recharges slowly from the rover's nuclear power source (its MMRTG), faster when stopped.",
+      "keys": "C camera · M map · Esc pause · drag to look around · scroll to zoom."
+    },
+    "realNote": "Real terrain (the HiRISE 1 m elevation model and images) and real sample sites (NASA/JPL MMGIS). To fit in minutes, the game drives about 140 times faster than Perseverance (top speed 4.2 cm/s).",
+    "hud": {
+      "battery": "Battery",
+      "speed": "Speed",
+      "tilt": "Tilt",
+      "time": "Time",
+      "driven": "Driven",
+      "samples": "Samples",
+      "next": "Next",
+      "depot": "Depot",
+      "camera": "Camera",
+      "map": "Map",
+      "pause": "Pause",
+      "cameraModes": {
+        "chase": "Close",
+        "far": "Wide",
+        "top": "Above"
+      },
+      "direction": "{{name}}, {{distance}} away"
+    },
+    "prompt": {
+      "stopToCore": "Stop to core the sample at {{name}}",
+      "holdToCore": "Hold Space to core {{name}}",
+      "coring": "Coring {{name}}…",
+      "stopToDrop": "Stop to leave the tubes",
+      "holdToDrop": "Hold Space to leave the tubes at the Three Forks depot",
+      "dropping": "Leaving the tubes…",
+      "toDepot": "All samples in: take them to the Three Forks depot",
+      "steep": "Too steep: Perseverance is designed for slopes up to 30°",
+      "edge": "Edge of the 1 m terrain model: turn back",
+      "power": "Battery flat: recharging from the MMRTG…",
+      "tilt": "Tilt {{deg}}: careful"
+    },
+    "touch": {
+      "forward": "Forward",
+      "back": "Reverse",
+      "left": "Turn left",
+      "right": "Turn right",
+      "boost": "Faster",
+      "core": "Core sample"
+    },
+    "pause": {
+      "title": "Paused",
+      "resume": "Resume",
+      "restart": "Restart mission",
+      "missions": "Missions"
+    },
+    "card": {
+      "title": "Sample collected",
+      "number": "Sample {{number}}",
+      "numbers": "Samples {{number}}",
+      "cored": "Perseverance cored it on sol {{sol}} ({{date}}).",
+      "at": "{{outcrop}} outcrop, {{location}}",
+      "continue": "Continue driving",
+      "finish": "Finish mission",
+      "why": {
+        "atmospheric": "The rock crumbled during coring, so this tube holds a sample of the Martian air instead.",
+        "igneous": "Igneous rock, crystallised from molten rock. Dated in a laboratory on Earth, it would tell when Jezero's floor formed.",
+        "sedimentary": "Sedimentary rock, laid down in water by the river and lake that once filled Jezero. Rocks like this are the most likely to keep signs of ancient life.",
+        "mixed": "Grains of sedimentary and igneous rock, carried by the river from across the region.",
+        "regolith": "Regolith: loose rock and dust from the surface. It shows how Martian soil would affect astronauts and their equipment.",
+        "carbonate": "Silica-cemented carbonate: minerals that grow in water and can trap traces of the environment they formed in."
+      }
+    },
+    "complete": {
+      "title": "Mission complete",
+      "time": "Time",
+      "driven": "Driven",
+      "energy": "Energy used",
+      "tubes": "Tubes filled",
+      "newBest": "New best time!",
+      "best": "Best: {{time}}",
+      "real": "Perseverance took these samples between sol {{first}} and sol {{last}}: {{sols}} sols, about {{months}} months on Earth.",
+      "again": "Play again",
+      "other": "Other missions"
+    }
   }
 }

@@ -1,7 +1,6 @@
 import { DEG_TO_RAD, greatCircleDistance, mars24, marsYear } from '@copernico/domain';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DATA_VERSION, dataUrl } from '../../config';
 import { PANORAMA_CREDIT, PANORAMAS, POIS, samplePhotos, type Panorama } from '../../data/catalog';
 import {
   loadRover,
@@ -12,7 +11,7 @@ import {
 import { formatDegrees, formatDistance, formatElevation } from '../../lib/format';
 import { IconChevron, IconPlay } from '../../ui/icons';
 import { SamplePhotos } from '../science/SamplePhotos';
-import { M_PER_DEG } from '../../lib/math';
+import { loadGroundBasemap, mapPx, type LocalMap } from '../../lib/basemap';
 
 /** A place drawn inside the photo at its true direction. */
 export interface Target {
@@ -242,13 +241,15 @@ export function MiniMap({
 }) {
   const { t, i18n } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { lat: lat0, lon: lon0 } = pano.position;
-  const cos0 = Math.cos(lat0 * DEG_TO_RAD);
   const k = MINIMAP_PX / MINIMAP_SPAN_M;
-  const px = (lat: number, lon: number): [number, number] => [
-    MINIMAP_PX / 2 + (lon - lon0) * cos0 * M_PER_DEG * k,
-    MINIMAP_PX / 2 - (lat - lat0) * M_PER_DEG * k,
-  ];
+  const map: LocalMap = {
+    lat0: pano.position.lat,
+    lon0: pano.position.lon,
+    widthPx: MINIMAP_PX,
+    heightPx: MINIMAP_PX,
+    mPerPx: 1 / k,
+  };
+  const px = (lat: number, lon: number) => mapPx(map, lat, lon);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -258,41 +259,9 @@ export function MiniMap({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     let live = true;
     // CTX tiles at z12 (≈10 m/px, ~2.5 km per tile): the 3 km view needs at most 3×3.
-    const z = 12;
-    const tw = 180 / 2 ** z;
-    const halfLon = MINIMAP_SPAN_M / 2 / (M_PER_DEG * cos0);
-    const halfLat = MINIMAP_SPAN_M / 2 / M_PER_DEG;
-    const tiles: Array<{ x: number; y: number }> = [];
-    const x0 = Math.floor((lon0 - halfLon + 180) / tw);
-    const x1 = Math.floor((lon0 + halfLon + 180) / tw);
-    const y0 = Math.floor((90 - lat0 - halfLat) / tw);
-    const y1 = Math.floor((90 - lat0 + halfLat) / tw);
-    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) tiles.push({ x, y });
-    const images = tiles.map(({ x, y }) => {
-      const img = new Image();
-      img.src = dataUrl(`tiles/imagery/ctx/${z}/${x}/${y}.webp?v=${DATA_VERSION}`);
-      return img.decode().then(
-        () => ({ img, x, y }),
-        () => null,
-      );
-    });
-    void Promise.all(images).then((loaded) => {
+    void loadGroundBasemap(map, 12).then((draw) => {
       if (!live) return;
-      ctx.fillStyle = '#2a1a12';
-      ctx.fillRect(0, 0, MINIMAP_PX, MINIMAP_PX);
-      for (const tile of loaded) {
-        if (!tile) continue;
-        const [ax, ay] = px(90 - tile.y * tw, tile.x * tw - 180);
-        const [bx, by] = px(90 - (tile.y + 1) * tw, (tile.x + 1) * tw - 180);
-        ctx.drawImage(tile.img, ax, ay, bx - ax, by - ay);
-      }
-      // Greyscale CTX tinted with the Mastcam-Z ground colour, then dimmed for the overlay.
-      ctx.globalCompositeOperation = 'multiply';
-      ctx.fillStyle = 'rgb(255, 176, 118)';
-      ctx.fillRect(0, 0, MINIMAP_PX, MINIMAP_PX);
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = 'rgba(12, 9, 7, 0.28)';
-      ctx.fillRect(0, 0, MINIMAP_PX, MINIMAP_PX);
+      draw(ctx);
       // Traverse: driven up to this panorama (solid amber) and afterwards (dashed, faint).
       if (rover) {
         const pts = rover.waypoints;

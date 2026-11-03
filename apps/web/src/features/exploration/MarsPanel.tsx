@@ -2,7 +2,7 @@ import type { ComponentType, SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type Tab } from '../../app/store';
 import { MISSIONS } from '../../data/catalog';
-import { Icon360, IconRoute, IconSun, IconSurface } from '../../ui/icons';
+import { Icon360, IconRoute, IconRover, IconSun, IconSurface } from '../../ui/icons';
 
 /** What each of the other tabs is for, so every part of the app can be reached from here. */
 const NEXT: Array<{ tab: Tab; icon: ComponentType<SVGProps<SVGSVGElement>> }> = [
@@ -50,6 +50,16 @@ export function MarsPanel() {
             </button>
           </li>
         ))}
+        <li>
+          {/* The rover game is its own page (play.html): the planner does not load its code. */}
+          <a className="next-tab" href="./play.html">
+            <IconRover />
+            <span>
+              <strong>{t('explore.game.title')}</strong>
+              <span>{t('explore.game.body')}</span>
+            </span>
+          </a>
+        </li>
       </ul>
 
       <h3>{t('explore.coverage')}</h3>

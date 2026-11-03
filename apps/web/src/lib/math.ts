@@ -8,3 +8,9 @@ export function smoothstep(e0: number, e1: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
 }
+
+/** Fraction of the remaining gap to close this frame for a time constant tau (frame-rate free). */
+export const follow = (dt: number, tau: number): number => 1 - Math.exp(-dt / tau);
+
+/** Angle wrapped to (−π, π]. */
+export const wrapAngle = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));

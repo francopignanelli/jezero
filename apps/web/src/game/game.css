@@ -1,0 +1,492 @@
+/* Jezero Sample Run (play.html): full-screen scene with a glass HUD, on the planner's tokens. */
+
+.game {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--space-0);
+}
+.game-canvas {
+  position: absolute;
+  inset: 0;
+}
+.game-canvas canvas {
+  display: block;
+}
+
+.game-panel,
+.game-dialog,
+.game-compass,
+.game-prompt > span,
+.game-map {
+  background: rgb(14 17 23 / 0.78);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+.game-panel-title {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mars-strong);
+}
+
+/* ---------- screens ---------- */
+.game-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(ellipse at 50% 50%, rgb(2 3 6 / 0.25), rgb(2 3 6 / 0.65));
+  overflow-y: auto;
+}
+.game-dialog {
+  width: min(560px, 100%);
+  padding: 22px 24px;
+}
+.game-dialog h1 {
+  margin: 4px 0 6px;
+  font-size: 1.9rem;
+  line-height: 1.15;
+}
+.game-dialog h2 {
+  margin: 18px 0 8px;
+  font-size: var(--fs-lg);
+}
+.game-dialog .lede {
+  margin: 0;
+  color: var(--text-muted);
+}
+.game-dialog .meta {
+  color: var(--text-faint);
+  font-size: var(--fs-sm);
+}
+.game-dialog .btn-stack {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+.game-small {
+  width: min(400px, 100%);
+}
+.game-briefing {
+  width: min(640px, 100%);
+}
+.game-briefing-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: -8px -10px 8px;
+}
+.game-lang {
+  display: flex;
+  gap: 4px;
+}
+.game-lang .is-on {
+  border-color: var(--mars);
+  color: var(--mars-strong);
+}
+.game-missions,
+.game-how {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.game-missions {
+  display: grid;
+  gap: 8px;
+}
+.game-missions li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid var(--border);
+}
+.game-missions li > div {
+  flex: 1;
+}
+.game-missions p {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.game-missions .meta {
+  margin-top: 4px;
+}
+.game-how {
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.game-how li::before {
+  content: '› ';
+  color: var(--mars);
+}
+.game-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgb(2 3 6 / 0.55);
+  color: var(--text-muted);
+}
+
+/* ---------- HUD ---------- */
+.game-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+.game-hud button,
+.game-hud a {
+  pointer-events: auto;
+}
+.game-objectives {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  max-width: 260px;
+  padding: 12px 14px;
+}
+.game-objectives ol {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 3px;
+  font-size: var(--fs-sm);
+}
+.game-objectives li span {
+  display: inline-block;
+  width: 1.1em;
+  color: var(--rover);
+}
+.game-objectives li.is-done {
+  color: var(--text-faint);
+}
+.game-objectives li.is-done span {
+  color: var(--ok);
+}
+.game-objectives li.is-depot span {
+  color: var(--info);
+}
+
+.game-compass {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  font-size: var(--fs-sm);
+}
+.game-compass svg {
+  width: 30px;
+  height: 30px;
+  fill: var(--rover);
+  transition: transform 0.12s linear;
+}
+.game-compass span {
+  display: grid;
+  line-height: 1.25;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.game-compass strong {
+  color: var(--text);
+}
+
+.game-gauges {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 236px;
+  padding: 12px 14px;
+}
+.game-battery {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+}
+.game-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.1);
+  overflow: hidden;
+}
+.game-bar > div {
+  height: 100%;
+  background: var(--ok);
+  transition: width 0.12s linear;
+}
+.game-battery.is-low .game-bar > div {
+  background: var(--danger);
+}
+.game-battery strong {
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
+}
+.game-gauges dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 12px 0 0;
+}
+.game-gauges dt,
+.game-stats dt {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+.game-gauges dd,
+.game-stats dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.game-gauges dd.is-boost {
+  color: var(--mars-strong);
+}
+.game-gauges dd.is-warn {
+  color: var(--warn);
+}
+.game-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.game-tools .btn {
+  font-size: var(--fs-xs);
+}
+
+.game-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: min(520px, calc(100% - 32px));
+  text-align: center;
+}
+.game-prompt > span {
+  padding: 9px 16px;
+  font-weight: 600;
+}
+.game-prompt.is-go > span {
+  border-color: rgb(242 184 75 / 0.6);
+  color: var(--rover);
+}
+.game-prompt.is-warn > span {
+  border-color: rgb(242 193 78 / 0.6);
+  color: var(--warn);
+}
+.game-action-bar {
+  width: 240px;
+  height: 6px;
+}
+.game-action-bar > div {
+  background: var(--rover);
+  transition: none;
+}
+
+.game-map {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  width: 220px;
+  height: 220px;
+  overflow: hidden;
+  padding: 0;
+}
+.game-map canvas,
+.game-map svg {
+  position: absolute;
+  inset: 0;
+}
+.game-map-target {
+  fill: var(--rover);
+  stroke: #1a0d06;
+  stroke-width: 1.5;
+}
+.game-map-target.is-done {
+  fill: var(--ok);
+}
+.game-map-depot {
+  fill: var(--info);
+  stroke: #04141c;
+  stroke-width: 1.5;
+}
+.game-map-depot.is-done {
+  fill: var(--ok);
+}
+.game-map-rover {
+  fill: #fff;
+  stroke: var(--mars);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.game-map-n {
+  fill: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+}
+.game-map-scale line {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+.game-map-scale text {
+  fill: var(--text-muted);
+  font-size: 10px;
+}
+
+/* ---------- touch pad (coarse pointers only) ---------- */
+.game-touch {
+  position: absolute;
+  inset: auto 16px 16px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.game-touch button {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  background: rgb(14 17 23 / 0.6);
+  color: var(--text);
+  font-size: 1.4rem;
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+}
+.game-touch button:active {
+  background: rgb(224 120 74 / 0.45);
+}
+.game-touch .is-action {
+  border-color: var(--rover);
+  color: var(--rover);
+}
+.game-touch-steer {
+  display: flex;
+  gap: 12px;
+}
+.game-touch-drive {
+  display: grid;
+  grid-template-columns: repeat(2, 64px);
+  gap: 10px;
+}
+
+/* ---------- sample card and results ---------- */
+.game-card {
+  width: min(720px, 100%);
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  overflow: hidden;
+}
+.game-card figure {
+  margin: 0;
+  background: #000;
+  display: grid;
+}
+.game-card img {
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  object-fit: cover;
+}
+.game-card figcaption {
+  padding: 6px 10px;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+.game-card-body {
+  padding: 20px 22px;
+}
+.game-card-body h2 {
+  margin: 6px 0 2px;
+  font-size: 1.35rem;
+}
+.game-card-body p {
+  margin: 8px 0;
+  font-size: var(--fs-sm);
+}
+.game-card-body .btn {
+  margin-top: 10px;
+}
+.game-best {
+  color: var(--rover);
+  font-weight: 600;
+}
+.game-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 14px 0;
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 720px) {
+  .game-objectives {
+    top: 8px;
+    left: 8px;
+    max-width: 46%;
+    padding: 8px 10px;
+  }
+  .game-objectives ol {
+    font-size: var(--fs-xs);
+  }
+  .game-gauges {
+    top: 8px;
+    right: 8px;
+    width: 46%;
+    padding: 8px 10px;
+  }
+  .game-gauges dl {
+    gap: 4px 8px;
+    margin-top: 8px;
+  }
+  .game-gauges dd {
+    font-size: var(--fs-sm);
+  }
+  .game-tools {
+    margin-top: 8px;
+  }
+  .game-compass {
+    top: auto;
+    bottom: 196px;
+  }
+  .game-map {
+    display: none;
+  }
+  .game-prompt {
+    bottom: 100px;
+  }
+  .game-card {
+    grid-template-columns: 1fr;
+  }
+  .game-card img {
+    max-height: 220px;
+  }
+  .game-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

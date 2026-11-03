@@ -96,6 +96,14 @@ export default defineConfig({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 6000,
+    // Two pages: the planner and the rover game. Shared code (Cesium, the scene, data loaders) lands
+    // in shared chunks, so each page downloads only its own code and the browser caches the rest once.
+    rollupOptions: {
+      input: {
+        main: resolve(import.meta.dirname, 'index.html'),
+        play: resolve(import.meta.dirname, 'play.html'),
+      },
+    },
   },
   server: { port: Number(process.env.PORT) || 5180 },
 });

@@ -1521,6 +1521,17 @@ export class MarsScene {
     );
   }
 
+  /**
+   * Hands the camera to the caller (e.g. the rover game's chase camera, set every frame): user
+   * camera input, Cesium's collision floor and the exploration limits are all off until released.
+   */
+  takeCamera(on: boolean): void {
+    const c = this.widget.scene.screenSpaceCameraController;
+    c.enableInputs = !on;
+    c.enableCollisionDetection = !on;
+    this.constraints.suspend(on);
+  }
+
   setReducedMotion(reduced: boolean): void {
     this.reducedMotion = reduced;
     const c = this.widget.scene.screenSpaceCameraController;

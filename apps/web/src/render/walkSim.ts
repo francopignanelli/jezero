@@ -17,7 +17,8 @@ import {
 import { normalizeLon180 } from '@copernico/domain';
 import { pointAt, type Track } from '../lib/routeTrack';
 import { flightPeak } from './flight';
-import { smoothstep } from '../lib/math';
+import { follow, smoothstep, wrapAngle as wrap } from '../lib/math';
+import { frameTime } from '../lib/motion';
 
 /**
  * Cinematic walk simulation along a computed route. Everything moves inside the render loop
@@ -69,18 +70,6 @@ const PITCH_DEG = -21;
 const MIN_CLEARANCE_M = 70;
 const SLOW_NEAR_STOP_M = 90;
 const HOLD_AT_STOP_S = 0.8;
-
-/** Fraction of the remaining gap to close this frame for a time constant tau (frame-rate free). */
-const follow = (dt: number, tau: number) => 1 - Math.exp(-dt / tau);
-const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
-/**
- * Start time of the frame being rendered (the rAF timestamp), not the moment this code runs: steps
- * are then proportional to the time between displayed frames, whatever work came earlier in the frame.
- */
-const frameTime = () => {
-  const t = document.timeline?.currentTime;
-  return typeof t === 'number' ? t : performance.now();
-};
 
 /**
  * Time-to-distance table: walking eases in at the start, slows nearly to a halt at each intermediate
