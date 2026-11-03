@@ -32,11 +32,11 @@ export const MISSIONS: MissionDef[] = [
     depot: true,
   },
   {
-    // From the climb onto the delta (the rover's sol 713 position) along the margin to Neretva
-    // Vallis (sols 749–1215).
+    // On top of the delta, from the rover's sol 731 position, west to the margin unit (sols
+    // 749–942).
     id: 'margin',
-    start: { lat: 18.46404, lon: 77.402097 },
-    sampleNumbers: ['19', '20', '21', '22', '23', '24', '25'],
+    start: { lat: 18.474607, lon: 77.388808 },
+    sampleNumbers: ['19', '20', '21', '22', '23'],
     depot: false,
   },
 ];
@@ -46,8 +46,9 @@ export const DEPOT = { lat: 18.45296, lon: 77.40821, radiusM: 40 };
 export const SAMPLE_RADIUS_M = 14;
 /** The rover must be (nearly) stopped to core or drop tubes. */
 export const STOPPED_MPS = 0.3;
-export const CORE_S = 2.5;
-export const DEPOSIT_S = 2;
+/** One press of the action key runs the whole sequence: arm down, drill, arm up (seconds). */
+export const CORE_S = 4.2;
+export const DEPOSIT_S = 2.5;
 /** Battery used by one coring (drill, percussion and sealing). */
 export const CORE_COST_PCT = 4;
 
@@ -148,8 +149,8 @@ export function nearestRemaining(rover: RoverState, targets: Target[], p: Progre
 export type ProgressEvent = { kind: 'collected'; target: Target } | { kind: 'deposited' } | null;
 
 /**
- * Holding the action key at a target, stopped, cores the sample (or drops the tubes at the depot).
- * Releasing it, moving or leaving the zone cancels the action in progress.
+ * Pressing the action key at a target, stopped, starts coring the sample (or dropping the tubes
+ * at the depot); the sequence then runs to its end (the rover is held still meanwhile).
  */
 export function stepProgress(
   p: Progress,
@@ -158,12 +159,14 @@ export function stepProgress(
   held: boolean,
   dt: number,
 ): { progress: Progress; event: ProgressEvent } {
-  const here = targetHere(rover, targets, p);
-  if (!held || !here || Math.abs(rover.speed) > STOPPED_MPS || rover.recharging) {
-    return { progress: p.action ? { ...p, action: null } : p, event: null };
+  const running = p.action && targets.find((t) => t.id === p.action!.targetId);
+  const here = running || targetHere(rover, targets, p);
+  if (!running && (!held || !here || Math.abs(rover.speed) > STOPPED_MPS || rover.recharging)) {
+    return { progress: p, event: null };
   }
+  if (!here) return { progress: p, event: null };
   const kind = here.kind === 'depot' ? 'deposit' : 'core';
-  const heldS = (p.action?.targetId === here.id ? p.action.heldS : 0) + dt;
+  const heldS = (p.action?.heldS ?? 0) + dt;
   const needed = kind === 'core' ? CORE_S : DEPOSIT_S;
   if (heldS < needed)
     return { progress: { ...p, action: { targetId: here.id, kind, heldS } }, event: null };

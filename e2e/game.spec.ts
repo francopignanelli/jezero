@@ -27,10 +27,13 @@ test('the planner links to the rover game from the Mars tab and the Perseverance
   );
 });
 
-test('rover game: drive on the real terrain, core a sample, read its card, pause', async ({
+test('rover game: drive in the 3D Jezero, core a sample, read its card, pause', async ({
   page,
 }) => {
+  test.slow(); // software WebGL in headless Chrome renders the 3D world at a few frames per second
   const external = trackExternalRequests(page);
+  // Low graphics: the same world, cheaper to draw in software.
+  await page.addInitScript(() => localStorage.setItem('copernico.game.quality', 'low'));
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/play.html');
@@ -48,20 +51,21 @@ test('rover game: drive on the real terrain, core a sample, read its card, pause
     .toBeGreaterThan(3);
   await page.keyboard.up('KeyW');
 
-  // Next to the Ha'ahóni + Atsá site (samples 8 & 9), stopped: hold Space to core it.
+  // Next to the Ha'ahóni + Atsá site (samples 8 & 9), stopped: one press of Space cores it
+  // (arm down, drill, arm up).
   await page.evaluate(() =>
     (window as unknown as { __copernicoGame: GameHook }).__copernicoGame.teleport(
       18.443864 - 6 / 59_274,
       77.452422,
     ),
   );
-  await expect(page.locator('.game-prompt')).toContainText('Hold Space to core', {
-    timeout: 20_000,
+  await expect(page.locator('.game-prompt')).toContainText('Press Space to core', {
+    timeout: 30_000,
   });
-  await page.keyboard.down('Space');
+  await page.keyboard.press('Space');
+  await expect(page.locator('.game-prompt')).toContainText('Coring', { timeout: 30_000 });
   const card = page.getByRole('dialog', { name: "Ha'ahóni + Atsá" });
-  await expect(card).toBeVisible({ timeout: 20_000 });
-  await page.keyboard.up('Space');
+  await expect(card).toBeVisible({ timeout: 120_000 });
   await expect(card).toContainText('Samples 8 & 9');
   await expect(card).toContainText('Igneous rock');
   await expect(card.locator('img')).toHaveJSProperty('complete', true);

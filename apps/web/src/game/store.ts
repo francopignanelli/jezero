@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CameraMode } from './gameView';
+import type { CameraMode } from './world/cameraRig';
 import type { MissionId, Target } from './missions';
 import type { Blocked } from './roverSim';
 

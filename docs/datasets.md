@@ -33,6 +33,7 @@ gitignored and never committed.
 | `data/build/environment/meda.json` | Per-sol MEDA summaries, sols 1740–1859 (Release 16): 112 sols with data | 60 KB |
 | `data/build/sky/stars.json` | Yale Bright Star Catalog (J2000), 8,404 stars with V ≤ 6.5, proper motion to 2026.75 | 246 KB |
 | `data/build/sky/milkyway_4k.webp` | NASA SVS Deep Star Maps 2020 Milky Way background (no bright stars), ICRF plate carrée, asinh display stretch | 2.5 MB |
+| `data/build/game/` | Rover game world (`run.sh game-world`), per mission area on a local metric grid. **Detail:** TRN 1 m DTM (uint16 steps of 1 cm, delta-coded rows, gzip) and TRN HiRISE ortho (0.5–0.75 m). **Mid:** 12 km at 8 m, TRN DTM feathered over the CTX DEM, plus the CTX ortho. **Far:** 64 km at 100 m, CTX DEM over MOLA, out to the crater rim. **Ground textures:** four 1024² tiles (regolith, gravel, sand ripples, bedrock), re-projected onto the ground from the Mastcam-Z panoramas Butler Landing and Wildcat Ridge (~3 mm/px), brightness flattened over ~10 cm, made seamless. `areas.json` lists everything. | ~6–8 MB per area, 0.7 MB textures |
 
 Grid statistics (from `grid.json`):
 - 3,189,320 valid cells (79.7 km²).

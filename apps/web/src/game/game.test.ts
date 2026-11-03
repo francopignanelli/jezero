@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { SampleSite } from '../data/surfaceData';
 import { M_PER_DEG } from '../lib/math';
 import {
+  decodeHeights,
+  edgeWeight,
+  sampleBicubic,
+  sampleBilinear,
+  LocalFrame,
+  type HeightsMeta,
+} from './world/heights';
+import { CLASSES, rocksInCell, type GroundInfo } from './world/rocks';
+import {
   CORE_S,
   MISSIONS,
   isComplete,
@@ -174,7 +183,7 @@ describe('missions', () => {
     expect(d.at(-1)?.kind).toBe('depot');
   });
 
-  it('cores a sample only while stopped in its ring, holding the key for CORE_S', () => {
+  it('one press, stopped in a ring, runs the whole coring sequence', () => {
     const targets = missionTargets(floor, samples);
     const at = (lat: number, lon: number, speed = 0): RoverState => ({
       ...initialRover(lat, lon, 0),
@@ -189,21 +198,22 @@ describe('missions', () => {
     // Outside the ring: nothing happens.
     const away = offsetPoint(target.lat, target.lon, 0, target.radiusM + 5, 0);
     expect(stepProgress(p, at(away.lat, away.lon), targets, true, 1).progress.action).toBeNull();
-    // Stopped inside, held: progress, then the sample.
+    // Stopped inside: one frame with the key down starts it; it then runs without the key.
+    p = stepProgress(p, at(target.lat, target.lon), targets, true, 0.1).progress;
+    expect(p.action?.kind).toBe('core');
     let collected = false;
-    for (let t = 0; t < CORE_S + 0.2; t += 0.1) {
-      const r = stepProgress(p, at(target.lat, target.lon), targets, true, 0.1);
+    for (let t = 0.1; t < CORE_S + 0.2; t += 0.1) {
+      const r = stepProgress(p, at(target.lat, target.lon), targets, false, 0.1);
       p = r.progress;
       if (r.event?.kind === 'collected') collected = true;
     }
     expect(collected).toBe(true);
     expect(p.collected).toEqual([target.id]);
-    // Releasing the key resets a coring in progress.
-    const other = targets[1]!;
-    p = stepProgress(p, at(other.lat, other.lon), targets, true, 1).progress;
-    expect(p.action?.heldS).toBe(1);
-    p = stepProgress(p, at(other.lat, other.lon), targets, false, 0.1).progress;
     expect(p.action).toBeNull();
+    // A collected site cannot be cored again.
+    expect(
+      stepProgress(p, at(target.lat, target.lon), targets, true, 0.1).progress.action,
+    ).toBeNull();
   });
 
   it('opens the depot only once every sample is in, and completes on the drop', () => {
@@ -215,5 +225,79 @@ describe('missions', () => {
     expect(next?.kind).toBe('depot');
     expect(isComplete(targets, done)).toBe(false);
     expect(isComplete(targets, { ...done, deposited: true })).toBe(true);
+  });
+});
+
+describe('game world data', () => {
+  const meta: HeightsMeta = {
+    file: '',
+    cols: 4,
+    rows: 3,
+    cellM: 1,
+    widthM: 4,
+    heightM: 3,
+    baseM: -2500,
+    stepM: 0.01,
+    rangeM: 0,
+  };
+
+  it('decodes delta-coded rows (running sums modulo 2^16) into metres above the world base', () => {
+    // Absolute steps per row: [100, 150, 140, 65535] / [0, 1, 2, 3] / [7, 7, 7, 7].
+    const coded = new Uint16Array([100, 50, 65526, 65395, 0, 1, 1, 1, 7, 0, 0, 0]);
+    const l = decodeHeights(coded, meta, -2510);
+    expect(Array.from(l.data.slice(0, 4)).map((v) => +v.toFixed(2))).toEqual([
+      11, 11.5, 11.4, 665.35,
+    ]);
+    expect(Array.from(l.data.slice(4, 8)).map((v) => +v.toFixed(2))).toEqual([
+      10, 10.01, 10.02, 10.03,
+    ]);
+  });
+
+  it('samples at pixel centres exactly; bicubic agrees on planes; nothing outside', () => {
+    // A plane rising 1 m per metre east: heights equal to the column index.
+    const data = new Float32Array([0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]);
+    const l = { cols: 4, rows: 3, cellM: 1, widthM: 4, heightM: 3, data };
+    // Pixel centre of column 1 is at x = −2 + 1.5 = −0.5.
+    expect(sampleBilinear(l, -0.5, 0)).toBeCloseTo(1, 6);
+    expect(sampleBilinear(l, 0, 0)).toBeCloseTo(1.5, 6);
+    expect(sampleBicubic(l, 0, 0)).toBeCloseTo(1.5, 6);
+    expect(sampleBilinear(l, 5, 0)).toBeUndefined();
+    expect(edgeWeight(l, 0, 0, 0.25)).toBe(1);
+    expect(edgeWeight(l, 1.9, 0, 0.25)).toBe(0);
+  });
+
+  it('local frame round-trips and is metric', () => {
+    const f = new LocalFrame(18.44, 77.45);
+    const [x, n] = f.toLocal(18.441, 77.451);
+    expect(n).toBeCloseTo(0.001 * M_PER_DEG, 3);
+    expect(x).toBeCloseTo(0.001 * M_PER_DEG * Math.cos((18.44 * Math.PI) / 180), 3);
+    const back = f.toLatLon(x, n);
+    expect(back.lat).toBeCloseTo(18.441, 10);
+    expect(back.lon).toBeCloseTo(77.451, 10);
+  });
+
+  it('rocks are deterministic per cell, within their size class, more on bright ground', () => {
+    const ground = (bright: number): GroundInfo => ({
+      height: () => 0,
+      brightness: () => bright,
+      slope: () => 0,
+    });
+    const a = rocksInCell(3, -7, CLASSES[0]!, ground(0.5));
+    expect(rocksInCell(3, -7, CLASSES[0]!, ground(0.5))).toEqual(a);
+    let dark = 0;
+    let bright = 0;
+    for (let i = 0; i < 200; i++) {
+      dark += rocksInCell(i, 0, CLASSES[0]!, ground(0.2)).length;
+      const rocks = rocksInCell(i, 0, CLASSES[0]!, ground(0.9));
+      bright += rocks.length;
+      for (const r of rocks) {
+        expect((2 * Math.max(r.sx, r.sz)) / 1.3).toBeLessThanOrEqual(CLASSES[0]!.maxM + 1e-9);
+        expect(r.topM).toBeGreaterThan(0);
+        expect(Math.abs(r.x - (i + 0.5) * CLASSES[0]!.cellM)).toBeLessThanOrEqual(
+          CLASSES[0]!.cellM / 2,
+        );
+      }
+    }
+    expect(bright).toBeGreaterThan(dark * 1.5);
   });
 });

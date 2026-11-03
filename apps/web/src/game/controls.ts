@@ -28,6 +28,8 @@ const CAPTURED = new Set([...FORWARD, ...BACK, ...LEFT, ...RIGHT, 'Space']);
  */
 export class Controls {
   private readonly keys = new Set<string>();
+  /** An action key press not yet seen by read(): a tap shorter than a frame still counts. */
+  private actionTapped = false;
   readonly touch: ControlState = { throttle: 0, steer: 0, boost: false, action: false };
   enabled = true;
 
@@ -54,6 +56,7 @@ export class Controls {
       if (document.activeElement instanceof HTMLButtonElement) document.activeElement.blur();
     }
     this.keys.add(e.code);
+    if (ACTION.includes(e.code) && !e.repeat) this.actionTapped = true;
   };
 
   private readonly up = (e: KeyboardEvent) => {
@@ -62,6 +65,7 @@ export class Controls {
 
   readonly clear = () => {
     this.keys.clear();
+    this.actionTapped = false;
     Object.assign(this.touch, { throttle: 0, steer: 0, boost: false, action: false });
   };
 
@@ -70,12 +74,9 @@ export class Controls {
     const any = (codes: string[]) => codes.some((c) => this.keys.has(c));
     const throttle = (any(FORWARD) ? 1 : 0) - (any(BACK) ? 1 : 0) || this.touch.throttle;
     const steer = (any(RIGHT) ? 1 : 0) - (any(LEFT) ? 1 : 0) || this.touch.steer;
-    return {
-      throttle,
-      steer,
-      boost: any(BOOST) || this.touch.boost,
-      action: any(ACTION) || this.touch.action,
-    };
+    const action = any(ACTION) || this.touch.action || this.actionTapped;
+    this.actionTapped = false;
+    return { throttle, steer, boost: any(BOOST) || this.touch.boost, action };
   }
 
   dispose(): void {

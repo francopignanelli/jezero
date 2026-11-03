@@ -82,6 +82,26 @@
   align-items: center;
   margin: -8px -10px 8px;
 }
+.game-briefing-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.game-quality {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.game-quality select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font: inherit;
+}
 .game-lang {
   display: flex;
   gap: 4px;
@@ -489,4 +509,35 @@
   .game-stats {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* ---------- target labels (projected each frame by the session) ---------- */
+.game-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+.game-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(14 17 23 / 0.62);
+  border: 1px solid rgb(242 184 75 / 0.55);
+  color: #ffe2b8;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  will-change: transform;
+}
+.game-label.is-depot {
+  border-color: rgb(108 198 230 / 0.6);
+  color: #cdefff;
+}
+.game-label.is-done {
+  border-color: rgb(88 201 143 / 0.6);
+  color: #c4f2d8;
 }

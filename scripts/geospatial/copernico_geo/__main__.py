@@ -23,6 +23,8 @@ def main(argv: list[str]) -> int:
     pano.add_argument("--only", help="one panorama id")
     sub.add_parser("panorama-thumbs", help="gallery thumbnails for the panoramas already built")
     sub.add_parser("sample-images", help="sample photos (scripts/data/fetch-sample-images.ts) as WebP + thumbnails")
+    game = sub.add_parser("game-world", help="rover game: terrain, albedo and real ground textures per mission area")
+    game.add_argument("--only", help="one area id, or 'ground' for the textures only")
     sub.add_parser("terrain", help="build quantized-mesh terrain tiles (needs 'operational')")
     sub.add_parser("all", help="operational, imagery, terrain")
     sub.add_parser("sky", help="convert the Milky Way PNG from scripts/data/build-sky.ts to WebP")
@@ -42,6 +44,11 @@ def main(argv: list[str]) -> int:
             print(f"[sky] {dst.name}: {dst.stat().st_size} bytes")
         return 0
 
+    if args.cmd == "game-world":
+        from .game import build as build_game
+
+        build_game(only=args.only)
+        return 0
     if args.cmd == "inspect":
         from .inspect_sources import run
 

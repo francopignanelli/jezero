@@ -824,8 +824,8 @@
         "desc": "Five sites at the foot of the ancient river delta, then leave the tubes at the Three Forks depot."
       },
       "margin": {
-        "name": "Delta top and margin",
-        "desc": "Seven sites over about 9 km, up the delta to Neretva Vallis. A long drive: mind the battery."
+        "name": "Delta top",
+        "desc": "Five sites over about 2.5 km on top of the ancient delta, west to the margin unit."
       }
     },
     "sites_one": "{{count}} site",
@@ -837,12 +837,12 @@
     "howTitle": "How to play",
     "how": {
       "drive": "Drive with W A S D or the arrow keys. Hold Shift to go faster (it uses more battery).",
-      "core": "Stop inside a ring and hold Space (or E) to core the sample.",
+      "core": "Stop inside a ring and press Space (or E): the arm comes down and cores the sample.",
       "slope": "Slopes over 30° stop the rover, as they would stop the real one.",
       "power": "The battery recharges slowly from the rover's nuclear power source (its MMRTG), faster when stopped.",
       "keys": "C camera · M map · Esc pause · drag to look around · scroll to zoom."
     },
-    "realNote": "Real terrain (the HiRISE 1 m elevation model and images) and real sample sites (NASA/JPL MMGIS). To fit in minutes, the game drives about 140 times faster than Perseverance (top speed 4.2 cm/s).",
+    "realNote": "The terrain is the real one, from the HiRISE 1 m elevation model, out to the crater rim on the horizon. The ground textures are cut from Perseverance’s own Mastcam-Z panoramas, and the sample sites are real (NASA/JPL MMGIS). Rocks, dust and tracks are generated. To fit in minutes, the game drives about 140 times faster than Perseverance (top speed 4.2 cm/s).",
     "hud": {
       "battery": "Battery",
       "speed": "Speed",
@@ -864,10 +864,10 @@
     },
     "prompt": {
       "stopToCore": "Stop to core the sample at {{name}}",
-      "holdToCore": "Hold Space to core {{name}}",
+      "holdToCore": "Press Space to core {{name}}",
       "coring": "Coring {{name}}…",
       "stopToDrop": "Stop to leave the tubes",
-      "holdToDrop": "Hold Space to leave the tubes at the Three Forks depot",
+      "holdToDrop": "Press Space to leave the tubes at the Three Forks depot",
       "dropping": "Leaving the tubes…",
       "toDepot": "All samples in: take them to the Three Forks depot",
       "steep": "Too steep: Perseverance is designed for slopes up to 30°",
@@ -917,6 +917,16 @@
       "real": "Perseverance took these samples between sol {{first}} and sol {{last}}: {{sols}} sols, about {{months}} months on Earth.",
       "again": "Play again",
       "other": "Other missions"
+    },
+    "quality": {
+      "title": "Graphics",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "sound": {
+      "on": "Sound on",
+      "off": "Sound off"
     }
   }
 }

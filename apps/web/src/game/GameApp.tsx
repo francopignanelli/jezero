@@ -9,7 +9,8 @@ import { formatClock, formatDegrees, formatDistance } from '../lib/format';
 import { M_PER_DEG } from '../lib/math';
 import { DRIVE } from './roverSim';
 import { MISSIONS, missionTargets, realSols, type MissionId, type Target } from './missions';
-import { GameSession } from './session';
+import { GameSession, readQuality, writeQuality } from './session';
+import type { Quality } from './world/world';
 import { useGame } from './store';
 
 const HOME = './';
@@ -102,6 +103,48 @@ const bestTime = (id: MissionId): number | null => {
   }
 };
 
+/** Graphics quality (renderer settings are fixed at start, so a change reloads the page). */
+function QualitySelect() {
+  const { t } = useTranslation();
+  const [q] = useState<Quality>(readQuality);
+  return (
+    <label className="game-quality">
+      <span>{t('game.quality.title')}</span>
+      <select
+        value={q}
+        onChange={(e) => {
+          writeQuality(e.target.value as Quality);
+          window.location.reload();
+        }}
+      >
+        {(['high', 'medium', 'low'] as const).map((v) => (
+          <option key={v} value={v}>
+            {t(`game.quality.${v}`)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function SoundToggle({ session }: { session: GameSession }) {
+  const { t } = useTranslation();
+  const [muted, setMuted] = useState(session.audio.muted);
+  return (
+    <button
+      type="button"
+      className="btn btn-icon"
+      aria-pressed={!muted}
+      onClick={() => {
+        session.audio.setMuted(!muted);
+        setMuted(!muted);
+      }}
+    >
+      {muted ? t('game.sound.off') : t('game.sound.on')}
+    </button>
+  );
+}
+
 function Briefing({ session }: { session: GameSession }) {
   const { t } = useTranslation();
   const samples = session.sampleSites;
@@ -112,7 +155,10 @@ function Briefing({ session }: { session: GameSession }) {
           <a className="btn btn-ghost" href={HOME}>
             ← {t('game.back')}
           </a>
-          <LanguageSwitch />
+          <div className="game-briefing-tools">
+            <QualitySelect />
+            <LanguageSwitch />
+          </div>
         </header>
         <h1 id="game-title">{t('game.title')}</h1>
         <p className="lede">{t('game.tagline')}</p>
@@ -260,6 +306,7 @@ function Hud({ session }: { session: GameSession }) {
           <button type="button" className="btn btn-icon" onClick={() => session.pause()}>
             {t('game.hud.pause')}
           </button>
+          <SoundToggle session={session} />
         </div>
       </section>
 

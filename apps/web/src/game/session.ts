@@ -1,13 +1,10 @@
-import { RAD_TO_DEG, nextLocalTrueSolarTime } from '@copernico/domain';
-import { DATA_VERSION, JEZERO, dataUrl } from '../config';
-import { loadCoverage, loadSamples, type SampleSite } from '../data/surfaceData';
+import { RAD_TO_DEG } from '@copernico/domain';
+import { DATA_VERSION, dataUrl } from '../config';
+import { loadSamples, type SampleSite } from '../data/surfaceData';
 import { wrapAngle } from '../lib/math';
-import { frameTime, prefersReducedMotion } from '../lib/motion';
-import type { Annotation } from '../render/annotations';
-import { addImageryTiers } from '../render/imageryTiers';
-import { MarsScene } from '../render/marsScene';
+import { prefersReducedMotion } from '../lib/motion';
+import { GameAudio } from './audio';
 import { Controls, type Command } from './controls';
-import { GameView } from './gameView';
 import {
   CORE_COST_PCT,
   CORE_S,
@@ -31,14 +28,20 @@ import {
   initialRover,
   stepRover,
   type Bounds,
+  type GroundProbe,
   type RoverState,
 } from './roverSim';
 import { EMPTY_HUD, useGame, type MissionResult } from './store';
+import { loadManifest, type WorldManifest } from './world/heights';
+import { World, type Quality } from './world/world';
 
 const HUD_EVERY_S = 0.1;
 /** Where the rover waits, slowly circled by the camera, while a mission is chosen. */
 const SHOWCASE = MISSIONS[0]!.start;
 const BEST_KEY = 'copernico.game.best.';
+const QUALITY_KEY = 'copernico.game.quality';
+/** The rover keeps this far inside the 1 m terrain model (m), on top of roverSim's margin. */
+const AREA_MARGIN_M = 40;
 
 const readBest = (id: MissionId): number | null => {
   try {
@@ -55,106 +58,130 @@ const writeBest = (id: MissionId, s: number) => {
     // storage unavailable: the best time is simply not kept
   }
 };
+export function readQuality(): Quality {
+  try {
+    const q = localStorage.getItem(QUALITY_KEY);
+    if (q === 'high' || q === 'medium' || q === 'low') return q;
+  } catch {
+    // ignore
+  }
+  return window.matchMedia('(pointer: coarse)').matches ? 'medium' : 'high';
+}
+export function writeQuality(q: Quality): void {
+  try {
+    localStorage.setItem(QUALITY_KEY, q);
+  } catch {
+    // ignore
+  }
+}
 
 /**
- * The rover game: Perseverance on the real Jezero terrain (the planner's own scene, imagery and
- * sky), driven with the keyboard or the touch pad to real sample sites. One instance per page.
+ * The rover game: Perseverance in a 3D Jezero rebuilt from real data (World), driven with the
+ * keyboard or the touch pad to real sample sites. One instance per page.
  */
 export class GameSession {
-  readonly view: GameView;
   readonly controls: Controls;
+  readonly audio = new GameAudio();
+  private manifest: WorldManifest | null = null;
   private samples: SampleSite[] = [];
-  private bounds: Bounds = { west: 77.28, south: 18.4, east: 77.48, north: 18.52 };
+  private bounds: Bounds = { west: 0, south: 0, east: 0, north: 0 };
   private mission: MissionDef | null = null;
   private targets: Target[] = [];
   private progress: Progress = newProgress();
   private rover: RoverState = initialRover(SHOWCASE.lat, SHOWCASE.lon, 0);
   private elapsedS = 0;
   private sinceHud = 0;
-  private last = frameTime();
+  private last = 0;
+  private raf = 0;
+  private destroyed = false;
   private readonly reduced = prefersReducedMotion();
-  private readonly removeTick: () => void;
+  private labels = new Map<string, HTMLElement>();
+  private readonly labelLayer: HTMLElement;
+  private readonly onResize = () => this.world.resize();
 
-  private constructor(readonly scene: MarsScene) {
-    this.view = new GameView(scene);
+  readonly ground: GroundProbe = {
+    height: (lat, lon) => {
+      const f = this.world.frame;
+      if (!f) return undefined;
+      const [x, n] = f.toLocal(lat, lon);
+      return this.world.surfaceAt(x, n);
+    },
+  };
+
+  private constructor(readonly world: World) {
     this.controls = new Controls((c) => this.command(c));
     this.controls.enabled = false;
-    this.removeTick = scene.widget.scene.preRender.addEventListener(() => this.tick());
+    this.labelLayer = document.createElement('div');
+    this.labelLayer.className = 'game-labels';
+    world.host.appendChild(this.labelLayer);
+    window.addEventListener('resize', this.onResize);
   }
 
-  /** Builds the scene (synchronously, so a discarded mount can destroy it at once); null without WebGL. */
+  /** Builds the renderer (synchronously, so a discarded mount can destroy it at once); null without WebGL 2. */
   static open(host: HTMLElement): GameSession | null {
     try {
-      return new GameSession(new MarsScene(host));
+      return new GameSession(new World(host, readQuality()));
     } catch {
       return null;
     }
   }
 
-  /** Loads everything the game needs; resolves false if data is missing or the session was destroyed. */
+  /** Loads the world and the rover; resolves false if data is missing or the session was destroyed. */
   async load(): Promise<boolean> {
-    const { scene } = this;
-    scene.setReducedMotion(this.reduced);
-    scene.setSunTime(nextLocalTrueSolarTime(Date.now(), JEZERO, 10.5));
-    scene.takeCamera(true);
-    scene.setView(SHOWCASE.lat - 0.0003, SHOWCASE.lon, -2_520, 0, -20);
-    const [terrainOk, , samples, coverage, model] = await Promise.all([
-      scene.loadTerrain(dataUrl('tiles/terrain'), DATA_VERSION),
-      addImageryTiers(scene),
-      loadSamples(),
-      loadCoverage(),
-      this.view.loadRover(dataUrl(`models/perseverance.glb?v=${DATA_VERSION}`)),
-      // Daytime surface sky; the 8K Milky Way is never needed down here (no upgrade).
-      scene.loadSky(
-        dataUrl(`sky/stars.json?v=${DATA_VERSION}`),
-        {
-          hd: dataUrl(`sky/milkyway_8k.webp?v=${DATA_VERSION}`),
-          sd: dataUrl(`sky/milkyway_4k.webp?v=${DATA_VERSION}`),
-        },
-        undefined,
-        new Promise(() => {}),
-      ),
-    ]);
-    if (!terrainOk || !samples || !model || scene.isDestroyed()) return false;
-    this.samples = samples.samples;
-    const ring = coverage?.features[0]?.geometry.coordinates[0];
-    if (ring) {
-      const lons = ring.map((p) => p[0]);
-      const lats = ring.map((p) => p[1]);
-      this.bounds = {
-        west: Math.min(...lons),
-        east: Math.max(...lons),
-        south: Math.min(...lats),
-        north: Math.max(...lats),
-      };
+    try {
+      const [manifest, samples] = await Promise.all([
+        loadManifest(),
+        loadSamples(),
+        this.world.loadRover(dataUrl(`models/perseverance.glb?v=${DATA_VERSION}`)),
+      ]);
+      if (this.destroyed || !samples) return false;
+      this.manifest = manifest;
+      this.samples = samples.samples;
+      await this.useArea('floor');
+      if (this.destroyed) return false;
+      this.showcase();
+      this.last = performance.now();
+      this.raf = requestAnimationFrame(this.loop);
+      if (import.meta.env.DEV)
+        (window as unknown as { __copernicoGame?: unknown }).__copernicoGame = this;
+      return true;
+    } catch (e) {
+      console.error('[Copernico game] load failed', e);
+      return false;
     }
-    await this.showcase();
-    if (scene.isDestroyed()) return false;
-    if (import.meta.env.DEV)
-      (window as unknown as { __copernicoGame?: unknown }).__copernicoGame = this;
-    return true;
+  }
+
+  private async useArea(id: string): Promise<void> {
+    await this.world.loadArea(this.manifest!, id);
+    const f = this.world.frame!;
+    const area = this.manifest!.areas.find((a) => a.id === id)!;
+    const w = area.detail.heights.widthM / 2 - AREA_MARGIN_M;
+    const h = area.detail.heights.heightM / 2 - AREA_MARGIN_M;
+    const sw = f.toLatLon(-w, -h);
+    const ne = f.toLatLon(w, h);
+    this.bounds = { west: sw.lon, south: sw.lat, east: ne.lon, north: ne.lat };
   }
 
   /** The rover parked at the landing site, the camera circling it (behind the mission menu). */
-  private async showcase(): Promise<void> {
-    const [h] = await this.scene.sampleTerrain([SHOWCASE]);
-    if (this.scene.isDestroyed()) return;
-    this.rover = initialRover(SHOWCASE.lat, SHOWCASE.lon, (200 * Math.PI) / 180, h ?? -2_570);
-    this.rover = stepRover(
-      this.rover,
+  private showcase(): void {
+    this.rover = initialRover(SHOWCASE.lat, SHOWCASE.lon, (200 * Math.PI) / 180);
+    this.rover = this.settle(this.rover);
+    this.world.setCameraMode('far');
+    this.world.rig.snap(this.rover.headingRad);
+    this.clearLabels();
+    useGame.getState().set({ phase: 'briefing', camera: 'chase' });
+  }
+
+  /** Wheels on the ground at once (no easing from height 0). */
+  private settle(r: RoverState): RoverState {
+    const h = this.ground.height(r.lat, r.lon) ?? 0;
+    return stepRover(
+      { ...r, heightM: h },
       { throttle: 0, steer: 0, boost: false },
       0.5,
-      this.view.ground,
+      this.ground,
       this.bounds,
     );
-    this.view.mode = 'far';
-    this.view.snapCamera(this.rover);
-    this.view.placeRover(this.rover, null, 0);
-    await this.scene.whenTilesLoaded(15_000);
-    if (this.scene.isDestroyed()) return;
-    this.view.placeRover(this.rover, null, 0);
-    useGame.getState().set({ phase: 'briefing', camera: 'chase' });
-    this.scene.requestRender();
   }
 
   // ---------- mission flow ----------
@@ -162,72 +189,46 @@ export class GameSession {
   async start(id: MissionId): Promise<void> {
     const mission = MISSIONS.find((m) => m.id === id);
     if (!mission) return;
-    this.mission = mission;
-    this.targets = missionTargets(mission, this.samples);
-    this.progress = newProgress();
-    this.elapsedS = 0;
+    this.audio.unlock();
     useGame.getState().set({
       phase: 'loading',
       missionId: id,
-      targets: this.targets,
+      targets: [],
       collected: [],
       deposited: false,
       card: null,
       result: null,
       hud: EMPTY_HUD,
     });
-    const heights = await this.scene.sampleTerrain([mission.start, ...this.targets]);
-    const start = { ...mission.start, heightM: heights[0] ?? 0 };
+    await this.useArea(mission.id);
+    if (this.destroyed) return;
+    this.mission = mission;
+    this.targets = missionTargets(mission, this.samples);
+    this.progress = newProgress();
+    this.elapsedS = 0;
+    const start = mission.start;
     const first = nearestRemaining(
       initialRover(start.lat, start.lon, 0),
       this.targets,
       this.progress,
     );
-    const heading = first ? bearingRad(start, first) : 0;
-    this.rover = initialRover(start.lat, start.lon, heading, start.heightM);
-    const placed = this.targets.map((t, i) => ({ ...t, heightM: heights[i + 1] ?? start.heightM }));
-    await this.view.setTargets(placed);
-    this.setTargetLabels(placed);
-    this.view.mode = 'chase';
-    this.view.snapCamera(this.rover);
-    // Ground-level tiles around the start, then settle the wheels on them.
-    await this.scene.whenTilesLoaded(12_000);
-    this.rover = stepRover(
-      this.rover,
-      { throttle: 0, steer: 0, boost: false },
-      0.5,
-      this.view.ground,
-      this.bounds,
+    this.rover = this.settle(
+      initialRover(start.lat, start.lon, first ? bearingRad(start, first) : 0),
     );
-    this.view.snapCamera(this.rover);
+    this.world.tracks.clear();
+    this.world.setTargets(this.targets);
+    this.buildLabels();
+    this.world.setCameraMode('chase');
+    this.world.rig.snap(this.rover.headingRad, !this.reduced);
+    useGame.getState().set({ targets: this.targets, camera: 'chase' });
     this.resume();
   }
-
-  private setTargetLabels(targets: Array<Target & { heightM: number }>): void {
-    const done = new Set(this.progress.collected);
-    const labels: Annotation[] = targets.map((t) => ({
-      id: `game:${t.id}`,
-      lat: t.lat,
-      lon: t.lon,
-      heightM: t.heightM + 2,
-      text: `${done.has(t.id) || (t.kind === 'depot' && this.progress.deposited) ? '✓ ' : ''}${t.name}`,
-      kind: 'poi',
-      priority: t.kind === 'depot' ? 60 : 80,
-      maxCameraDistanceM: 30_000,
-      minCameraDistanceM: 25,
-    }));
-    this.scene.setAnnotations('game-targets', labels);
-    this.labelled = targets;
-  }
-  private labelled: Array<Target & { heightM: number }> = [];
 
   /** Back to driving (after the start, a sample card or the pause menu). */
   resume(): void {
     this.controls.clear();
     this.controls.enabled = true;
-    this.last = frameTime();
     useGame.getState().set({ phase: 'playing', card: null });
-    this.scene.requestRender();
   }
 
   pause(): void {
@@ -239,23 +240,26 @@ export class GameSession {
   /** Leaves the mission for the mission menu. */
   quit(): void {
     this.controls.enabled = false;
-    this.view.clearTargets();
-    this.scene.setAnnotations('game-targets', []);
+    this.world.clearTargets();
     this.mission = null;
     useGame.getState().set({ phase: 'loading', missionId: null, card: null, result: null });
-    void this.showcase();
+    void this.useArea('floor').then(() => !this.destroyed && this.showcase());
   }
 
   private command(c: Command): void {
     const ui = useGame.getState();
-    if (c === 'camera') ui.set({ camera: this.view.cycleCamera() });
-    else if (c === 'map') ui.set({ mapOpen: !ui.mapOpen });
+    if (c === 'camera') {
+      if (ui.phase === 'playing') ui.set({ camera: this.world.rig.cycle() });
+    } else if (c === 'map') ui.set({ mapOpen: !ui.mapOpen });
     else if (c === 'pause') {
       if (ui.phase === 'playing') this.pause();
       else if (ui.phase === 'paused') this.resume();
       else if (ui.phase === 'card') this.closeCard();
     }
-    this.scene.requestRender();
+  }
+
+  cycleCamera(): void {
+    this.command('camera');
   }
 
   private finish(): void {
@@ -273,32 +277,80 @@ export class GameSession {
       newBest,
     };
     this.controls.enabled = false;
+    this.audio.chime(true);
     useGame.getState().set({ phase: 'complete', result });
+  }
+
+  /** Card closed: a mission whose last sample it was is then complete. */
+  closeCard(): void {
+    if (isComplete(this.targets, this.progress)) this.finish();
+    else this.resume();
   }
 
   // ---------- frame loop ----------
 
-  private tick(): void {
-    const now = frameTime();
-    const dt = Math.min(0.05, Math.max(0, (now - this.last) / 1000));
-    this.last = now;
+  private readonly loop = (ts: number): void => {
+    if (this.destroyed) return;
+    this.raf = requestAnimationFrame(this.loop);
+    const dt = Math.min(0.05, Math.max(0, (ts - this.last) / 1000));
+    this.last = ts;
     const phase = useGame.getState().phase;
-    if (phase === 'briefing') {
-      // Slow orbit around the parked rover.
-      if (!this.reduced) this.view.orbit(dt * 0.07);
-      this.view.updateCamera(this.rover, dt);
-      if (!this.reduced) this.scene.requestRender();
-      return;
+    const prev = this.rover;
+    let coring: number | null = null;
+    if (phase === 'playing' && this.mission) {
+      coring = this.step(dt);
+    } else if (phase === 'briefing' && !this.reduced) {
+      this.world.rig.orbit(dt * 0.07);
     }
-    if (phase !== 'playing' || !this.mission) return;
+    const r = this.rover;
+    const f = this.world.frame;
+    if (!f) return;
+    const [x, n] = f.toLocal(r.lat, r.lon);
+    const yawRate = dt > 0 ? wrapAngle(r.headingRad - prev.headingRad) / dt : 0;
+    const distanceM = phase === 'playing' ? r.odometerM - prev.odometerM : 0;
+    this.world.frameUpdate(
+      dt,
+      {
+        x,
+        y: r.heightM,
+        z: -n,
+        headingRad: r.headingRad,
+        pitchRad: r.pitchRad,
+        rollRad: r.rollRad,
+      },
+      {
+        speed: phase === 'playing' ? r.speed : 0,
+        yawRate: phase === 'playing' ? yawRate : 0,
+        distanceM: Math.sign(r.speed) * distanceM,
+      },
+      coring,
+    );
+    const rough =
+      dt > 0 ? (Math.abs(r.pitchRad - prev.pitchRad) + Math.abs(r.rollRad - prev.rollRad)) / dt : 0;
+    this.world.render(dt, {
+      at: this.world.rover!.root.position,
+      headingRad: r.headingRad,
+      speed: phase === 'playing' ? r.speed : 0,
+      rough: rough * 0.6,
+      coring: coring === null ? 0 : Math.min(1, Math.min(coring, 1 - coring) * 5),
+    });
+    this.audio.update(dt, {
+      speed: phase === 'playing' ? Math.abs(r.speed) : 0,
+      drilling: coring !== null && coring > 0.3 && coring < 0.8,
+      wind: phase !== 'loading' ? 1 : 0,
+    });
+    this.updateLabels();
+  };
 
+  /** One simulation step while playing; returns the coring progress (0–1) or null. */
+  private step(dt: number): number | null {
     const input = this.controls.read();
     const busy = this.progress.action !== null;
     this.rover = stepRover(
       this.rover,
       busy ? { throttle: 0, steer: 0, boost: false } : input,
       dt,
-      this.view.ground,
+      this.ground,
       this.bounds,
     );
     const { progress, event } = stepProgress(
@@ -312,9 +364,6 @@ export class GameSession {
     this.elapsedS += dt;
     const action = progress.action;
     const fraction = action ? action.heldS / (action.kind === 'core' ? CORE_S : DEPOSIT_S) : null;
-    this.view.placeRover(this.rover, action?.kind === 'core' ? fraction : null, this.elapsedS);
-    this.view.updateCamera(this.rover, dt);
-
     this.sinceHud += dt;
     if (this.sinceHud >= HUD_EVERY_S || event) {
       this.sinceHud = 0;
@@ -326,25 +375,25 @@ export class GameSession {
         batteryPct: Math.max(0, this.rover.batteryPct - CORE_COST_PCT),
         energyUsedPct: this.rover.energyUsedPct + CORE_COST_PCT,
       };
-      this.view.markDone(event.target.id);
-      this.setTargetLabels(this.labelled);
+      this.world.markDone(event.target.id);
+      this.refreshLabels();
       this.controls.enabled = false;
+      this.audio.chime(false);
       useGame.getState().set({ collected: progress.collected, card: event.target, phase: 'card' });
     } else if (event?.kind === 'deposited') {
-      this.view.markDone('depot');
-      this.setTargetLabels(this.labelled);
+      this.world.markDone('depot');
+      this.refreshLabels();
       useGame.getState().set({ deposited: true });
     }
     if (isComplete(this.targets, progress) && useGame.getState().phase !== 'card') this.finish();
-    this.scene.requestRender(); // keep rendering: the next frame runs this again
+    return action?.kind === 'core' ? fraction : null;
   }
 
   private publish(boosting: boolean, fraction: number | null): void {
     const r = this.rover;
     const next = nearestRemaining(r, this.targets, this.progress);
     const here = targetHere(r, this.targets, this.progress);
-    const ui = useGame.getState();
-    ui.set({
+    useGame.getState().set({
       hud: {
         speedMps: r.speed,
         batteryPct: r.batteryPct,
@@ -360,7 +409,7 @@ export class GameSession {
           name: next.name,
           kind: next.kind,
           distanceM: groundDistanceM(r, next),
-          relDeg: wrapAngle(bearingRad(r, next) - this.view.cameraHeadingRad) * RAD_TO_DEG,
+          relDeg: wrapAngle(bearingRad(r, next) - this.world.rig.headingRad) * RAD_TO_DEG,
         },
         here: here && {
           id: here.id,
@@ -376,18 +425,73 @@ export class GameSession {
     });
   }
 
+  // ---------- target labels (DOM, projected each frame) ----------
+
+  private buildLabels(): void {
+    this.clearLabels();
+    for (const t of this.targets) {
+      const el = document.createElement('div');
+      el.className = `game-label ${t.kind === 'depot' ? 'is-depot' : ''}`;
+      el.textContent = t.name;
+      this.labelLayer.appendChild(el);
+      this.labels.set(t.id, el);
+    }
+  }
+
+  private refreshLabels(): void {
+    for (const t of this.targets) {
+      const el = this.labels.get(t.id);
+      const done =
+        t.kind === 'depot' ? this.progress.deposited : this.progress.collected.includes(t.id);
+      if (el) {
+        el.classList.toggle('is-done', done);
+        el.textContent = `${done ? '✓ ' : ''}${t.name}`;
+      }
+    }
+  }
+
+  private clearLabels(): void {
+    for (const el of this.labels.values()) el.remove();
+    this.labels.clear();
+  }
+
+  /** Projects the labels above their sites; nearer ones win where two would overlap. */
+  private updateLabels(): void {
+    const f = this.world.frame;
+    if (!f || !this.labels.size) return;
+    const p = this.world.camera.position;
+    const w = this.world.host.clientWidth;
+    const h = this.world.host.clientHeight;
+    const items = this.targets.map((t) => {
+      const [x, n] = f.toLocal(t.lat, t.lon);
+      const y = this.world.groundY(x, -n) + 9;
+      return { t, x, y, z: -n, d: Math.hypot(x - p.x, y - p.y, -n - p.z) };
+    });
+    items.sort((a, b) => a.d - b.d);
+    const placed: Array<[number, number, number, number]> = [];
+    for (const it of items) {
+      const el = this.labels.get(it.t.id)!;
+      const v = this.world.project(it.x, it.y, it.z);
+      let visible = v.z < 1 && it.d > 14 && it.d < 6000;
+      const sx = ((v.x + 1) / 2) * w;
+      const sy = ((1 - v.y) / 2) * h;
+      const half = (el.textContent?.length ?? 8) * 3.6 + 10;
+      if (visible) {
+        const box: [number, number, number, number] = [sx - half, sy - 24, sx + half, sy];
+        visible = !placed.some(
+          (b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1],
+        );
+        if (visible) placed.push(box);
+      }
+      el.style.display = visible ? '' : 'none';
+      if (visible) el.style.transform = `translate(${sx}px, ${sy}px) translate(-50%, -100%)`;
+    }
+  }
+
+  // ---------- accessors ----------
+
   get sampleSites(): SampleSite[] {
     return this.samples;
-  }
-
-  cycleCamera(): void {
-    this.command('camera');
-  }
-
-  /** Card closed: a mission whose last sample it was is then complete. */
-  closeCard(): void {
-    if (isComplete(this.targets, this.progress)) this.finish();
-    else this.resume();
   }
 
   /** Rover position, heading and camera, for the mini-map (read every animation frame). */
@@ -396,7 +500,7 @@ export class GameSession {
       lat: this.rover.lat,
       lon: this.rover.lon,
       headingRad: this.rover.headingRad,
-      cameraRad: this.view.cameraHeadingRad,
+      cameraRad: this.world.rig.headingRad,
     };
   }
 
@@ -406,15 +510,19 @@ export class GameSession {
   }
 
   teleport(lat: number, lon: number): void {
-    const h = this.view.ground.height(lat, lon) ?? this.rover.heightM;
-    this.rover = { ...this.rover, lat, lon, heightM: h, speed: 0 };
-    this.view.snapCamera(this.rover);
+    this.rover = this.settle({ ...this.rover, lat, lon, speed: 0 });
+    this.world.tracks.clear();
+    this.world.rig.snap(this.rover.headingRad);
   }
 
   destroy(): void {
-    if (this.scene.isDestroyed()) return;
-    this.removeTick();
+    if (this.destroyed) return;
+    this.destroyed = true;
+    cancelAnimationFrame(this.raf);
+    window.removeEventListener('resize', this.onResize);
     this.controls.dispose();
-    this.scene.destroy();
+    this.audio.dispose();
+    this.labelLayer.remove();
+    this.world.dispose();
   }
 }
