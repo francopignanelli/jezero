@@ -233,6 +233,8 @@ export class DustDevil {
 
 /** Length of ground covered by one repeat of the tread maps (m): 8 grouser imprints. */
 const TREAD_TILE_M = 0.5;
+/** Points over which the oldest end of a long track fades out. */
+const FADE_POINTS = 120;
 
 /**
  * Tread maps of a wheel rut, as Perseverance's wheels print them in soft ground. Across the rut:
@@ -321,13 +323,17 @@ interface Ribbon {
   count: number;
   dist: number;
   last: Vector3 | null;
+  /** Unit horizontal vector across the ribbon at its last point. */
+  across: Vector3;
 }
 
 /**
- * Wheel tracks: two ribbons (the middle and rear wheels run in the front wheels' ruts) draped on
- * the ground, normal-mapped with the rut's relief and lit with the ground's own normals, so the
- * berms and grouser imprints catch the low sunlight. Deeper in sand, faint on bedrock, none on
- * rocks; the oldest end fades out.
+ * Wheel tracks: one ribbon per wheel, laid across each wheel's own direction of travel.
+ * - Driving straight, the middle and rear wheels run in the front wheels' ruts.
+ * - Turning in place, each wheel scuffs its own arc.
+ * The ribbons are draped on the ground and normal-mapped with the rut's relief. They are lit with
+ * the ground's own normals, so the berms and grouser imprints catch the low sunlight. Ruts are
+ * deeper in sand, faint on bedrock and absent on rocks, and the oldest end fades out.
  */
 export class Tracks {
   readonly meshes: Mesh[] = [];
@@ -336,8 +342,9 @@ export class Tracks {
   private readonly n = new Vector3();
 
   constructor(
-    private readonly maxPoints = 6000,
-    private readonly widthM = 0.5,
+    ribbons = 6,
+    private readonly maxPoints = 5000,
+    private readonly widthM = 0.46,
   ) {
     const maps = treadMaps();
     this.material = new MeshStandardMaterial({
@@ -358,12 +365,7 @@ export class Tracks {
           '#include <common>',
           '#include <common>\nattribute float aStrength;\nvarying float vStrength;',
         )
-        .replace(
-          '#include <begin_vertex>',
-          // Fade in over the oldest 120 points (vertices come in pairs).
-          `#include <begin_vertex>
-           vStrength = aStrength * min(1.0, float(gl_VertexID / 2) / 120.0);`,
-        );
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvStrength = aStrength;');
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', '#include <common>\nvarying float vStrength;')
         .replace(
@@ -379,7 +381,7 @@ export class Tracks {
            normal = normalize(tbn * mapN);`,
         );
     };
-    for (let s = 0; s < 2; s++) {
+    for (let s = 0; s < ribbons; s++) {
       const verts = maxPoints * 2;
       const pos = new Float32Array(verts * 3);
       const nrm = new Float32Array(verts * 3);
@@ -405,7 +407,17 @@ export class Tracks {
       mesh.receiveShadow = true;
       mesh.renderOrder = 0;
       this.meshes.push(mesh);
-      this.ribbons.push({ pos, nrm, uv, strength, geometry, count: 0, dist: 0, last: null });
+      this.ribbons.push({
+        pos,
+        nrm,
+        uv,
+        strength,
+        geometry,
+        count: 0,
+        dist: 0,
+        last: null,
+        across: new Vector3(1, 0, 0),
+      });
     }
   }
 
@@ -415,15 +427,30 @@ export class Tracks {
   }
 
   /**
-   * Adds a track point for a side (0 left, 1 right): `at` is the wheel contact (world), `across`
-   * the rover's left direction (unit, horizontal).
+   * Adds a track point for a wheel: `at` is its contact point (world), `hint` the rover's left
+   * direction (unit, horizontal), used to start a ribbon.
    */
-  add(side: 0 | 1, at: Vector3, across: Vector3, ground: TrackGround): void {
-    const s = this.ribbons[side]!;
+  add(wheel: number, at: Vector3, hint: Vector3, ground: TrackGround): void {
+    const s = this.ribbons[wheel];
+    if (!s) return;
     const step = s.last ? s.last.distanceTo(at) : Infinity;
-    if (s.last && step < 0.25) return;
+    if (s.last && step < 0.22) return;
     // A jump (a restart, a teleport): an invisible link to the new start.
     const jump = step > 3;
+    // Across the direction the wheel actually moved, on the same side as before.
+    if (s.last && !jump) {
+      const dx = at.x - s.last.x;
+      const dz = at.z - s.last.z;
+      const len = Math.hypot(dx, dz);
+      if (len > 1e-4) {
+        const px = s.across.x;
+        const pz = s.across.z;
+        s.across.set(dz / len, 0, -dx / len);
+        // Continuous with the previous point (reversing flips the direction of travel).
+        if (s.across.x * px + s.across.z * pz < 0) s.across.negate();
+      }
+    } else s.across.copy(hint);
+    const across = s.across;
     if (s.last && !jump) s.dist += step;
     s.last = (s.last ?? new Vector3()).copy(at);
     let full = false;
@@ -436,6 +463,11 @@ export class Tracks {
       s.strength.copyWithin(0, drop * 2);
       s.count -= drop;
       full = true;
+      // The (new) oldest end fades in over FADE_POINTS.
+      for (let p = 0; p < FADE_POINTS; p++) {
+        s.strength[p * 2]! *= p / FADE_POINTS;
+        s.strength[p * 2 + 1]! *= p / FADE_POINTS;
+      }
     }
     const i = s.count;
     if (jump && i > 0) s.strength[(i - 1) * 2] = s.strength[(i - 1) * 2 + 1] = 0;

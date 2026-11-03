@@ -840,7 +840,16 @@
       "core": "Detente dentro de un anillo y pulsa Espacio (o E): el brazo baja y extrae la muestra.",
       "slope": "Las pendientes de más de 30° detienen el rover, como detendrían al real.",
       "power": "La batería se recarga despacio con la fuente de energía nuclear del rover (su MMRTG), más rápido si está parado.",
-      "keys": "C cámara · M mapa · Esc pausa · arrastra para mirar alrededor · rueda para acercar."
+      "keys": "C cámara · M mapa · F láser · P foto · Esc pausa · arrastra para mirar · rueda para el zoom.",
+      "laser": "Parado cerca de rocas, centra una en la vista y pulsa F: el láser de SuperCam dice de qué está hecha y suma puntos de ciencia.",
+      "photo": "Pulsa P para el modo foto: elige una cámara del rover, encuadra y guárdala en tu galería.",
+      "hazardsTitle": "Peligros reales",
+      "hazards": {
+        "sand": "Arena blanda (suelo oscuro con ondulaciones): las ruedas patinan y se hunden. No pares ni aceleres en ella. Si te atascas, sal marcha atrás despacio. Spirit quedó atrapado para siempre en 2009.",
+        "rocks": "Rocas afiladas: pasar rápido sobre piedras grandes gasta las ruedas, como perforó las de Curiosity. Por debajo del 50 % el rover va más lento.",
+        "tilt": "Pendientes: por encima de 30° el rover se detiene, de subida o de lado.",
+        "storm": "Tormentas de polvo: la bruma se cierra durante medio minuto. Sigue la brújula y el mapa."
+      }
     },
     "realNote": "El terreno es el real, del modelo de elevación de 1 m de HiRISE, hasta el borde del cráter en el horizonte. Las texturas del suelo se recortan de los panoramas Mastcam-Z del propio Perseverance, y los sitios de muestreo son reales (NASA/JPL MMGIS). Las rocas, los cráteres pequeños, el polvo y las huellas son generados. Para que quepa en minutos, el juego va unas 140 veces más rápido que Perseverance (velocidad máxima 4,2 cm/s).",
     "hud": {
@@ -860,7 +869,14 @@
         "far": "Amplia",
         "top": "Desde arriba"
       },
-      "direction": "{{name}}, a {{distance}}"
+      "direction": "{{name}}, a {{distance}}",
+      "wheels": "Ruedas",
+      "slip": "Patinaje",
+      "science": "Ciencia",
+      "laser": "Láser (F)",
+      "photo": "Foto (P)",
+      "storm": "Tormenta de polvo",
+      "stormSoon": "Se acerca una tormenta"
     },
     "prompt": {
       "stopToCore": "Detente para extraer la muestra de {{name}}",
@@ -873,7 +889,16 @@
       "steep": "Demasiado empinado: Perseverance está diseñado para pendientes de hasta 30°",
       "edge": "Borde del modelo de terreno de 1 m: da la vuelta",
       "power": "Batería agotada: recargando con el MMRTG…",
-      "tilt": "Inclinación {{deg}}: cuidado"
+      "tilt": "Inclinación {{deg}}: cuidado",
+      "lasering": "SuperCam: análisis con láser…",
+      "stuck": "¡Atascado en arena blanda! Da marcha atrás despacio (S), como Opportunity escapó de la duna Purgatorio en 2005",
+      "tiltBlocked": "Pendiente lateral de más de 30°: el rover volcaría. Gira y busca otro camino",
+      "stormSoon": "Se acerca una tormenta de polvo: la visibilidad va a caer",
+      "storm": "Tormenta de polvo: AutoNav va más despacio mientras no ve lejos",
+      "rocks": "Rocas afiladas: frena para cuidar las ruedas (queda un {{pct}}%)",
+      "sand": "Arena blanda: las ruedas patinan un {{pct}}%. No pares ni aceleres aquí",
+      "laserReady": "F: analiza esta roca con el láser de SuperCam",
+      "laserDone": "Esta roca ya está analizada: apunta a otra"
     },
     "touch": {
       "forward": "Avanzar",
@@ -881,7 +906,8 @@
       "left": "Girar a la izquierda",
       "right": "Girar a la derecha",
       "boost": "Más rápido",
-      "core": "Extraer muestra"
+      "core": "Extraer muestra",
+      "laser": "Análisis con láser"
     },
     "pause": {
       "title": "En pausa",
@@ -916,7 +942,10 @@
       "best": "Récord: {{time}}",
       "real": "Perseverance tomó estas muestras entre el sol {{first}} y el sol {{last}}: {{sols}} soles, unos {{months}} meses en la Tierra.",
       "again": "Jugar otra vez",
-      "other": "Otras misiones"
+      "other": "Otras misiones",
+      "science": "Ciencia",
+      "rocks": "Rocas analizadas",
+      "wheels": "Ruedas"
     },
     "quality": {
       "title": "Gráficos",
@@ -927,6 +956,116 @@
     "sound": {
       "on": "Sonido activado",
       "off": "Sonido desactivado"
+    },
+    "menu": {
+      "label": "Menú del juego",
+      "missions": "Misiones",
+      "collection": "Colección",
+      "photos": "Fotos",
+      "options": "Opciones",
+      "how": "Cómo jugar",
+      "found": "{{got}}/{{total}} recogidos"
+    },
+    "collection": {
+      "samples": "Muestras",
+      "rockTypes": "Tipos de roca",
+      "science": "Puntos de ciencia",
+      "unknown": "Aún sin encontrar",
+      "sol": "sol {{sol}}",
+      "locked": "Recógela en la misión {{mission}} para añadirla a tu colección.",
+      "rocksTitle": "Rocas analizadas con SuperCam",
+      "rocksIntro": "Para cerca de una roca, céntrala en la vista y pulsa F: el láser lee de qué está hecha.",
+      "analysed_one": "{{count}} analizada",
+      "analysed_other": "{{count}} analizadas"
+    },
+    "gallery": {
+      "loading": "Cargando fotos…",
+      "empty": "Aún no hay fotos. Pulsa P mientras conduces (o Modo foto aquí) para hacer una: se guardan en este navegador.",
+      "photo": "Foto",
+      "back": "Todas las fotos",
+      "download": "Descargar",
+      "delete": "Borrar"
+    },
+    "options": {
+      "sound": "Sonido",
+      "language": "Idioma",
+      "hazards": "Peligros reales",
+      "hazardsHelp": "Arena blanda donde el rover puede quedarse atascado, y rocas afiladas que gastan las ruedas si pasas rápido.",
+      "storms": "Tormentas de polvo",
+      "stormsHelp": "Tormentas que ocultan el terreno durante medio minuto; dentro de ellas el rover va más despacio.",
+      "reset": "Borrar el progreso",
+      "resetHelp": "Borra tu colección, los puntos de ciencia y los mejores tiempos (las fotos se quedan).",
+      "resetButton": "Borrar…",
+      "resetConfirm": "Sí, borrar todo"
+    },
+    "finding": {
+      "title": "SuperCam",
+      "points": "puntos",
+      "new": "¡nuevo tipo de roca!",
+      "elements": "Elementos principales: {{list}}",
+      "base": "{{points}} pts por roca",
+      "close": "Cerrar"
+    },
+    "rocks": {
+      "basalt": {
+        "name": "Roca volcánica tipo basalto",
+        "desc": "Piroxeno y plagioclasa: roca que se enfrió a partir de lava, como la formación Máaz que cubre el suelo de Jezero.",
+        "hint": "Común en el suelo del cráter."
+      },
+      "olivine": {
+        "name": "Roca rica en olivino",
+        "desc": "Cristales verdes de olivino que se asentaron en una masa gruesa de magma, como la formación Séítah. Después el agua los alteró.",
+        "hint": "Suelo del cráter y cima del delta."
+      },
+      "sulfate": {
+        "name": "Sales de sulfato",
+        "desc": "Sulfatos de calcio y magnesio que dejó el agua al empapar la roca y evaporarse.",
+        "hint": "Rocas claras, sobre todo en el frente del delta."
+      },
+      "clay": {
+        "name": "Lutita con arcillas",
+        "desc": "Sedimento fino depositado en el antiguo lago. Las arcillas se forman en agua y pueden conservar moléculas orgánicas.",
+        "hint": "Sedimentos del delta."
+      },
+      "carbonate": {
+        "name": "Carbonato",
+        "desc": "Carbonatos de magnesio y hierro, minerales que crecen en agua. En la Tierra, rocas así pueden atrapar señales de vida.",
+        "hint": "El delta, y sobre todo la unidad del margen."
+      },
+      "silica": {
+        "name": "Sílice (ópalo)",
+        "desc": "Dióxido de silicio casi puro, depositado por el agua. Conserva muy bien fósiles microscópicos.",
+        "hint": "Rara: rocas claras de la cima del delta."
+      },
+      "meteorite": {
+        "name": "Meteorito de hierro y níquel",
+        "desc": "Un trozo del núcleo metálico de un asteroide que cayó en Marte. Curiosity y Perseverance han encontrado alguno.",
+        "hint": "Muy raro, en cualquier sitio."
+      }
+    },
+    "photo": {
+      "open": "Modo foto",
+      "title": "Modo foto",
+      "filter": "Cámara",
+      "filters": {
+        "natural": "Natural",
+        "whiteBalance": "Balance de blancos",
+        "enhanced": "Color realzado",
+        "navcam": "Navcam",
+        "hazcam": "Hazcam"
+      },
+      "about": {
+        "natural": "Los colores como se verían a simple vista en Marte.",
+        "whiteBalance": "Como iluminado por la luz del día en la Tierra: la NASA publica imágenes así para que los geólogos lean el color de las rocas.",
+        "enhanced": "Un realce de contraste y color, como en las imágenes de color realzado de la NASA.",
+        "navcam": "Las cámaras de navegación en blanco y negro del mástil.",
+        "hazcam": "Las cámaras de riesgos ojo de pez del chasis, junto a las ruedas."
+      },
+      "take": "Hacer foto",
+      "exit": "Volver (Esc)",
+      "hint": "Arrastra para girar la vista · rueda para acercarte.",
+      "saved": "Guardada en tu galería.",
+      "notKept": "Este navegador no puede guardarla: descárgala ahora."
     }
   }
 }

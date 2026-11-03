@@ -30,8 +30,11 @@ import {
   stepProgress,
   tubesIn,
 } from './missions';
+import { readCareer, recordRock, recordSample, resetProgress } from './career';
+import { ROCK_TYPES, mainElements, rockKey, rockType, spectrum } from './science';
 import {
   DRIVE,
+  HAZARD,
   bearingRad,
   gradeFactor,
   groundDistanceM,
@@ -64,6 +67,90 @@ function drive(
     s = stepRover(s, { steer: 0, boost: false, ...input }, dt, ground, bounds);
   return s;
 }
+
+describe('hazards', () => {
+  const sandy = (sand: number): GroundProbe => ({ ...flat, sand: () => sand });
+
+  it('soft sand: slip slows the rover, sinkage grows until it is stuck; backing out frees it', () => {
+    const firm = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 4);
+    const loose = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 4, sandy(0.4));
+    expect(loose.speed).toBeLessThan(firm.speed * 0.85);
+    expect(loose.sinkage).toBe(0); // not deep: slips but does not dig in
+    let s = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 20, sandy(1));
+    expect(s.stuck).toBe(true);
+    expect(s.blocked).toBe('sand');
+    expect(s.speed).toBeLessThanOrEqual(0);
+    s = drive(s, { throttle: -1 }, 3, sandy(1));
+    expect(s.stuck).toBe(false);
+    expect(s.sinkage).toBeLessThan(HAZARD.freeAt);
+  });
+
+  it('sharp rocks wear the wheels when driven over fast, not slowly; worn wheels are slower', () => {
+    const rocky: GroundProbe = { ...flat, rock: () => 0.4 };
+    const fast = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 6, rocky);
+    expect(fast.wheelsPct).toBeLessThan(100);
+    const slow = drive({ ...initialRover(LAT, LON, 0) }, { throttle: 0.3 }, 6, rocky);
+    expect(slow.wheelsPct).toBe(100);
+    const worn = drive({ ...initialRover(LAT, LON, 0), wheelsPct: 10 }, { throttle: 1 }, 5);
+    expect(worn.speed).toBeLessThan(DRIVE.cruiseMps * 0.7);
+  });
+
+  it('refuses to drive onto a side slope over 30°', () => {
+    // A plane rising 40° towards the east; driving north traverses it sideways.
+    const side: GroundProbe = {
+      height: (_lat, lon) =>
+        -2_500 +
+        (lon - LON) * M_PER_DEG * Math.cos((LAT * Math.PI) / 180) * Math.tan((40 * Math.PI) / 180),
+    };
+    const s = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 3, side);
+    expect(s.blocked).toBe('tilt');
+    expect(s.odometerM).toBeLessThan(1);
+  });
+
+  it('a dust storm lowers the top speed through the environment', () => {
+    let s = initialRover(LAT, LON, 0);
+    for (let i = 0; i < 300; i++)
+      s = stepRover(s, { throttle: 1, steer: 0, boost: false }, 1 / 60, flat, BOUNDS, {
+        speedFactor: 0.5,
+      });
+    expect(s.speed).toBeCloseTo(DRIVE.cruiseMps * 0.5, 2);
+  });
+});
+
+describe('science and collection', () => {
+  it('rock types are deterministic per rock and follow the area', () => {
+    const key = rockKey(12.34, -56.78);
+    expect(rockType('floor', key, true)).toBe(rockType('floor', key, true));
+    const count = (area: 'floor' | 'margin', type: string) => {
+      let n = 0;
+      for (let i = 0; i < 2000; i++)
+        if (rockType(area, rockKey(i * 1.7, i * -0.9), false) === type) n++;
+      return n;
+    };
+    expect(count('margin', 'carbonate')).toBeGreaterThan(count('floor', 'carbonate'));
+    expect(count('floor', 'basalt')).toBeGreaterThan(count('margin', 'basalt'));
+    for (const t of ROCK_TYPES) {
+      expect(mainElements(t).length).toBeGreaterThan(1);
+      const sp = spectrum(t, 'k');
+      expect(Math.max(...sp)).toBeGreaterThan(0.3);
+    }
+  });
+
+  it('keeps the collection: samples once, rocks with double points for a first find', () => {
+    resetProgress();
+    recordSample('sample-1');
+    recordSample('sample-1');
+    expect(readCareer().samples).toEqual(['sample-1']);
+    expect(recordRock('olivine', 'floor:1:2', 15)).toEqual({ points: 30, first: true });
+    expect(recordRock('olivine', 'floor:3:4', 15)).toEqual({ points: 15, first: false });
+    const c = readCareer();
+    expect(c.rocks.olivine).toBe(2);
+    expect(c.science).toBe(45);
+    expect(c.analysed).toContain('floor:1:2');
+    resetProgress();
+    expect(readCareer().samples).toEqual([]);
+  });
+});
 
 describe('rover driving', () => {
   it('accelerates to cruise speed on flat ground and moves along its heading', () => {

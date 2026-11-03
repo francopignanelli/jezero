@@ -1,9 +1,18 @@
 import { RAD_TO_DEG } from '@copernico/domain';
+import { Vector3 } from 'three';
 import { DATA_VERSION, dataUrl } from '../config';
 import { loadSamples, type SampleSite } from '../data/surfaceData';
 import { wrapAngle } from '../lib/math';
 import { prefersReducedMotion } from '../lib/motion';
 import { GameAudio } from './audio';
+import {
+  isAnalysed,
+  readOptions,
+  recordRock,
+  recordSample,
+  writeOptions,
+  type GameOptions,
+} from './career';
 import { Controls, type Command } from './controls';
 import {
   CORE_COST_PCT,
@@ -32,9 +41,18 @@ import {
   type GroundProbe,
   type RoverState,
 } from './roverSim';
-import { EMPTY_HUD, useGame, type MissionResult } from './store';
+import { photoFileName, savePhoto } from './photos';
+import { LASER_COST_PCT, LASER_RANGE_M, LASER_S, POINTS, rockKey, rockType } from './science';
+import { EMPTY_HUD, useGame, type MissionResult, type Phase } from './store';
 import { loadManifest, type WorldManifest } from './world/heights';
-import { DRILL_PHASE, World, type Quality } from './world/world';
+import type { Rock } from './world/rocks';
+import { DRILL_PHASE, World, type PhotoFilter, type Quality } from './world/world';
+
+/**
+ * Dust storms (seconds of mission time): the first comes 55–115 s in, each is announced, blows
+ * for a while and clears; the next comes 90–180 s later.
+ */
+const STORM = { firstS: 55, firstJitterS: 60, warnS: 8, activeS: 32, gapS: 90, gapJitterS: 90 };
 
 const HUD_EVERY_S = 0.1;
 /** Where the rover waits, slowly circled by the camera, while a mission is chosen. */
@@ -100,12 +118,34 @@ export class GameSession {
   private readonly labelLayer: HTMLElement;
   private readonly onResize = () => this.world.resize();
 
+  options: GameOptions = readOptions();
+  private storm = { phase: 'clear' as 'clear' | 'warning' | 'active', t: 0, nextS: 0, level: 0 };
+  /** SuperCam: the analysis under way, and the rock the view is centred on. */
+  private laser: { rock: Rock; key: string; t: number; at: Vector3; pulses: number } | null = null;
+  private laserCandidate: Rock | null = null;
+  private science = { points: 0, rocks: 0 };
+  private wearShownS = 0;
+  private photoFrom: Phase = 'playing';
+  private readonly reticle: HTMLElement;
+
   readonly ground: GroundProbe = {
     height: (lat, lon) => {
       const f = this.world.frame;
       if (!f) return undefined;
       const [x, n] = f.toLocal(lat, lon);
       return this.world.surfaceAt(x, n);
+    },
+    sand: (lat, lon) => {
+      const f = this.world.frame;
+      if (!f || !this.options.hazards) return 0;
+      const [x, n] = f.toLocal(lat, lon);
+      return this.world.sandAt(x, n);
+    },
+    rock: (lat, lon) => {
+      const f = this.world.frame;
+      if (!f || !this.options.hazards) return 0;
+      const [x, n] = f.toLocal(lat, lon);
+      return this.world.rocks?.rockLift(x, n) ?? 0;
     },
   };
 
@@ -115,6 +155,10 @@ export class GameSession {
     this.labelLayer = document.createElement('div');
     this.labelLayer.className = 'game-labels';
     world.host.appendChild(this.labelLayer);
+    this.reticle = document.createElement('div');
+    this.reticle.className = 'game-reticle';
+    this.reticle.style.display = 'none';
+    this.labelLayer.appendChild(this.reticle);
     window.addEventListener('resize', this.onResize);
   }
 
@@ -209,6 +253,16 @@ export class GameSession {
     this.targets = missionTargets(mission, this.samples);
     this.progress = newProgress();
     this.elapsedS = 0;
+    this.science = { points: 0, rocks: 0 };
+    this.laser = null;
+    this.world.setLaser(null);
+    this.storm = {
+      phase: 'clear',
+      t: 0,
+      nextS: STORM.firstS + Math.random() * STORM.firstJitterS,
+      level: 0,
+    };
+    this.world.setStorm(0);
     const start = mission.start;
     const first = nearestRemaining(
       initialRover(start.lat, start.lon, 0),
@@ -223,8 +277,19 @@ export class GameSession {
     this.buildLabels();
     this.world.setCameraMode('chase');
     this.world.rig.snap(this.rover.headingRad, !this.reduced);
-    useGame.getState().set({ targets: this.targets, camera: 'chase' });
+    useGame.getState().set({ targets: this.targets, camera: 'chase', finding: null });
     this.resume();
+  }
+
+  /** Changes the options (kept in the browser). */
+  setOptions(o: GameOptions): void {
+    this.options = o;
+    writeOptions(o);
+    if (!o.storms) {
+      this.storm.phase = 'clear';
+      this.storm.level = 0;
+      this.world.setStorm(0);
+    }
   }
 
   /** Back to driving (after the start, a sample card or the pause menu). */
@@ -245,7 +310,12 @@ export class GameSession {
     this.controls.enabled = false;
     this.world.clearTargets();
     this.mission = null;
-    useGame.getState().set({ phase: 'loading', missionId: null, card: null, result: null });
+    this.laser = null;
+    this.world.setLaser(null);
+    this.world.setStorm(0);
+    useGame
+      .getState()
+      .set({ phase: 'loading', missionId: null, card: null, result: null, finding: null });
     void this.useArea('floor').then(() => !this.destroyed && this.showcase());
   }
 
@@ -258,7 +328,134 @@ export class GameSession {
       if (ui.phase === 'playing') this.pause();
       else if (ui.phase === 'paused') this.resume();
       else if (ui.phase === 'card') this.closeCard();
+      else if (ui.phase === 'photo') this.exitPhoto();
+    } else if (c === 'laser') this.fireLaser();
+    else if (c === 'photo') {
+      if (ui.phase === 'photo') this.exitPhoto();
+      else this.enterPhoto();
     }
+  }
+
+  // ---------- SuperCam laser ----------
+
+  /** Starts an analysis of the rock at the centre of the view (stopped, not coring). */
+  fireLaser(): void {
+    const ui = useGame.getState();
+    const rock = this.laserCandidate;
+    if (ui.phase !== 'playing' || !this.mission || this.laser || this.progress.action) return;
+    if (!rock || Math.abs(this.rover.speed) > STOPPED_MPS) return;
+    const key = `${this.mission.id}:${rockKey(rock.x, rock.north)}`;
+    if (isAnalysed(key)) return;
+    const at = this.world.rockTop(rock, new Vector3());
+    this.laser = { rock, key, t: 0, at, pulses: 0 };
+  }
+
+  private stepLaser(dt: number): void {
+    const l = this.laser;
+    if (!l || !this.mission) return;
+    l.t += dt;
+    const p = l.t / LASER_S;
+    this.world.setLaser(l.at, p);
+    // One click per pulse while the beam is on (about 10 a second).
+    if (p > 0.25 && p < 0.92) {
+      const due = Math.floor((l.t - 0.25 * LASER_S) * 10);
+      while (l.pulses < due) {
+        l.pulses++;
+        this.audio.zap();
+      }
+    }
+    if (p < 1) return;
+    const type = rockType(this.mission.id, rockKey(l.rock.x, l.rock.north), l.rock.dark);
+    const { points, first } = recordRock(type, l.key, POINTS[type]);
+    this.science.points += points;
+    this.science.rocks++;
+    this.rover = {
+      ...this.rover,
+      batteryPct: Math.max(0, this.rover.batteryPct - LASER_COST_PCT),
+      energyUsedPct: this.rover.energyUsedPct + LASER_COST_PCT,
+    };
+    this.laser = null;
+    this.world.setLaser(null);
+    this.audio.chime(false);
+    useGame.getState().set({ finding: { type, key: l.key, points, first } });
+  }
+
+  // ---------- photo mode ----------
+
+  /** Photo mode: the game stops, the HUD hides, the camera can be turned and brought closer. */
+  enterPhoto(): void {
+    const phase = useGame.getState().phase;
+    if (phase !== 'playing' && phase !== 'briefing') return;
+    this.photoFrom = phase;
+    this.controls.enabled = false;
+    this.world.rig.zoomMin = 0.25;
+    this.reticle.style.display = 'none';
+    this.labelLayer.style.visibility = 'hidden';
+    useGame.getState().set({ phase: 'photo' });
+  }
+
+  exitPhoto(): void {
+    if (useGame.getState().phase !== 'photo') return;
+    this.setPhotoFilter('natural');
+    this.world.rig.zoomMin = 0.5;
+    this.labelLayer.style.visibility = '';
+    if (this.photoFrom === 'playing') this.resume();
+    else useGame.getState().set({ phase: this.photoFrom });
+  }
+
+  setPhotoFilter(f: PhotoFilter): void {
+    this.world.setPhotoFilter(f);
+    useGame.getState().set({ photoFilter: f });
+  }
+
+  /**
+   * Takes the photo: the frame with a caption strip, as JPEG. Kept in the gallery (if the browser
+   * allows) and returned for download.
+   */
+  async takePhoto(caption: string): Promise<{ blob: Blob; name: string; kept: boolean } | null> {
+    const shot = this.world.capture();
+    this.audio.shutter();
+    const ctx = shot.getContext('2d')!;
+    const h = Math.round(shot.height * 0.045);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, shot.height - h, shot.width, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = `${Math.round(h * 0.45)}px system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(caption, h * 0.5, shot.height - h / 2);
+    const blob = await new Promise<Blob | null>((r) => shot.toBlob(r, 'image/jpeg', 0.9));
+    if (!blob) return null;
+    const createdMs = Date.now();
+    const kept = await savePhoto({
+      createdMs,
+      missionId: this.mission?.id ?? null,
+      filter: useGame.getState().photoFilter,
+      blob,
+    });
+    return { blob, name: photoFileName(createdMs), kept };
+  }
+
+  // ---------- dust storms ----------
+
+  private stepStorm(dt: number): void {
+    const s = this.storm;
+    if (!this.options.storms) return;
+    s.t += dt;
+    if (s.phase === 'clear' && this.elapsedS >= s.nextS) {
+      s.phase = 'warning';
+      s.t = 0;
+      this.audio.warn();
+    } else if (s.phase === 'warning' && s.t >= STORM.warnS) {
+      s.phase = 'active';
+      s.t = 0;
+    } else if (s.phase === 'active' && s.t >= STORM.activeS) {
+      s.phase = 'clear';
+      s.t = 0;
+      s.nextS = this.elapsedS + STORM.gapS + Math.random() * STORM.gapJitterS;
+    }
+    const target = s.phase === 'active' ? 1 : 0;
+    s.level += Math.max(-dt / 9, Math.min(dt / 6, target - s.level));
+    this.world.setStorm(s.level);
   }
 
   cycleCamera(): void {
@@ -278,7 +475,11 @@ export class GameSession {
       tubes: this.targets.reduce((n, t) => n + t.tubes, 0),
       bestS: newBest ? this.elapsedS : previous,
       newBest,
+      science: this.science.points,
+      rocks: this.science.rocks,
+      wheelsPct: this.rover.wheelsPct,
     };
+    this.world.setStorm(0);
     this.controls.enabled = false;
     this.audio.chime(true);
     useGame.getState().set({ phase: 'complete', result });
@@ -325,6 +526,8 @@ export class GameSession {
         speed: phase === 'playing' ? r.speed : 0,
         yawRate: phase === 'playing' ? yawRate : 0,
         distanceM: Math.sign(r.speed) * distanceM,
+        slip: phase === 'playing' ? r.slip : 0,
+        sinkage: r.sinkage,
       },
       coring,
     );
@@ -340,27 +543,36 @@ export class GameSession {
     this.audio.update(dt, {
       speed: phase === 'playing' ? Math.abs(r.speed) : 0,
       drilling: coring !== null && coring > DRILL_PHASE[0] && coring < DRILL_PHASE[1],
-      wind: phase !== 'loading' ? 1 : 0,
+      wind: phase !== 'loading' ? 1 + 2.5 * this.world.stormLevel : 0,
     });
     this.updateLabels();
+    this.updateReticle();
   };
 
   /** One simulation step while playing; returns the coring progress (0–1) or null. */
   private step(dt: number): number | null {
     const input = this.controls.read();
-    const busy = this.progress.action !== null;
+    const busy = this.progress.action !== null || this.laser !== null;
+    this.stepStorm(dt);
+    const stuckBefore = this.rover.stuck;
     this.rover = stepRover(
       this.rover,
       busy ? { throttle: 0, steer: 0, boost: false } : input,
       dt,
       this.ground,
       this.bounds,
+      // AutoNav slows down when the storm hides the terrain.
+      { speedFactor: 1 - 0.45 * this.storm.level },
     );
+    if (this.rover.stuck && !stuckBefore) this.audio.warn();
+    if (this.rover.wearPct > 0) this.wearShownS = 1.2;
+    else this.wearShownS = Math.max(0, this.wearShownS - dt);
+    this.stepLaser(dt);
     const { progress, event } = stepProgress(
       this.progress,
       this.rover,
       this.targets,
-      input.action,
+      input.action && !this.laser,
       dt,
     );
     this.progress = progress;
@@ -379,6 +591,7 @@ export class GameSession {
         energyUsedPct: this.rover.energyUsedPct + CORE_COST_PCT,
       };
       this.world.markDone(event.target.id);
+      recordSample(event.target.id);
       this.refreshLabels();
       this.controls.enabled = false;
       this.audio.chime(false);
@@ -396,6 +609,16 @@ export class GameSession {
     const r = this.rover;
     const next = nearestRemaining(r, this.targets, this.progress);
     const here = targetHere(r, this.targets, this.progress);
+    // The rock SuperCam would analyse (stopped, nothing else under way).
+    const idle = Math.abs(r.speed) <= STOPPED_MPS && !this.progress.action && !this.laser;
+    this.laserCandidate = idle ? this.world.laserTarget(LASER_RANGE_M) : null;
+    const cand = this.laserCandidate;
+    const laserTarget =
+      cand && this.mission
+        ? isAnalysed(`${this.mission.id}:${rockKey(cand.x, cand.north)}`)
+          ? ('done' as const)
+          : ('ready' as const)
+        : null;
     useGame.getState().set({
       hud: {
         speedMps: r.speed,
@@ -424,6 +647,16 @@ export class GameSession {
           this.progress.action && fraction !== null
             ? { kind: this.progress.action.kind, fraction: Math.min(1, fraction) }
             : null,
+        sand: r.sand,
+        slip: r.slip,
+        stuck: r.stuck,
+        wheelsPct: r.wheelsPct,
+        wearing: this.wearShownS > 0,
+        storm:
+          this.storm.phase === 'warning' ? 'warning' : this.storm.level > 0.15 ? 'active' : null,
+        science: this.science.points,
+        laser: this.laser ? { fraction: Math.min(1, this.laser.t / LASER_S) } : null,
+        laserTarget,
       },
     });
   }
@@ -459,6 +692,29 @@ export class GameSession {
   }
 
   /** Projects the labels above their sites; nearer ones win where two would overlap. */
+  /** SuperCam's reticle on the rock at the centre of the view (while stopped). */
+  private updateReticle(): void {
+    const rock = this.laser?.rock ?? this.laserCandidate;
+    const ui = useGame.getState();
+    if (!rock || ui.phase !== 'playing') {
+      this.reticle.style.display = 'none';
+      return;
+    }
+    const top = this.world.rockTop(rock, this.reticleAt);
+    const v = this.world.project(top.x, top.y, top.z);
+    if (v.z > 1) {
+      this.reticle.style.display = 'none';
+      return;
+    }
+    const sx = ((v.x + 1) / 2) * this.world.host.clientWidth;
+    const sy = ((1 - v.y) / 2) * this.world.host.clientHeight;
+    this.reticle.style.display = '';
+    this.reticle.classList.toggle('is-done', !this.laser && ui.hud.laserTarget === 'done');
+    this.reticle.classList.toggle('is-firing', !!this.laser);
+    this.reticle.style.transform = `translate(${sx}px, ${sy}px) translate(-50%, -50%)`;
+  }
+  private readonly reticleAt = new Vector3();
+
   private updateLabels(): void {
     const f = this.world.frame;
     if (!f || !this.labels.size) return;

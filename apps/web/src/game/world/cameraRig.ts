@@ -40,6 +40,8 @@ export class CameraRig {
   private yawOffset = 0;
   private elevOffset = 0;
   private zoom = 1;
+  /** Closest zoom (fraction of the mode's distance); photo mode allows closer. */
+  zoomMin = 0.5;
   private dragging = false;
   private intro = 0;
   private time = 0;
@@ -72,7 +74,7 @@ export class CameraRig {
       'wheel',
       (e) => {
         e.preventDefault();
-        this.zoom = Math.max(0.5, Math.min(3, this.zoom * Math.exp(e.deltaY * 0.001)));
+        this.zoom = Math.max(this.zoomMin, Math.min(3, this.zoom * Math.exp(e.deltaY * 0.001)));
       },
       { passive: false },
     );

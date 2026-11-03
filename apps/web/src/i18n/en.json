@@ -840,7 +840,16 @@
       "core": "Stop inside a ring and press Space (or E): the arm comes down and cores the sample.",
       "slope": "Slopes over 30° stop the rover, as they would stop the real one.",
       "power": "The battery recharges slowly from the rover's nuclear power source (its MMRTG), faster when stopped.",
-      "keys": "C camera · M map · Esc pause · drag to look around · scroll to zoom."
+      "keys": "C camera · M map · F laser · P photo · Esc pause · drag to look around · scroll to zoom.",
+      "laser": "Stopped near rocks, centre one in the view and press F: SuperCam’s laser tells what it is made of and earns science points.",
+      "photo": "Press P for photo mode: pick a rover camera, frame the shot and keep it in your gallery.",
+      "hazardsTitle": "Real hazards",
+      "hazards": {
+        "sand": "Soft sand (dark, rippled ground): the wheels slip and dig in. Do not stop or boost in it. If you get stuck, back out slowly. Spirit was trapped for good in 2009.",
+        "rocks": "Sharp rocks: driving over boulders fast wears the wheels, as it punctured Curiosity’s. Below 50 % the rover is slower.",
+        "tilt": "Slopes: over 30° the rover stops, uphill or sideways.",
+        "storm": "Dust storms: the haze closes in for half a minute. Follow the compass and the map."
+      }
     },
     "realNote": "The terrain is the real one, from the HiRISE 1 m elevation model, out to the crater rim on the horizon. The ground textures are cut from Perseverance’s own Mastcam-Z panoramas, and the sample sites are real (NASA/JPL MMGIS). Rocks, small craters, dust and tracks are generated. To fit in minutes, the game drives about 140 times faster than Perseverance (top speed 4.2 cm/s).",
     "hud": {
@@ -860,7 +869,14 @@
         "far": "Wide",
         "top": "Above"
       },
-      "direction": "{{name}}, {{distance}} away"
+      "direction": "{{name}}, {{distance}} away",
+      "wheels": "Wheels",
+      "slip": "Slip",
+      "science": "Science",
+      "laser": "Laser (F)",
+      "photo": "Photo (P)",
+      "storm": "Dust storm",
+      "stormSoon": "Dust storm coming"
     },
     "prompt": {
       "stopToCore": "Stop to core the sample at {{name}}",
@@ -873,7 +889,16 @@
       "steep": "Too steep: Perseverance is designed for slopes up to 30°",
       "edge": "Edge of the 1 m terrain model: turn back",
       "power": "Battery flat: recharging from the MMRTG…",
-      "tilt": "Tilt {{deg}}: careful"
+      "tilt": "Tilt {{deg}}: careful",
+      "lasering": "SuperCam: laser analysis…",
+      "stuck": "Stuck in soft sand! Back out slowly (S), as Opportunity escaped Purgatory dune in 2005",
+      "tiltBlocked": "Side slope over 30°: the rover would tip over. Turn and go another way",
+      "stormSoon": "A dust storm is coming: visibility will drop",
+      "storm": "Dust storm: AutoNav drives slower while it cannot see far",
+      "rocks": "Sharp rocks: slow down to save the wheels ({{pct}}% left)",
+      "sand": "Soft sand: the wheels slip {{pct}}%. Do not stop or boost here",
+      "laserReady": "F: analyse this rock with the SuperCam laser",
+      "laserDone": "This rock has already been analysed: aim at another one"
     },
     "touch": {
       "forward": "Forward",
@@ -881,7 +906,8 @@
       "left": "Turn left",
       "right": "Turn right",
       "boost": "Faster",
-      "core": "Core sample"
+      "core": "Core sample",
+      "laser": "Laser analysis"
     },
     "pause": {
       "title": "Paused",
@@ -916,7 +942,10 @@
       "best": "Best: {{time}}",
       "real": "Perseverance took these samples between sol {{first}} and sol {{last}}: {{sols}} sols, about {{months}} months on Earth.",
       "again": "Play again",
-      "other": "Other missions"
+      "other": "Other missions",
+      "science": "Science",
+      "rocks": "Rocks analysed",
+      "wheels": "Wheels"
     },
     "quality": {
       "title": "Graphics",
@@ -927,6 +956,116 @@
     "sound": {
       "on": "Sound on",
       "off": "Sound off"
+    },
+    "menu": {
+      "label": "Game menu",
+      "missions": "Missions",
+      "collection": "Collection",
+      "photos": "Photos",
+      "options": "Options",
+      "how": "How to play",
+      "found": "{{got}}/{{total}} cored"
+    },
+    "collection": {
+      "samples": "Samples",
+      "rockTypes": "Rock types",
+      "science": "Science points",
+      "unknown": "Not found yet",
+      "sol": "sol {{sol}}",
+      "locked": "Core it in the {{mission}} mission to add it to your collection.",
+      "rocksTitle": "Rocks analysed with SuperCam",
+      "rocksIntro": "Stop near a rock, centre it in the view and press F: the laser reads what it is made of.",
+      "analysed_one": "{{count}} analysed",
+      "analysed_other": "{{count}} analysed"
+    },
+    "gallery": {
+      "loading": "Loading photos…",
+      "empty": "No photos yet. Press P while driving (or Photo mode here) to take one: they are kept in this browser.",
+      "photo": "Photo",
+      "back": "All photos",
+      "download": "Download",
+      "delete": "Delete"
+    },
+    "options": {
+      "sound": "Sound",
+      "language": "Language",
+      "hazards": "Real hazards",
+      "hazardsHelp": "Soft sand where the rover can get stuck, and sharp rocks that wear the wheels when driven over fast.",
+      "storms": "Dust storms",
+      "stormsHelp": "Storms that hide the terrain for half a minute; the rover drives slower in them.",
+      "reset": "Reset progress",
+      "resetHelp": "Clears your collection, science points and best times (photos stay).",
+      "resetButton": "Reset…",
+      "resetConfirm": "Yes, reset everything"
+    },
+    "finding": {
+      "title": "SuperCam",
+      "points": "points",
+      "new": "new rock type!",
+      "elements": "Main elements: {{list}}",
+      "base": "{{points}} pts per rock",
+      "close": "Close"
+    },
+    "rocks": {
+      "basalt": {
+        "name": "Basalt-like lava rock",
+        "desc": "Pyroxene and plagioclase: rock that cooled from lava, like the Máaz formation that covers Jezero’s floor.",
+        "hint": "Common on the crater floor."
+      },
+      "olivine": {
+        "name": "Olivine-rich rock",
+        "desc": "Green olivine crystals that settled in a thick body of magma, like the Séítah formation. Water later altered them.",
+        "hint": "Crater floor and delta top."
+      },
+      "sulfate": {
+        "name": "Sulfate salts",
+        "desc": "Calcium and magnesium sulfates left by water that soaked through the rock and evaporated.",
+        "hint": "Light-toned rocks, especially at the delta front."
+      },
+      "clay": {
+        "name": "Clay-bearing mudstone",
+        "desc": "Fine sediment laid down in the ancient lake. Clays form in water and can preserve organic molecules.",
+        "hint": "Sediments of the delta."
+      },
+      "carbonate": {
+        "name": "Carbonate",
+        "desc": "Magnesium and iron carbonates, minerals that grow in water. On Earth such rocks can trap signs of life.",
+        "hint": "Delta, and especially the margin unit."
+      },
+      "silica": {
+        "name": "Silica (opal)",
+        "desc": "Almost pure silicon dioxide, deposited by water. It is very good at preserving microscopic fossils.",
+        "hint": "Rare: light rocks of the delta top."
+      },
+      "meteorite": {
+        "name": "Iron–nickel meteorite",
+        "desc": "A piece of an asteroid’s metal core that fell on Mars. Curiosity and Perseverance have both found some.",
+        "hint": "Very rare, anywhere."
+      }
+    },
+    "photo": {
+      "open": "Photo mode",
+      "title": "Photo mode",
+      "filter": "Camera",
+      "filters": {
+        "natural": "Natural",
+        "whiteBalance": "White balance",
+        "enhanced": "Enhanced colour",
+        "navcam": "Navcam",
+        "hazcam": "Hazcam"
+      },
+      "about": {
+        "natural": "The colours as they would look to the eye on Mars.",
+        "whiteBalance": "As if lit by daylight on Earth: NASA releases images like this so geologists can read rock colours.",
+        "enhanced": "A contrast and colour stretch, as in NASA’s enhanced-colour images.",
+        "navcam": "The black-and-white navigation cameras on the mast.",
+        "hazcam": "The fisheye hazard cameras on the body, near the wheels."
+      },
+      "take": "Take photo",
+      "exit": "Back (Esc)",
+      "hint": "Drag to turn the view · scroll to zoom in close.",
+      "saved": "Saved in your gallery.",
+      "notKept": "This browser cannot keep it: download it now."
     }
   }
 }

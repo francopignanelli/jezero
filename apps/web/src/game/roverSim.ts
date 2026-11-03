@@ -8,6 +8,15 @@ import { follow, M_PER_DEG } from '../lib/math';
  * Game choices, stated in the game's help: speeds are far above Perseverance's real top speed
  * (0.042 m/s) so a mission fits in minutes; the 30° climb limit, turning in place and the
  * nuclear power source (an MMRTG that slowly recharges the batteries) follow the real rover.
+ *
+ * Hazards (HAZARD), after the real rovers' experience:
+ * - Soft sand: the wheels slip, and sink while they spin in deep sand, until the rover is stuck.
+ *   Backing out frees it. Spirit was trapped for good at Troy in 2009; Opportunity backed out of
+ *   Purgatory dune in 2005.
+ * - Sharp rocks: they wear the wheels when driven over fast (Curiosity's wheels were punctured
+ *   from 2013). Damaged wheels limit the speed.
+ * - Side slopes beyond 30°.
+ * Dust storms come in through `env.speedFactor`: AutoNav drives slower when it sees less.
  */
 export const DRIVE = {
   cruiseMps: 6,
@@ -41,9 +50,44 @@ export const DRIVE = {
   edgeMarginM: 30,
 } as const;
 
+export const HAZARD = {
+  /** Sand (0–1) above which the wheels sink. */
+  deepSand: 0.5,
+  /** Slip in sand: the speed lost at full sand, and at full sinkage. */
+  slipSand: 0.5,
+  slipSink: 0.35,
+  /** Sinkage gained per metre the wheels turn in fully deep sand (stuck at 1), ×boost. */
+  sinkPerM: 0.018,
+  boostSinkFactor: 2.5,
+  /** Sinkage lost per second backing out, and on firm ground. */
+  backOutPerS: 0.3,
+  recoverPerS: 0.25,
+  /** Stuck until the sinkage is back below this. */
+  freeAt: 0.5,
+  /** Rocks higher than this (m) under a wheel, driven over faster than safeMps, wear the wheels. */
+  safeRockM: 0.14,
+  safeMps: 2,
+  /** Wheel wear (%) per second, per metre over the safe height, per m/s over the safe speed. */
+  wearPerS: 45,
+  /** Below this wheel health (%) the top speed falls (to 45 % at 0). */
+  limpBelowPct: 50,
+  /** Corner wheel positions for the rock check (m): forward, right. */
+  wheelForwardM: 1.1,
+  wheelSideM: 1.15,
+} as const;
+
 export interface GroundProbe {
   /** Rendered terrain height (m above the areoid) or undefined where tiles are not loaded yet. */
   height(lat: number, lon: number): number | undefined;
+  /** Hazards (optional; without them there is no sand and no wear): soft sand 0–1 … */
+  sand?(lat: number, lon: number): number;
+  /** … and the height (m) of a rock above the ground at a point (0 off rocks). */
+  rock?(lat: number, lon: number): number;
+}
+
+/** Conditions of the moment: a dust storm lowers the speed AutoNav allows. */
+export interface DriveEnv {
+  speedFactor?: number;
 }
 
 export interface DriveInput {
@@ -61,7 +105,7 @@ export interface Bounds {
   north: number;
 }
 
-export type Blocked = 'steep' | 'edge' | 'power' | null;
+export type Blocked = 'steep' | 'tilt' | 'edge' | 'power' | 'sand' | null;
 
 export interface RoverState {
   lat: number;
@@ -84,6 +128,14 @@ export interface RoverState {
   tiltDeg: number;
   blocked: Blocked;
   recharging: boolean;
+  /** Sand under the rover (0–1), wheel slip (0–1) and sinkage (0–1; 1 is stuck). */
+  sand: number;
+  slip: number;
+  sinkage: number;
+  stuck: boolean;
+  /** Wheel health (%), and the wear taken in the last step (for the HUD's warning). */
+  wheelsPct: number;
+  wearPct: number;
 }
 
 export function initialRover(
@@ -108,6 +160,12 @@ export function initialRover(
     tiltDeg: 0,
     blocked: null,
     recharging: false,
+    sand: 0,
+    slip: 0,
+    sinkage: 0,
+    stuck: false,
+    wheelsPct: 100,
+    wearPct: 0,
   };
 }
 
@@ -171,8 +229,9 @@ export function stepRover(
   dt: number,
   ground: GroundProbe,
   bounds: Bounds,
+  env: DriveEnv = {},
 ): RoverState {
-  const s: RoverState = { ...prev, blocked: null };
+  const s: RoverState = { ...prev, blocked: null, wearPct: 0 };
   const { lat, lon, headingRad: h } = s;
 
   // Power: running flat stops the rover until the MMRTG has recharged it to resumeAtPct.
@@ -192,15 +251,39 @@ export function stepRover(
       : 0;
   const factor = gradeFactor(climb);
 
+  // Soft sand: slip, and sinkage while the wheels turn in deep sand; stuck at full sinkage.
+  s.sand = ground.sand?.(lat, lon) ?? 0;
+  const deep = Math.max(0, (s.sand - HAZARD.deepSand) / (1 - HAZARD.deepSand));
+  if (s.sinkage >= 1) s.stuck = true;
+  if (s.stuck && s.sinkage < HAZARD.freeAt) s.stuck = false;
+  s.slip = Math.min(0.9, s.sand * HAZARD.slipSand + s.sinkage * HAZARD.slipSink);
+
   // Speed: towards the target set by the throttle, limited by the climb ahead.
   const boost = input.boost && throttle > 0;
-  const top = boost ? DRIVE.boostMps : DRIVE.cruiseMps;
-  const target =
+  const limp =
+    s.wheelsPct >= HAZARD.limpBelowPct ? 1 : 0.45 + (0.55 * s.wheelsPct) / HAZARD.limpBelowPct;
+  const top = (boost ? DRIVE.boostMps : DRIVE.cruiseMps) * limp * (env.speedFactor ?? 1);
+  const grip = 1 - s.slip;
+  let target =
     throttle > 0
-      ? top * throttle * factor
+      ? top * throttle * factor * grip
       : throttle < 0
-        ? DRIVE.reverseMps * throttle * factor
+        ? DRIVE.reverseMps * throttle * factor * grip
         : 0;
+  // Wheels turning in deep sand dig in; backing out, or firm ground, frees them.
+  if (throttle > 0 && deep > 0)
+    s.sinkage = Math.min(
+      1,
+      s.sinkage +
+        top * throttle * dt * deep * HAZARD.sinkPerM * (boost ? HAZARD.boostSinkFactor : 1),
+    );
+  else if (throttle < 0) s.sinkage = Math.max(0, s.sinkage - dt * HAZARD.backOutPerS);
+  else if (deep === 0 && Math.abs(s.speed) > 0.1)
+    s.sinkage = Math.max(0, s.sinkage - dt * HAZARD.recoverPerS);
+  if (s.stuck && throttle > 0) {
+    target = 0;
+    s.blocked = 'sand';
+  }
   const braking = target === 0 || Math.sign(target) !== Math.sign(s.speed);
   const rate =
     throttle === 0 ? DRIVE.coast : braking ? DRIVE.brake : boost ? DRIVE.boostAccel : DRIVE.accel;
@@ -209,6 +292,7 @@ export function stepRover(
     s.speed = 0;
     s.blocked = 'steep';
   }
+  if (s.stuck && throttle > 0) s.speed = Math.min(s.speed, 0);
 
   // Steering: smoothed input; the rover can turn in place, a little slower when fast.
   s.steer += (input.steer - s.steer) * follow(dt, 0.12);
@@ -248,18 +332,60 @@ export function stepRover(
         : s.heightM + (height - s.heightM) * follow(dt, 0.06);
     const pitch = Math.atan2(hf - hb, 2 * DRIVE.probeHalfLengthM);
     const roll = Math.atan2(hl - hr, 2 * DRIVE.probeHalfWidthM);
+    // Side slope beyond the 30° limit and getting worse: the move is refused.
+    if (
+      moved > 0 &&
+      Math.abs(roll) > DRIVE.maxGradeDeg * DEG_TO_RAD &&
+      Math.abs(roll) > Math.abs(prev.rollRad)
+    ) {
+      return {
+        ...prev,
+        speed: 0,
+        steer: s.steer,
+        headingRad: prev.headingRad,
+        blocked: 'tilt',
+        wearPct: 0,
+        sand: s.sand,
+        slip: s.slip,
+        sinkage: s.sinkage,
+        stuck: s.stuck,
+      };
+    }
     s.pitchRad += (pitch - s.pitchRad) * follow(dt, 0.1);
     s.rollRad += (roll - s.rollRad) * follow(dt, 0.1);
   }
   s.gradeDeg = s.speed >= 0 ? s.pitchRad * RAD_TO_DEG : -s.pitchRad * RAD_TO_DEG;
   s.tiltDeg = Math.acos(Math.min(1, Math.cos(s.pitchRad) * Math.cos(s.rollRad))) * RAD_TO_DEG;
 
-  // Battery: driving drains it (more uphill and when boosting); the MMRTG trickle-charges it.
+  // Sharp rocks under the corner wheels wear them when driven over fast.
+  if (ground.rock && Math.abs(s.speed) > HAZARD.safeMps) {
+    let over = 0;
+    for (const f of [-1, 1])
+      for (const r of [-1, 1]) {
+        const q = offsetPoint(
+          s.lat,
+          s.lon,
+          s.headingRad,
+          f * HAZARD.wheelForwardM,
+          r * HAZARD.wheelSideM,
+        );
+        over += Math.max(0, ground.rock(q.lat, q.lon) - HAZARD.safeRockM);
+      }
+    if (over > 0) {
+      s.wearPct =
+        over * (Math.abs(s.speed) - HAZARD.safeMps) * HAZARD.wearPerS * dt * (boost ? 1.5 : 1);
+      s.wheelsPct = Math.max(0, s.wheelsPct - s.wearPct);
+    }
+  }
+
+  // Battery: driving drains it (more uphill, when boosting and when the wheels slip); the
+  // MMRTG trickle-charges it.
   const drain =
     moved *
     DRIVE.drainPerM *
     (1 + Math.max(0, s.gradeDeg) * DRIVE.uphillDrainPerDeg) *
-    (boost ? DRIVE.boostDrainFactor : 1);
+    (boost ? DRIVE.boostDrainFactor : 1) *
+    (1 + 2 * s.slip);
   const charge =
     (Math.abs(s.speed) < 0.05 ? DRIVE.rechargeStoppedPerS : DRIVE.rechargeMovingPerS) * dt;
   s.energyUsedPct += drain;

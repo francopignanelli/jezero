@@ -47,6 +47,7 @@ export class SkyDome {
         },
         u15: { value: new Vector3(SKY_15.r, SKY_15.g, SKY_15.b).multiplyScalar(brightness) },
         uZenith: { value: new Vector3(ZENITH.r, ZENITH.g, ZENITH.b).multiplyScalar(brightness) },
+        uStorm: { value: 0 },
       },
       vertexShader: /* glsl */ `
         varying vec3 vDir;
@@ -57,6 +58,7 @@ export class SkyDome {
         }`,
       fragmentShader: /* glsl */ `
         uniform vec3 uSun, uHorizon, u15, uZenith;
+        uniform float uStorm;
         varying vec3 vDir;
         void main() {
           vec3 d = normalize(vDir);
@@ -70,12 +72,16 @@ export class SkyDome {
           // Bluish aureole close to the Sun, then a broad warm forward-scattering glow.
           float near = pow(max(c, 0.0), 90.0);
           float broad = pow(max(c, 0.0), 7.0);
-          sky += vec3(0.42, 0.52, 0.70) * near * 1.6 + vec3(1.0, 0.82, 0.62) * broad * 0.28;
+          float clear = 1.0 - uStorm;
+          sky += (vec3(0.42, 0.52, 0.70) * near * 1.6 + vec3(1.0, 0.82, 0.62) * broad * 0.28) * clear;
           // Solar disc (0.35°: the Sun is smaller from Mars), soft-edged and very bright.
           float disc = smoothstep(0.999978, 0.999988, c);
-          sky += vec3(1.0, 0.97, 0.92) * disc * 40.0;
+          sky += vec3(1.0, 0.97, 0.92) * disc * 40.0 * clear * clear;
           // Below the horizon (seen only past distant terrain): the haze colour.
           sky = h < 0.0 ? uHorizon * (1.0 + 0.3 * h) : sky;
+          // Dust storm: an even, dim, ruddy sky (the Sun a pale glow).
+          vec3 dust = uHorizon * vec3(0.62, 0.47, 0.34) + vec3(0.25, 0.18, 0.12) * broad;
+          sky = mix(sky, dust, uStorm);
           gl_FragColor = vec4(sky, 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
@@ -100,6 +106,10 @@ export class SkyDome {
     pmrem.dispose();
     (dome.material as ShaderMaterial).dispose();
     return target.texture;
+  }
+
+  setStorm(s: number): void {
+    this.material.uniforms.uStorm!.value = s;
   }
 
   dispose(): void {

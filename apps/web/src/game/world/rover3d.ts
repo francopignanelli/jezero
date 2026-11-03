@@ -20,7 +20,8 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
  * The Perseverance glTF, made to move. The model is static, so its parts are cut out by triangle
  * position (rover frame: x left, y up, z forward) and hung on pivots:
  * - The six wheels: on a steering pivot and a spin pivot each. They roll with the distance driven,
- *   and the four corner wheels steer (Ackermann, or the ~45° turn-in-place pose).
+ *   and the four corner wheels steer (Ackermann, or the ~45° turn-in-place pose). The model's
+ *   "Wheels" mesh holds only the hubs: the tyres and spokes are cut out of the body mesh.
  * - The suspension legs: bend with the wheels, so the rocker-bogie follows the ground under each
  *   wheel.
  * - The mast head (Mastcam-Z, SuperCam): pans and tilts.
@@ -59,6 +60,9 @@ const ARM_NODES = [
 /** Mast head: above the column at the front right (from the model's geometry). */
 const HEAD = { minY: 1.91, x: [-0.95, -0.15], z: [0.4, 1.0], pivot: new Vector3(-0.57, 1.95, 0.7) };
 const TILT_ABOVE_PIVOT_M = 0.11;
+/** Perseverance's wheels are 52.5 cm across. */
+const TYRE_RADIUS_M = 0.2625;
+const WHEEL_HOLDER = 'wheel-holder';
 /** Wheel travel shown by the suspension (m). */
 const MAX_LIFT_M = 0.18;
 /** Shoulder angle while coring (boom lowered). */
@@ -248,6 +252,7 @@ export class Rover3D {
       groups.set(key, list);
     }
     const holder = new Group();
+    holder.name = WHEEL_HOLDER;
     holder.position.copy(mesh.position);
     holder.quaternion.copy(mesh.quaternion);
     holder.scale.copy(mesh.scale);
@@ -284,6 +289,27 @@ export class Rover3D {
       });
     }
     this.wheels.sort((a, b) => a.row - b.row || b.side - a.side);
+    // Tyres, spokes and hubs: body triangles inside each wheel's cylinder (radius ~0.27 m, from
+    // 0.22 m inboard to 0.2 m outboard of the hub; further in are the fixed steering actuators).
+    const meshes: Mesh[] = [];
+    model.traverse((o) => {
+      if (
+        (o as Mesh).isMesh &&
+        !underAny(o, [...ARM_NODES, 'suspension', 'Wheels_objs', WHEEL_HOLDER])
+      )
+        meshes.push(o as Mesh);
+    });
+    let moved = 0;
+    for (const m of meshes)
+      moved += carve(m, (c) => {
+        for (const w of this.wheels) {
+          const out = (c.x - w.local.x) * Math.sign(w.local.x);
+          if (out < -0.22 || out > 0.2) continue;
+          if (Math.hypot(c.y - w.local.y, c.z - w.local.z) < TYRE_RADIUS_M + 0.02) return w.spin;
+        }
+        return null;
+      }).length;
+    if (moved) for (const w of this.wheels) w.radiusM = TYRE_RADIUS_M;
   }
 
   /**
@@ -540,6 +566,13 @@ export class Rover3D {
     if (!this.headPan || !this.headTilt) return;
     this.headPan.rotation.y = pan;
     this.headTilt.rotation.x = tilt;
+  }
+
+  /** The front of the mast head (SuperCam's telescope) in world space. */
+  headLensWorld(target: Vector3): Vector3 {
+    if (!this.headTilt) return this.toWorld(tmpA.set(-0.57, 2.06, 0.85), target);
+    this.headTilt.updateWorldMatrix(true, false);
+    return this.headTilt.localToWorld(target.set(0, 0.02, 0.18));
   }
 
   /** The mast head's pivot in the rover frame (for aiming it). */

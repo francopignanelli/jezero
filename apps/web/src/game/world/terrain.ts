@@ -15,6 +15,7 @@ import {
   NearestFilter,
   RedFormat,
   Sphere,
+  Vector2,
   Vector3,
   type PerspectiveCamera,
   type WebGLProgramParametersWithUniforms,
@@ -46,6 +47,10 @@ const LEAF_M = 8; // finest patch: 0.25 m spacing
 const LEVELS = 14; // root 8·2^13 = 65 536 m covers the far layer
 const RANGE = 2.2; // a level is drawn up to RANGE × its patch size
 const MAX_PATCHES = 1200;
+/** Firm aprons (no sand drifts) around the sample sites, mission starts and the depot. */
+export const MAX_CLEAR = 32;
+export const CLEAR_INNER_M = 18;
+export const CLEAR_OUTER_M = 40;
 
 function heightTexture(l: HeightLayer): DataTexture {
   const t = new DataTexture(l.data, l.cols, l.rows, RedFormat, FloatType);
@@ -198,6 +203,9 @@ const FRAGMENT_PARS = /* glsl */ `
   uniform sampler2D tAMid;
   uniform sampler2D tAFar;
   uniform vec3 uCamW;
+  /** Firm ground around the sample sites, starts and depot (no sand drifts): x, north. */
+  uniform vec2 uClear[${MAX_CLEAR}];
+  uniform int uClearCount;
   varying vec2 vP;
   varying float vSpacing;
   varying vec3 vWorldN;
@@ -318,6 +326,17 @@ const FRAGMENT_COLOR = /* glsl */ `
   float n3 = vnoise(vP * 0.9 - 5.0);
   // Mix: sand in dark, flat places; bedrock on slopes and bright outcrops; gravel in patches.
   float wSand = smoothstep(0.42, 0.22, m + 0.22 * (n1 - 0.5)) * (1.0 - smoothstep(0.06, 0.16, slope));
+  // Sand drifts: patches of the sand where it is deep and soft (the rover's hazard: world.ts
+  // sandAt computes the same). Darker, with stronger ripples, so they can be seen and avoided.
+  float drift = wSand * smoothstep(0.6, 0.8, vnoise(vP * 0.02 + 7.0));
+  if (drift > 0.0) {
+    float dClear = 1e9;
+    for (int i = 0; i < ${MAX_CLEAR}; i++) {
+      if (i >= uClearCount) break;
+      dClear = min(dClear, length(vP - uClear[i]));
+    }
+    drift *= smoothstep(${CLEAR_INNER_M.toFixed(1)}, ${CLEAR_OUTER_M.toFixed(1)}, dClear);
+  }
   float wBed = max(smoothstep(0.10, 0.28, slope), smoothstep(0.66, 0.86, m + 0.25 * (n1 - 0.5)));
   float wGravel = smoothstep(0.5, 0.75, n2) * (1.0 - wSand);
   float wReg = 1.0;
@@ -352,6 +371,7 @@ const FRAGMENT_COLOR = /* glsl */ `
   }
   // Fine dust variation in small patches.
   groundCol *= 0.92 + 0.16 * n3;
+  groundCol *= 1.0 - 0.24 * drift;
   // Slopes (the delta's sediments, the crater walls): layering, and darker exposed rock.
   float strataW = smoothstep(0.12, 0.35, slope);
   if (strataW > 0.0) {
@@ -404,7 +424,7 @@ const FRAGMENT_COLOR = /* glsl */ `
     gDetailNormal = normalize(mix(gDetailNormal, vec3(0.0, 0.0, 1.0), 0.35 * slab * wPave));
   }
   // Wind ripples in the sand: crests across the prevailing wind, steep lee faces.
-  float wRip = w.z * (1.0 - smoothstep(25.0, 60.0, viewDist)) * (1.0 - smoothstep(0.08, 0.2, pxM));
+  float wRip = max(w.z, drift) * (1.0 - smoothstep(25.0, 60.0 + 40.0 * drift, viewDist)) * (1.0 - smoothstep(0.08, 0.2, pxM));
   if (wRip > 0.01) {
     vec2 wd = vec2(0.93, 0.37);
     float lambda = 0.85;
@@ -412,7 +432,7 @@ const FRAGMENT_COLOR = /* glsl */ `
     float fr = fract(ph);
     float dh = fr < 0.72 ? 1.0 / 0.72 : -1.0 / 0.28;
     float hr = fr < 0.72 ? fr / 0.72 : (1.0 - fr) / 0.28;
-    fxN.xy -= wd * dh * (0.035 / lambda) * 2.2 * wRip;
+    fxN.xy -= wd * dh * (0.035 / lambda) * 2.2 * wRip * (1.0 + 1.2 * drift);
     groundCol *= 1.0 + 0.08 * (hr - 0.5) * wRip;
   }
   // Distant slopes: rugged relief shading (ridges and gullies finer than the mesh).
@@ -507,6 +527,8 @@ export class TerrainMesh {
       tGroundN: { value: ground.normal },
       uGroundScale: { value: ground.scale },
       uGroundMean: { value: ground.mean.map((c) => new Vector3(c.r, c.g, c.b)) },
+      uClear: { value: Array.from({ length: MAX_CLEAR }, () => new Vector2()) },
+      uClearCount: { value: 0 },
       tADetail: { value: macro.detail },
       tAMid: { value: macro.mid },
       tAFar: { value: macro.far },
@@ -560,6 +582,14 @@ export class TerrainMesh {
     this.nodeAttr.clearUpdateRanges();
     this.nodeAttr.addUpdateRange(0, this.count * 4);
     this.nodeAttr.needsUpdate = true;
+  }
+
+  /** Points kept free of sand drifts (local x, north). */
+  setClear(points: Array<[number, number]>): void {
+    const list = this.uniforms.uClear!.value as Vector2[];
+    const n = Math.min(MAX_CLEAR, points.length);
+    for (let i = 0; i < n; i++) list[i]!.set(points[i]![0], points[i]![1]);
+    this.uniforms.uClearCount!.value = n;
   }
 
   get patchCount(): number {

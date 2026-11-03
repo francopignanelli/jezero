@@ -1,6 +1,7 @@
 /**
  * Procedural sound (Web Audio, no files): a low wind, the motors' whine rising with speed, the
- * drill's percussion while coring, and a chime when a sample is sealed. Everything is low-passed:
+ * drill's percussion while coring, a chime when a sample is sealed, the laser's clicks (SuperCam's
+ * microphone recorded its zaps), warnings and a shutter. Everything is low-passed:
  * Mars's thin CO₂ air carries high frequencies poorly, as Perseverance's microphones recorded.
  * Starts on the first user gesture (browsers block audio before one); mutable.
  */
@@ -12,6 +13,7 @@ export class GameAudio {
   private motor: OscillatorNode | null = null;
   private motorGain: GainNode | null = null;
   private drillGain: GainNode | null = null;
+  private noiseBuf: AudioBuffer | null = null;
   private time = 0;
   muted = false;
 
@@ -43,6 +45,7 @@ export class GameAudio {
       last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
       d[i] = last * 3.5;
     }
+    this.noiseBuf = buf;
     const noise = () => {
       const s = ctx.createBufferSource();
       s.buffer = buf;
@@ -126,6 +129,56 @@ export class GameAudio {
       o.connect(g).connect(this.master!);
       o.start(at);
       o.stop(at + 0.65);
+    });
+  }
+
+  /** A short burst of filtered noise (a click). */
+  private burst(at: number, freq: number, gain: number, len: number): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || !this.noiseBuf) return;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuf;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = freq;
+    f.Q.value = 0.9;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gain, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+    src.connect(f).connect(g).connect(this.master);
+    src.start(at, Math.random() * 3);
+    src.stop(at + len + 0.02);
+  }
+
+  /** One laser pulse: the sharp tick of the plasma, as SuperCam's microphone heard it. */
+  zap(): void {
+    if (this.ctx) this.burst(this.ctx.currentTime, 1500, 0.5, 0.05);
+  }
+
+  /** A camera shutter. */
+  shutter(): void {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.burst(t, 1200, 0.45, 0.04);
+    this.burst(t + 0.07, 900, 0.35, 0.05);
+  }
+
+  /** A low two-tone warning (hazards). */
+  warn(): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.master) return;
+    [330, 262].forEach((f, i) => {
+      const o = ctx.createOscillator();
+      o.type = 'triangle';
+      o.frequency.value = f;
+      const g = ctx.createGain();
+      const at = ctx.currentTime + i * 0.18;
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(0.12, at + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.3);
+      o.connect(g).connect(this.master!);
+      o.start(at);
+      o.stop(at + 0.32);
     });
   }
 

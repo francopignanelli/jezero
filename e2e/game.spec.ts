@@ -79,6 +79,29 @@ test('rover game: drive in the 3D Jezero, core a sample, read its card, pause', 
   await pause.getByRole('button', { name: 'Resume' }).click();
   await expect(pause).toHaveCount(0);
 
+  // P opens photo mode (the HUD hides, a camera filter can be picked); Esc returns to driving.
+  await page.keyboard.press('KeyP');
+  const photo = page.getByRole('dialog', { name: 'Photo mode' });
+  await expect(photo).toBeVisible();
+  await expect(page.locator('.game-hud')).toHaveCount(0);
+  await photo.getByRole('radio', { name: 'Navcam' }).click();
+  await expect(photo.getByRole('radio', { name: 'Navcam' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
+  await page.keyboard.press('Escape');
+  await expect(photo).toHaveCount(0);
+  await expect(page.locator('.game-hud')).toBeVisible();
+
+  // The cored site is now in the collection (main menu).
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('dialog', { name: 'Paused' })
+    .getByRole('button', { name: 'Missions' })
+    .click();
+  await page.getByRole('tab', { name: 'Collection' }).click({ timeout: 60_000 });
+  await expect(page.getByRole('tabpanel')).toContainText("Ha'ahóni + Atsá");
+
   expect(errors).toEqual([]);
   expect(external).toEqual([]);
 });

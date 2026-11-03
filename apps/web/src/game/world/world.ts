@@ -1,12 +1,18 @@
 import {
   ACESFilmicToneMapping,
+  AdditiveBlending,
   Color,
+  CylinderGeometry,
   DirectionalLight,
   FogExp2,
   HalfFloatType,
+  Mesh,
+  MeshBasicMaterial,
   PCFShadowMap,
   PerspectiveCamera,
+  PointLight,
   Scene,
+  SphereGeometry,
   SRGBColorSpace,
   Vector2,
   Vector3,
@@ -18,6 +24,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { installHeightHaze } from './atmosphere';
 import { CameraRig, type CameraMode } from './cameraRig';
 import {
   CoreMarks,
@@ -29,10 +36,10 @@ import {
 } from './effects';
 import { CraterField, bakeCraters, generateCraters } from './features';
 import { LocalFrame, Terrain, loadHeights, type AreaMeta, type WorldManifest } from './heights';
-import { RockField } from './rocks';
+import { RockField, type Rock } from './rocks';
 import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
 import { HORIZON_LINEAR, SkyDome, sunDirection } from './sky';
-import { TerrainMesh, type GroundTextures } from './terrain';
+import { CLEAR_INNER_M, CLEAR_OUTER_M, TerrainMesh, type GroundTextures } from './terrain';
 import { loadGrey, loadGroundTextures } from './textures';
 
 export type Quality = 'high' | 'medium' | 'low';
@@ -52,6 +59,12 @@ const QUALITY: Record<
   medium: { pixelRatio: 1.25, shadow: 2048, rocks: [30, 170], bloom: true, msaa: 4, devils: 2 },
   low: { pixelRatio: 1, shadow: 1024, rocks: [18, 90], bloom: false, msaa: 0, devils: 1 },
 };
+
+/**
+ * Light levels: Mars gets 43 % of Earth's sunlight through a dusty sky, so the scene is kept dim.
+ * Little sky light fills the shadows, which keeps the relief well defined.
+ */
+const LIGHT = { sun: 2.75, environment: 0.5, exposure: 0.84, sky: 1.0, haze: 1.6e-4 };
 
 /** Sun per area: a mid-morning Sun (compass azimuth, elevation), for long but not hard shadows. */
 const SUN: Record<string, [number, number]> = {
@@ -83,22 +96,132 @@ const SanitizeShader = {
 
 /** Vignette and a little film grain: the look of the rover cameras' processed frames. */
 const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 } },
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime: { value: 0 },
+    uStorm: { value: 0 },
+    uTexel: { value: new Vector2(1 / 1600, 1 / 900) },
+  },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
     void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse; uniform float uTime;
+    uniform sampler2D tDiffuse; uniform float uTime, uStorm; uniform vec2 uTexel;
     varying vec2 vUv;
     float h(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43758.5453); }
+    float hs(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float vn(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hs(i), hs(i + vec2(1, 0)), f.x), mix(hs(i + vec2(0, 1)), hs(i + vec2(1, 1)), f.x), f.y);
+    }
     void main() {
       vec4 c = texture2D(tDiffuse, vUv);
+      // Light unsharp mask: crisper edges and fine relief.
+      vec3 blur = (texture2D(tDiffuse, vUv + vec2(uTexel.x, 0.0)).rgb + texture2D(tDiffuse, vUv - vec2(uTexel.x, 0.0)).rgb
+                 + texture2D(tDiffuse, vUv + vec2(0.0, uTexel.y)).rgb + texture2D(tDiffuse, vUv - vec2(0.0, uTexel.y)).rgb) * 0.25;
+      c.rgb = max(c.rgb + (c.rgb - blur) * 0.45, 0.0);
       vec2 d = vUv - 0.5;
       float v = 1.0 - dot(d, d) * 0.55;
       c.rgb *= v;
+      // Dust storm: veils of dust blowing across the view.
+      if (uStorm > 0.0) {
+        vec2 q = vUv * vec2(2.5, 6.0) + vec2(-uTime * 0.9, uTime * 0.05);
+        float veil = vn(q) * 0.6 + vn(q * 2.7 + 3.0) * 0.4;
+        vec3 dust = vec3(0.55, 0.36, 0.22) * (0.6 + 0.4 * dot(c.rgb, vec3(0.33)));
+        c.rgb = mix(c.rgb, dust, uStorm * (0.18 + 0.3 * veil));
+      }
       c.rgb += (h(vUv * 1000.0) - 0.5) * 0.012 * (c.r + c.g + c.b);
       gl_FragColor = c;
     }`,
+};
+
+/** Photo-mode filters, after the rover's own cameras (applied to the final, display image). */
+export const PHOTO_FILTERS = ['natural', 'whiteBalance', 'enhanced', 'navcam', 'hazcam'] as const;
+export type PhotoFilter = (typeof PHOTO_FILTERS)[number];
+
+/**
+ * The filters:
+ * - White balance: as if lit by Earth daylight. NASA releases Mastcam-Z images like this so that
+ *   geologists can read the rocks' colours as on Earth.
+ * - Enhanced colour: a contrast and saturation stretch, as in the enhanced-colour releases.
+ * - Navcam: the black-and-white navigation cameras.
+ * - Hazcam: the fisheye hazard cameras, black and white, with their round field.
+ */
+const PhotoShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uMode: { value: 0 },
+    uTime: { value: 0 },
+    uAspect: { value: 1 },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse; uniform int uMode; uniform float uTime, uAspect;
+    varying vec2 vUv;
+    float h(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43758.5453); }
+    float lum(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+    void main() {
+      vec2 uv = vUv;
+      float mask = 1.0;
+      if (uMode == 4) {
+        // Fisheye: radial (barrel) distortion, a round field of view.
+        vec2 d = (uv - 0.5) * vec2(uAspect, 1.0);
+        float r = length(d);
+        uv = 0.5 + d * (0.62 + 0.55 * r * r) / vec2(uAspect, 1.0);
+        mask = 1.0 - smoothstep(0.5, 0.53, r);
+      }
+      vec3 c = texture2D(tDiffuse, clamp(uv, 0.0, 1.0)).rgb;
+      if (uMode == 1) {
+        c *= vec3(0.8, 1.0, 1.42);
+        c = mix(vec3(lum(c)), c, 0.9) * 1.04;
+      } else if (uMode == 2) {
+        float l = lum(c);
+        c = clamp((c - 0.5) * 1.35 + 0.5 + (c - l) * 0.9, 0.0, 1.0);
+      } else if (uMode >= 3) {
+        float l = lum(c);
+        l = clamp((l - 0.45) * 1.5 + 0.48, 0.0, 1.0);
+        l += (h(vUv * 800.0) - 0.5) * 0.05;
+        c = vec3(l);
+      }
+      gl_FragColor = vec4(c * mask, 1.0);
+    }`,
+};
+
+// Sand map: the same weights the terrain shader uses for its sand layer (terrain.ts), so the
+// soft sand the wheels feel is the sand that is drawn.
+function hash12(x: number, y: number): number {
+  let a = (x * 0.1031) % 1;
+  let b = (y * 0.1031) % 1;
+  let c = a;
+  if (a < 0) a += 1;
+  if (b < 0) b += 1;
+  if (c < 0) c += 1;
+  const d = a * (b + 33.33) + b * (c + 33.33) + c * (a + 33.33);
+  a += d;
+  b += d;
+  c += d;
+  const v = ((a + b) * c) % 1;
+  return v < 0 ? v + 1 : v;
+}
+function vnoise(x: number, y: number): number {
+  const i = Math.floor(x);
+  const j = Math.floor(y);
+  const fx = x - i;
+  const fy = y - j;
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+  const a = hash12(i, j);
+  const b = hash12(i + 1, j);
+  const c = hash12(i, j + 1);
+  const d = hash12(i + 1, j + 1);
+  return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+}
+const smooth = (e0: number, e1: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
 };
 
 /** Part of the coring sequence (progress 0–1) during which the drill runs. */
@@ -168,7 +291,7 @@ export class World {
   private composer: EffectComposer;
   private bloom: UnrealBloomPass | null = null;
   private grade: ShaderPass;
-  private readonly sun = new DirectionalLight(0xfff0e0, 3.1);
+  private readonly sun = new DirectionalLight(0xfff0e0, LIGHT.sun);
   private sky: SkyDome | null = null;
   private ground: GroundTextures | null = null;
   terrain: Terrain | null = null;
@@ -180,6 +303,8 @@ export class World {
   readonly tracks = new Tracks();
   readonly coreMarks = new CoreMarks();
   private craters: CraterField | null = null;
+  /** Sample sites, starts and the depot (local x, north): firm ground, no craters. */
+  private clearPoints: Array<[number, number]> = [];
   private readonly devils: DustDevil[] = [];
   private markers = new Map<string, TargetMarker>();
   private albedoGrey: {
@@ -192,6 +317,15 @@ export class World {
   } | null = null;
   readonly wind = new Vector3(1.6, 0, -0.6);
   private time = 0;
+  private photoPass: ShaderPass;
+  /** Dust storm strength (0–1) and the clear-sky values it scales. */
+  private storm = 0;
+  private readonly clearFog = LIGHT.haze;
+  /** SuperCam: the beam, the plasma's glow and light, and the rock being analysed. */
+  private readonly laserBeam: Mesh;
+  private readonly laserFlash: Mesh;
+  private readonly laserLight = new PointLight(0xd8c8ff, 0, 4, 2);
+  private laser: { at: Vector3; progress: number } | null = null;
   private readonly cfg: (typeof QUALITY)[Quality];
   areaId: string | null = null;
 
@@ -204,14 +338,16 @@ export class World {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.cfg.pixelRatio));
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.95;
+    this.renderer.toneMappingExposure = LIGHT.exposure;
+    installHeightHaze();
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFShadowMap;
     host.appendChild(this.renderer.domElement);
     this.renderer.domElement.style.display = 'block';
     this.rig = new CameraRig(this.camera, this.renderer.domElement);
 
-    this.scene.fog = new FogExp2(HORIZON_LINEAR.clone().multiplyScalar(1.12), 0.000045);
+    // Dust haze, thinning with height (atmosphere.ts), the colour of the horizon sky.
+    this.scene.fog = new FogExp2(HORIZON_LINEAR.clone().multiplyScalar(LIGHT.sky), LIGHT.haze);
     this.scene.add(this.sun, this.sun.target);
     this.sun.castShadow = true;
     const sh = this.sun.shadow;
@@ -243,6 +379,39 @@ export class World {
     this.grade = new ShaderPass(GradeShader);
     this.composer.addPass(this.grade);
     this.composer.addPass(new OutputPass());
+    this.photoPass = new ShaderPass(PhotoShader);
+    this.photoPass.enabled = false;
+    this.composer.addPass(this.photoPass);
+
+    // Laser: a thin beam (the real one is infrared, invisible: drawn so it can be seen) and the
+    // plasma spark on the rock. The light exists from the start (adding one later would
+    // recompile every material).
+    const beamGeo = new CylinderGeometry(0.006, 0.006, 1, 6, 1, true);
+    beamGeo.translate(0, 0.5, 0);
+    beamGeo.rotateX(Math.PI / 2);
+    this.laserBeam = new Mesh(
+      beamGeo,
+      new MeshBasicMaterial({
+        color: new Color(3, 0.6, 1.2),
+        transparent: true,
+        opacity: 0.55,
+        blending: AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    this.laserBeam.visible = false;
+    this.laserBeam.frustumCulled = false;
+    this.laserFlash = new Mesh(
+      new SphereGeometry(0.035, 12, 8),
+      new MeshBasicMaterial({
+        color: new Color(9, 8, 12),
+        transparent: true,
+        blending: AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    this.laserFlash.visible = false;
+    this.scene.add(this.laserBeam, this.laserFlash, this.laserLight);
     this.resize();
   }
 
@@ -254,7 +423,10 @@ export class World {
     this.renderer.setSize(w, h);
     this.composer.setSize(w, h);
     this.composer.setPixelRatio(this.renderer.getPixelRatio());
+    const pr = this.renderer.getPixelRatio();
+    (this.grade.uniforms.uTexel as { value: Vector2 }).value.set(1 / (w * pr), 1 / (h * pr));
     this.dust.setViewportHeight(h * this.renderer.getPixelRatio(), this.camera.fov);
+    (this.photoPass.uniforms.uAspect as { value: number }).value = w / h;
   }
 
   async loadRover(url: string): Promise<void> {
@@ -290,12 +462,11 @@ export class World {
     const frame = new LocalFrame(area.lat, area.lon);
     this.frame = frame;
     const greyCellM = area.detail.albedo.cellM ?? 0.5;
-    const craters = generateCraters(
-      id,
-      detail.widthM,
-      detail.heightM,
-      keepClear.map((p) => frame.toLocal(p.lat, p.lon)),
-    );
+    const clear = keepClear
+      .map((p) => frame.toLocal(p.lat, p.lon))
+      .filter(([x, n]) => Math.abs(x) < detail.widthM / 2 && Math.abs(n) < detail.heightM / 2);
+    this.clearPoints = clear;
+    const craters = generateCraters(id, detail.widthM, detail.heightM, clear);
     bakeCraters(craters, detail, {
       data: aDetail.grey,
       width: aDetail.width,
@@ -319,6 +490,7 @@ export class World {
       { detail: aDetail.texture, mid: aMid.texture, far: aFar.texture },
       this.quality !== 'low',
     );
+    this.terrainMesh.setClear(clear);
     this.tracks.setColour(ground.mean[0]!);
     this.scene.add(this.terrainMesh.mesh);
     const terrain = this.terrain;
@@ -343,12 +515,13 @@ export class World {
     const dir = sunDirection(az, el);
     this.sky?.dispose();
     if (this.sky) this.scene.remove(this.sky.mesh);
-    this.sky = new SkyDome(dir);
+    this.sky = new SkyDome(dir, LIGHT.sky);
+    this.sky.setStorm(this.storm);
     this.scene.add(this.sky.mesh);
     this.scene.background = null;
     this.scene.environment?.dispose();
     this.scene.environment = this.sky.environment(this.renderer);
-    this.scene.environmentIntensity = 0.75;
+    this.scene.environmentIntensity = LIGHT.environment * (1 - 0.35 * this.storm);
     this.sunDir.copy(dir);
   }
   private readonly sunDir = new Vector3(0, 1, 0);
@@ -384,6 +557,107 @@ export class World {
   }
 
   groundY = (x: number, z: number): number => (this.terrain ? this.terrain.heightAt(x, -z) : 0);
+
+  /** Soft sand at a local point (0–1): the terrain shader's sand drifts (deep sand). */
+  sandAt(x: number, north: number): number {
+    if (!this.terrain) return 0;
+    const m = this.brightness(x, north);
+    const slope = 1 - this.terrain.normalAt(x, north, 1)[1];
+    const n1 = vnoise(x * 0.045, north * 0.045);
+    const sand = smooth(0.42, 0.22, m + 0.22 * (n1 - 0.5)) * (1 - smooth(0.06, 0.16, slope));
+    let d = Infinity;
+    for (const [px, pn] of this.clearPoints) d = Math.min(d, Math.hypot(x - px, north - pn));
+    return (
+      sand *
+      smooth(0.6, 0.8, vnoise(x * 0.02 + 7, north * 0.02 + 7)) *
+      smooth(CLEAR_INNER_M, CLEAR_OUTER_M, d)
+    );
+  }
+
+  // ---------- dust storm ----------
+
+  /**
+   * Dust storm strength (0 clear … 1 full):
+   * - the haze closes in (visibility of a few hundred metres);
+   * - the sky and the Sun dim and redden;
+   * - dust streams past;
+   * - the dust devils are swallowed.
+   */
+  setStorm(s: number): void {
+    this.storm = Math.min(1, Math.max(0, s));
+    const k = this.storm;
+    const fog = this.scene.fog as FogExp2;
+    fog.density = this.clearFog * (1 + k * 30);
+    fog.color.copy(HORIZON_LINEAR).multiplyScalar(LIGHT.sky * (1 - 0.42 * k));
+    this.sun.intensity = LIGHT.sun * (1 - 0.62 * k);
+    this.scene.environmentIntensity = LIGHT.environment * (1 - 0.35 * k);
+    this.sky?.setStorm(k);
+    (this.grade.uniforms.uStorm as { value: number }).value = k;
+    for (const d of this.devils) d.mesh.visible = d.mesh.visible && k < 0.3;
+  }
+
+  get stormLevel(): number {
+    return this.storm;
+  }
+
+  // ---------- SuperCam laser ----------
+
+  /**
+   * The rock SuperCam would aim at: the one nearest the centre of the view, within its range of
+   * the mast and in front of the camera.
+   */
+  laserTarget(rangeM: number): Rock | null {
+    if (!this.rocks || !this.rover) return null;
+    const head = this.rover.toWorld(this.tmp.set(-0.57, 2.06, 0.7), this.tmp3);
+    const fwd = this.camera.getWorldDirection(this.tmp2).setY(0).normalize();
+    let best: Rock | null = null;
+    let bestScore = Infinity;
+    for (const r of this.rocks.near(head.x, -head.z, rangeM, this.nearRocks)) {
+      if (r.radiusM < 0.07) continue;
+      const dx = r.x - head.x;
+      const dz = -r.north - head.z;
+      const d = Math.hypot(dx, dz);
+      if (d > rangeM || d < 1.2) continue;
+      const cos = (dx * fwd.x + dz * fwd.z) / d;
+      if (cos < 0.82) continue; // within ~35° of the view's centre
+      const score = (1 - cos) * 6 + d / rangeM;
+      if (score < bestScore) {
+        bestScore = score;
+        best = r;
+      }
+    }
+    return best;
+  }
+  private readonly nearRocks: Rock[] = [];
+
+  /** World point on top of a rock (where the laser hits). */
+  rockTop(r: Rock, target: Vector3): Vector3 {
+    return target.set(r.x, r.y + r.sy * 0.9, -r.north);
+  }
+
+  /** The laser at work on a point (progress 0–1), or off. */
+  setLaser(at: Vector3 | null, progress = 0): void {
+    this.laser = at ? { at: at.clone(), progress } : null;
+  }
+
+  // ---------- photo mode ----------
+
+  setPhotoFilter(f: PhotoFilter): void {
+    const mode = PHOTO_FILTERS.indexOf(f);
+    (this.photoPass.uniforms.uMode as { value: number }).value = mode;
+    this.photoPass.enabled = mode > 0;
+  }
+
+  /** Renders a frame and returns it as an image (read before the browser clears the canvas). */
+  capture(): HTMLCanvasElement {
+    this.composer.render(0);
+    const src = this.renderer.domElement;
+    const out = document.createElement('canvas');
+    out.width = src.width;
+    out.height = src.height;
+    out.getContext('2d')!.drawImage(src, 0, 0);
+    return out;
+  }
 
   // ---------- targets ----------
 
@@ -433,6 +707,7 @@ export class World {
 
   private readonly tmp = new Vector3();
   private readonly tmp2 = new Vector3();
+  private readonly tmp3 = new Vector3();
   private readonly across = new Vector3();
   private readonly drill = new Vector3();
   private lastPose: ScenePose | null = null;
@@ -462,10 +737,14 @@ export class World {
   frameUpdate(
     dt: number,
     pose: ScenePose,
-    motion: { speed: number; yawRate: number; distanceM: number },
+    motion: { speed: number; yawRate: number; distanceM: number; slip?: number; sinkage?: number },
     coring: number | null,
   ): void {
     this.time += dt;
+    // Sinking into soft sand: the body sits lower, the wheels spin faster than they move.
+    pose = { ...pose, y: pose.y - (motion.sinkage ?? 0) * 0.12 };
+    const slip = motion.slip ?? 0;
+    const spinM = motion.distanceM / Math.max(0.15, 1 - slip);
     const rover = this.rover;
     const terrain = this.terrain;
     if (rover && terrain) {
@@ -476,7 +755,7 @@ export class World {
         rover.wheelWorld(i, this.tmp);
         return this.surfaceAt(this.tmp.x, -this.tmp.z) - this.tmp.y;
       });
-      rover.animateWheels(motion.distanceM, motion.yawRate, motion.speed, dt, lift);
+      rover.animateWheels(spinM, motion.yawRate, motion.speed, dt, lift);
       this.updateArm(rover, coring, dt);
       this.updateHead(rover, dt, motion, coring);
       // Wheel dust (mostly the rear wheels) and tracks.
@@ -485,7 +764,7 @@ export class World {
       for (const [i, w] of rover.wheels.entries()) {
         rover.wheelWorld(i, this.tmp);
         this.tmp.y = this.groundY(this.tmp.x, this.tmp.z);
-        if (sp > 0.3 && Math.random() < dt * sp * (w.row === 2 ? 5 : 1.5)) {
+        if (sp > 0.3 && Math.random() < dt * sp * (w.row === 2 ? 5 : 1.5) * (1 + 3 * slip)) {
           this.tmp2.set(
             -Math.sin(pose.headingRad) * sp * 0.25 + (Math.random() - 0.5) * 0.6,
             0.3 + Math.random() * 0.5 * Math.min(1, sp / 6),
@@ -498,14 +777,13 @@ export class World {
             1.4 + Math.random() * 1.4,
           );
         }
-        if (w.row === 0)
-          this.tracks.add(w.side > 0 ? 0 : 1, this.tmp, this.across, this.trackGround);
+        this.tracks.add(i, this.tmp, this.across, this.trackGround);
       }
     }
     this.lastPose = pose;
     // Dust devils: keep a few crossing the plain at a distance.
     for (const d of this.devils) {
-      if (!d.alive && Math.random() < dt * 0.05) {
+      if (!d.alive && this.storm < 0.3 && Math.random() < dt * 0.05) {
         const a = Math.random() * Math.PI * 2;
         const r = 250 + Math.random() * 700;
         this.tmp.set(pose.x + Math.cos(a) * r, 0, pose.z + Math.sin(a) * r);
@@ -514,8 +792,72 @@ export class World {
       }
       d.update(dt, this.groundY);
     }
-    this.dust.update(dt, this.wind);
+    // Storm: dust streaming past the camera.
+    if (this.storm > 0.05) {
+      const c = this.camera.position;
+      // Fine grains streaming past, near the camera.
+      const n = Math.floor(dt * 260 * this.storm + Math.random());
+      for (let i = 0; i < n; i++) {
+        this.tmp.set(c.x + (Math.random() - 0.5) * 24, 0, c.z + (Math.random() - 0.5) * 24);
+        this.tmp.y = this.groundY(this.tmp.x, this.tmp.z) + Math.random() * 5;
+        this.tmp2.copy(this.wind).multiplyScalar(5 + 5 * this.storm);
+        this.dust.emit(this.tmp, this.tmp2, 0.05 + Math.random() * 0.12, 1 + Math.random() * 1.5);
+      }
+    }
+    // Fine dust always hanging in the air.
+    {
+      const c = this.camera.position;
+      const n = Math.floor(dt * 22 + Math.random());
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 2 + Math.random() * 14;
+        this.tmp.set(c.x + Math.cos(a) * r, 0, c.z + Math.sin(a) * r);
+        this.tmp.y = Math.max(
+          this.groundY(this.tmp.x, this.tmp.z) + 0.2,
+          c.y - 3 + Math.random() * 6,
+        );
+        this.tmp2.copy(this.wind).multiplyScalar(0.4 + Math.random() * 0.4);
+        this.dust.emit(this.tmp, this.tmp2, 0.012 + Math.random() * 0.025, 3 + Math.random() * 4);
+      }
+    }
+    this.updateLaser();
+    this.dust.update(
+      dt,
+      this.storm > 0.05 ? this.tmp2.copy(this.wind).multiplyScalar(1 + 5 * this.storm) : this.wind,
+    );
     for (const m of this.markers.values()) m.update(this.time);
+  }
+
+  /** Beam from the mast head to the rock, pulsing; a spark and a puff on each pulse. */
+  private updateLaser(): void {
+    const l = this.laser;
+    const rover = this.rover;
+    const on = !!l && !!rover && l.progress > 0.25 && l.progress < 0.92;
+    this.laserBeam.visible = on;
+    this.laserFlash.visible = on;
+    if (!on || !l || !rover) {
+      this.laserLight.intensity = 0;
+      return;
+    }
+    // About 10 pulses a second in the game (SuperCam fires up to 10 Hz).
+    const pulse = Math.max(0, Math.sin(this.time * 2 * Math.PI * 10));
+    rover.headLensWorld(this.tmp);
+    this.laserBeam.position.copy(this.tmp);
+    this.laserBeam.lookAt(l.at);
+    this.laserBeam.scale.set(1, 1, this.tmp.distanceTo(l.at));
+    (this.laserBeam.material as MeshBasicMaterial).opacity = 0.25 + 0.5 * pulse;
+    this.laserFlash.position.copy(l.at);
+    this.laserFlash.scale.setScalar(0.6 + 1.6 * pulse);
+    this.laserLight.position.copy(l.at).y += 0.05;
+    this.laserLight.intensity = 2.5 * pulse;
+    if (pulse > 0.95 && Math.random() < 0.5) {
+      this.tmp2.set(
+        (Math.random() - 0.5) * 0.3,
+        0.2 + Math.random() * 0.3,
+        (Math.random() - 0.5) * 0.3,
+      );
+      this.dust.emit(l.at, this.tmp2, 0.03 + Math.random() * 0.04, 0.8 + Math.random() * 0.6);
+    }
   }
 
   /** Arm, drill dust, the turret's lights and the mark left on the ground. */
@@ -562,7 +904,12 @@ export class World {
     let pan: number;
     let tilt: number;
     const moving = Math.abs(motion.speed) > 0.1 || Math.abs(motion.yawRate) > 0.05;
-    if (coring !== null) {
+    if (this.laser) {
+      rover.toLocal(this.laser.at, this.tmp).sub(rover.headPivot);
+      pan = Math.atan2(this.tmp.x, this.tmp.z);
+      tilt = Math.atan2(-(this.tmp.y - 0.11), Math.hypot(this.tmp.x, this.tmp.z));
+      h.idleS = 0;
+    } else if (coring !== null) {
       rover.toLocal(this.drill, this.tmp).sub(rover.headPivot);
       pan = Math.atan2(this.tmp.x, this.tmp.z);
       tilt = Math.atan2(-(this.tmp.y - 0.11), Math.hypot(this.tmp.x, this.tmp.z));
@@ -596,8 +943,9 @@ export class World {
     // Servo speeds of the mast's actuators.
     const step = (cur: number, target: number, rate: number) =>
       cur + Math.max(-rate * dt, Math.min(rate * dt, target - cur));
-    h.pan = step(h.pan, pan, 1.1);
-    h.tilt = step(h.tilt, tilt, 0.8);
+    const fast = this.laser ? 2.2 : 1;
+    h.pan = step(h.pan, pan, 1.1 * fast);
+    h.tilt = step(h.tilt, tilt, 0.8 * fast);
     rover.setHead(h.pan, h.tilt);
   }
 
@@ -618,6 +966,7 @@ export class World {
       this.sun.position.set(cx, p.y, cz).addScaledVector(this.sunDir, 300);
     }
     (this.grade.uniforms.uTime as { value: number }).value = this.time % 100;
+    (this.photoPass.uniforms.uTime as { value: number }).value = this.time % 100;
     this.composer.render(dt);
   }
 
