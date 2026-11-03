@@ -1,6 +1,7 @@
 import { DEG_TO_RAD } from '@copernico/domain';
 import { DATA_VERSION, dataUrl } from '../../config';
 import { M_PER_DEG } from '../../lib/math';
+import { microRelief } from './features';
 
 /**
  * The game world's terrain data (data/build/game, scripts/geospatial/copernico_geo/game.py): per
@@ -162,7 +163,10 @@ export function edgeWeight(l: HeightLayer, x: number, north: number, rampM: numb
 export const DETAIL_RAMP_M = 40;
 export const MID_RAMP_M = 600;
 
-/** The three layers combined as the terrain shader combines them: far, then mid, then detail. */
+/**
+ * The three layers combined as the terrain shader combines them: far, then mid, then detail (plus
+ * its micro-relief, at full strength: the shader fades it only far from the camera).
+ */
 export class Terrain {
   constructor(
     readonly detail: HeightLayer,
@@ -175,7 +179,7 @@ export class Terrain {
     const wm = edgeWeight(this.mid, x, north, MID_RAMP_M);
     if (wm > 0) h += ((sampleBilinear(this.mid, x, north) ?? h) - h) * wm;
     const wd = edgeWeight(this.detail, x, north, DETAIL_RAMP_M);
-    if (wd > 0) h += ((sampleBicubic(this.detail, x, north) ?? h) - h) * wd;
+    if (wd > 0) h += ((sampleBicubic(this.detail, x, north) ?? h) - h + microRelief(x, north)) * wd;
     return h;
   }
 

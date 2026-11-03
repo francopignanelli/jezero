@@ -19,6 +19,7 @@ import {
   type PerspectiveCamera,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
+import { GLSL_MICRO } from './features';
 import { DETAIL_RAMP_M, MID_RAMP_M, type HeightLayer, type Terrain } from './heights';
 
 /**
@@ -31,6 +32,13 @@ import { DETAIL_RAMP_M, MID_RAMP_M, type HeightLayer, type Terrain } from './hei
  * slope and by the orbital brightness (HiRISE where the rover drives, CTX beyond), sampled twice
  * with per-region offsets to hide their repetition; the orbital image also modulates them, so the
  * real large-scale pattern (dark sand, bright bedrock) shows through.
+ *
+ * Generated detail on top (TERRAIN_FX, off on low quality):
+ * - Near the camera: Jezero's polygonal fractured bedrock slabs, and wind ripples in the sand.
+ * - On distant slopes: rugged relief shading.
+ * - On slopes at any distance: layering.
+ * Heights also gain generated relief: the micro-relief (features.ts) near the camera, and ridged
+ * relief on the real slopes outside the 1 m model only.
  */
 
 const N = 32; // quads per patch side
@@ -110,12 +118,39 @@ const GLSL_HEIGHT = /* glsl */ `
     }
     return h;
   }
+  ${GLSL_MICRO}
+  /** Ridged relief (m) on the real slopes; octaves kept while the mesh can resolve them. */
+  float mountainRelief(vec2 p) {
+    float gx = hBilinear(tHFar, uFarInfo, p + vec2(150.0, 0.0)) - hBilinear(tHFar, uFarInfo, p - vec2(150.0, 0.0));
+    float gy = hBilinear(tHFar, uFarInfo, p + vec2(0.0, 150.0)) - hBilinear(tHFar, uFarInfo, p - vec2(0.0, 150.0));
+    float relief = 3.0 + 120.0 * smoothstep(0.02, 0.35, length(vec2(gx, gy)) / 300.0);
+    float d = max(length(p - uCam.xy), 1.0);
+    float h = 0.0, amp = 0.5, lambda = 1400.0;
+    for (int i = 0; i < 5; i++) {
+      // The coarsest mesh drawn at distance d has about d/35 m between vertices.
+      float w = smoothstep(3.0, 7.0, lambda * 35.0 / d);
+      if (w > 0.0) h += amp * w * (0.5 - abs(valueNoiseI(p / lambda + vec2(float(i) * 7.3, 3.1))));
+      amp *= 0.5;
+      lambda *= 0.42;
+    }
+    return h * relief;
+  }
   float terrainH(vec2 p) {
     float h = hBilinear(tHFar, uFarInfo, p);
     float wm = edgeW(uMidInfo, p, ${MID_RAMP_M.toFixed(1)});
     if (wm > 0.0) h = mix(h, hBilinear(tHMid, uMidInfo, p), wm);
     float wd = edgeW(uDetailInfo, p, ${DETAIL_RAMP_M.toFixed(1)});
-    if (wd > 0.0) h = mix(h, hBicubic(tHDetail, uDetailInfo, p), wd);
+    if (wd > 0.0) {
+      h = mix(h, hBicubic(tHDetail, uDetailInfo, p), wd);
+      // Micro-relief. Its octaves fade where the mesh gets too coarse. The fade depends on
+      // distance, not on level, so it is the same for every level and neighbouring levels meet.
+      float d = length(p - uCam.xy);
+      vec2 fade = vec2(1.0 - smoothstep(30.0, 55.0, d), 1.0 - smoothstep(12.0, 28.0, d));
+      h += microRelief(p, fade) * wd;
+    }
+    // Outside the 1 m model only (the rover never drives there).
+    float dOut = max(abs(p.x) - uDetailInfo.x * 0.5, abs(p.y) - uDetailInfo.y * 0.5);
+    if (dOut > 0.0) h += mountainRelief(p) * smoothstep(0.0, 500.0, dOut);
     return h;
   }
 `;
@@ -127,6 +162,7 @@ const VERTEX_PARS = /* glsl */ `
   varying vec2 vP;
   varying float vSpacing;
   varying vec3 vWorldN;
+  varying float vH;
   ${GLSL_HEIGHT}
 `;
 
@@ -140,13 +176,14 @@ const VERTEX_MAIN = /* glsl */ `
   float k = clamp((dist - range * 0.55) / (range * 0.4), 0.0, 1.0);
   p -= fract(grid * 0.5) * 2.0 / ${N.toFixed(1)} * node.z * k;
   float h = terrainH(p);
-  float e = max(node.z / ${N.toFixed(1)}, 0.5);
+  float e = max(node.z / ${N.toFixed(1)}, 0.25);
   float hx = terrainH(p + vec2(e, 0.0)) - terrainH(p - vec2(e, 0.0));
   float hn = terrainH(p + vec2(0.0, e)) - terrainH(p - vec2(0.0, e));
   vec3 objectNormal = normalize(vec3(-hx, 2.0 * e, hn));
   vP = p;
   vSpacing = node.z / ${N.toFixed(1)};
   vWorldN = objectNormal;
+  vH = h;
   vec3 terrainPos = vec3(p.x, h, -p.y);
 `;
 
@@ -164,6 +201,7 @@ const FRAGMENT_PARS = /* glsl */ `
   varying vec2 vP;
   varying float vSpacing;
   varying vec3 vWorldN;
+  varying float vH;
 
   float hash12(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -205,6 +243,63 @@ const FRAGMENT_PARS = /* glsl */ `
     nrm = normalize(mix(na, nb, t));
   }
   vec3 gDetailNormal = vec3(0.0, 0.0, 1.0);
+
+  vec2 hash22(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.xx + p3.yz) * p3.zy);
+  }
+  /** Value noise in [-1, 1] and its derivatives (after I. Quilez). */
+  vec3 noised(vec2 x) {
+    vec2 i = floor(x), f = fract(x);
+    vec2 u = f * f * (3.0 - 2.0 * f), du = 6.0 * f * (1.0 - f);
+    float a = hash12(i), b = hash12(i + vec2(1, 0)), c = hash12(i + vec2(0, 1)), d = hash12(i + vec2(1, 1));
+    float k = a - b - c + d;
+    return vec3(a + (b - a) * u.x + (c - a) * u.y + k * u.x * u.y,
+                du * (vec2(b - a, c - a) + k * u.yx)) * 2.0 - vec3(1.0, 0.0, 0.0);
+  }
+  /** Voronoi cells with the exact border distance (after I. Quilez).
+   *  Returns x = distance to the nearest border, yz = unit direction from that border into the
+   *  cell, w = the cell's hash. */
+  vec4 slabs(vec2 x) {
+    vec2 n = floor(x), f = x - n;
+    vec2 mg = vec2(0.0), mr = vec2(0.0);
+    float md = 8.0;
+    for (int j = -1; j <= 1; j++)
+      for (int i = -1; i <= 1; i++) {
+        vec2 g = vec2(float(i), float(j));
+        vec2 r = g + hash22(n + g) * 0.8 + 0.1 - f;
+        float d = dot(r, r);
+        if (d < md) { md = d; mr = r; mg = g; }
+      }
+    md = 8.0;
+    vec2 dir = vec2(0.0, 1.0);
+    for (int j = -2; j <= 2; j++)
+      for (int i = -2; i <= 2; i++) {
+        vec2 g = mg + vec2(float(i), float(j));
+        vec2 r = g + hash22(n + g) * 0.8 + 0.1 - f;
+        vec2 dr = r - mr;
+        if (dot(dr, dr) > 1e-5) {
+          vec2 nb = normalize(dr);
+          float d = dot(0.5 * (mr + r), nb);
+          if (d < md) { md = d; dir = -nb; }
+        }
+      }
+    return vec4(md, dir, hash12(n + mg + 0.5));
+  }
+  /** Distances to the nearest and second-nearest cell points (for the fine cracks). */
+  vec2 cellF12(vec2 x) {
+    vec2 n = floor(x), f = x - n;
+    vec2 d = vec2(8.0);
+    for (int j = -1; j <= 1; j++)
+      for (int i = -1; i <= 1; i++) {
+        vec2 g = vec2(float(i), float(j));
+        vec2 r = g + hash22(n + g + 31.0) - f;
+        float dd = dot(r, r);
+        if (dd < d.x) d = vec2(dd, d.x); else if (dd < d.y) d.y = dd;
+      }
+    return sqrt(d);
+  }
 `;
 
 /** Replaces the standard material's colour with the layered ground. */
@@ -214,6 +309,8 @@ const FRAGMENT_COLOR = /* glsl */ `
   // uniform control flow, before the per-layer branches.
   vec2 gUv = vec2(vP.x, -vP.y);
   vec2 gDx = dFdx(gUv), gDy = dFdy(gUv);
+  float pxM = max(length(gDx), length(gDy)); // metres per pixel
+  float gFh = fwidth(vH);
   float m = macroLum(vP);
   float slope = 1.0 - clamp(vWorldN.y, 0.0, 1.0);
   float n1 = vnoise(vP * 0.045);
@@ -255,6 +352,88 @@ const FRAGMENT_COLOR = /* glsl */ `
   }
   // Fine dust variation in small patches.
   groundCol *= 0.92 + 0.16 * n3;
+  // Slopes (the delta's sediments, the crater walls): layering, and darker exposed rock.
+  float strataW = smoothstep(0.12, 0.35, slope);
+  if (strataW > 0.0) {
+    float b1 = sin(vH * 6.2832 / 9.0 + 3.0 * vnoise(vP * 0.004)) * (1.0 - smoothstep(1.5, 3.0, gFh));
+    float b2 = sin(vH * 6.2832 / 2.6 + 2.0 * vnoise(vP * 0.02)) * (1.0 - smoothstep(0.43, 0.87, gFh));
+    groundCol *= 1.0 + strataW * (0.08 * b1 + 0.035 * b2 - 0.1);
+  }
+#if TERRAIN_FX
+  vec3 fxN = vec3(0.0);
+  // Polygonal fractured bedrock, where the ground is bright, flat and not sandy.
+  float fxNear = 1.0 - smoothstep(35.0, 75.0, viewDist);
+  float wPave = smoothstep(0.43, 0.57, m + 0.4 * (vnoise(vP * 0.05 + 3.0) - 0.5))
+              * (1.0 - smoothstep(0.1, 0.3, slope)) * (1.0 - w.z) * fxNear;
+  if (wPave > 0.01) {
+    // Irregular plates: large cells (2.3 m), split by a second, finer crack network (0.95 m)
+    // only in places, with wobbly edges (domain warp at two scales).
+    const mat2 R = mat2(0.94, 0.34, -0.34, 0.94);
+    vec2 warp = 0.3 * vec2(vnoise(vP * 0.45), vnoise(vP * 0.45 + 9.0))
+              + 0.06 * vec2(vnoise(vP * 2.3 + 5.0), vnoise(vP * 2.3 - 3.0));
+    vec2 q = vP + warp;
+    vec4 s = slabs(R * q / 2.3);
+    float edgeM = s.x * 2.3;
+    vec2 dirW = s.yz * R; // back to east/north
+    float split = smoothstep(0.42, 0.6, vnoise(vP * 0.3 + 11.0));
+    if (split > 0.0) {
+      vec4 s2 = slabs(q / 0.95 + 0.5);
+      float e2 = s2.x * 0.95 + (1.0 - split) * 0.3;
+      if (e2 < edgeM) { edgeM = e2; dirW = s2.yz; }
+    }
+    float gap = 0.025 + 0.11 * pow(vnoise(vP * 0.8 + 4.0), 2.0);
+    float aa = pxM * 1.2 + 0.004;
+    // Some cells have eroded away to sand.
+    float slab = smoothstep(gap, gap + aa, edgeM) * step(0.16, s.w);
+    // Slab surface: the bedrock photo at a per-slab offset, so each slab shows its own patch;
+    // lighter, and dusty.
+    float sc = uGroundScale[3] * 0.8;
+    vec3 bed = textureGrad(tGround, vec3(gUv * sc + vec2(s.w * 7.1, s.w * 3.7), 3.0), gDx * sc, gDy * sc).rgb;
+    vec3 slabCol = mix(bed, groundCol, 0.4) * vec3(1.16, 1.07, 1.0) * (0.9 + 0.2 * fract(s.w * 17.3));
+    // Fine cracks within the slabs.
+    vec2 f12 = cellF12(vP / 0.45);
+    float fine = (1.0 - smoothstep(0.0, 0.05 + pxM * 2.5, f12.y - f12.x)) * (1.0 - smoothstep(0.015, 0.05, pxM));
+    slabCol *= 1.0 - 0.28 * fine;
+    // Between the slabs: sand, darker deep in the cracks (shadowed).
+    vec3 sandCol = uGroundMean[2] * (0.75 + 0.3 * n3) * mix(0.55, 1.0, smoothstep(0.0, gap, edgeM));
+    groundCol = mix(groundCol, mix(sandCol, slabCol, slab), wPave);
+    // Normals: slab edges rounded down towards the cracks, each slab slightly tilted.
+    float bevel = 1.0 - smoothstep(gap, gap + 0.08, edgeM);
+    vec2 tilt = (vec2(fract(s.w * 13.7), fract(s.w * 91.3)) - 0.5) * 0.12;
+    fxN.xy += (-dirW * bevel * 0.7 * slab + tilt * slab) * wPave;
+    gDetailNormal = normalize(mix(gDetailNormal, vec3(0.0, 0.0, 1.0), 0.35 * slab * wPave));
+  }
+  // Wind ripples in the sand: crests across the prevailing wind, steep lee faces.
+  float wRip = w.z * (1.0 - smoothstep(25.0, 60.0, viewDist)) * (1.0 - smoothstep(0.08, 0.2, pxM));
+  if (wRip > 0.01) {
+    vec2 wd = vec2(0.93, 0.37);
+    float lambda = 0.85;
+    float ph = dot(vP, wd) / lambda + 1.6 * vnoise(vP * 0.12) + 0.5 * vnoise(vP * 0.55 + 2.0);
+    float fr = fract(ph);
+    float dh = fr < 0.72 ? 1.0 / 0.72 : -1.0 / 0.28;
+    float hr = fr < 0.72 ? fr / 0.72 : (1.0 - fr) / 0.28;
+    fxN.xy -= wd * dh * (0.035 / lambda) * 2.2 * wRip;
+    groundCol *= 1.0 + 0.08 * (hr - 0.5) * wRip;
+  }
+  // Distant slopes: rugged relief shading (ridges and gullies finer than the mesh).
+  float farW = smoothstep(60.0, 220.0, viewDist);
+  if (farW > 0.0) {
+    float relief = 0.12 + 0.9 * smoothstep(0.04, 0.3, slope);
+    vec2 g = vec2(0.0);
+    float lambda = 420.0;
+    for (int i = 0; i < 6; i++) {
+      float vis = smoothstep(4.0, 8.0, lambda / max(pxM, 1e-3));
+      if (vis > 0.0) {
+        vec3 nd = noised(vP / lambda + vec2(float(i) * 5.1, 1.7));
+        // Ridged noise (0.5 − |n|) with an amplitude of 0.15 λ.
+        g += -sign(nd.x) * nd.yz * 0.15 * vis;
+      }
+      lambda *= 0.45;
+    }
+    fxN.xy += g * relief * farW;
+  }
+  gDetailNormal = normalize(gDetailNormal + vec3(fxN.xy, 0.0));
+#endif
   diffuseColor.rgb = groundCol * orb;
 `;
 
@@ -283,7 +462,7 @@ export class TerrainMesh {
   private readonly maxH: number;
   private count = 0;
 
-  constructor(terrain: Terrain, ground: GroundTextures, macro: MacroAlbedo) {
+  constructor(terrain: Terrain, ground: GroundTextures, macro: MacroAlbedo, fx = true) {
     // One N×N patch; positions are computed in the vertex shader.
     const g = new InstancedBufferGeometry();
     const grid = new Float32Array((N + 1) * (N + 1) * 2);
@@ -338,6 +517,7 @@ export class TerrainMesh {
     }
 
     const material = new MeshStandardMaterial({ roughness: 0.96, metalness: 0 });
+    material.defines = { TERRAIN_FX: fx ? 1 : 0 };
     material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
       Object.assign(shader.uniforms, this.uniforms);
       shader.vertexShader = shader.vertexShader
@@ -349,7 +529,7 @@ export class TerrainMesh {
         .replace('#include <map_fragment>', FRAGMENT_COLOR)
         .replace('#include <normal_fragment_maps>', FRAGMENT_NORMAL);
     };
-    material.customProgramCacheKey = () => 'copernico-terrain';
+    material.customProgramCacheKey = () => `copernico-terrain-${fx ? 1 : 0}`;
 
     this.mesh = new Mesh(g, material);
     this.mesh.frustumCulled = false;
@@ -361,8 +541,9 @@ export class TerrainMesh {
       if (v < lo) lo = v;
       if (v > hi) hi = v;
     }
-    this.minH = lo - 50;
-    this.maxH = hi + 50;
+    // The generated relief adds up to about ±60 m beyond the 1 m model.
+    this.minH = lo - 120;
+    this.maxH = hi + 120;
   }
 
   /** Selects the patches for this camera (call before rendering each frame). */

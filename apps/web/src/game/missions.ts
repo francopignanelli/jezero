@@ -46,8 +46,11 @@ export const DEPOT = { lat: 18.45296, lon: 77.40821, radiusM: 40 };
 export const SAMPLE_RADIUS_M = 14;
 /** The rover must be (nearly) stopped to core or drop tubes. */
 export const STOPPED_MPS = 0.3;
-/** One press of the action key runs the whole sequence: arm down, drill, arm up (seconds). */
-export const CORE_S = 4.2;
+/**
+ * One press of the action key runs the whole sequence (seconds): the arm unfolds, the drill cores,
+ * the arm folds back.
+ */
+export const CORE_S = 6;
 export const DEPOSIT_S = 2.5;
 /** Battery used by one coring (drill, percussion and sealing). */
 export const CORE_COST_PCT = 4;

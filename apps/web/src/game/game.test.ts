@@ -9,6 +9,14 @@ import {
   LocalFrame,
   type HeightsMeta,
 } from './world/heights';
+import {
+  CraterField,
+  bakeCraters,
+  craterProfile,
+  generateCraters,
+  latticeHash,
+  microRelief,
+} from './world/features';
 import { CLASSES, rocksInCell, type GroundInfo } from './world/rocks';
 import {
   CORE_S,
@@ -299,5 +307,71 @@ describe('game world data', () => {
       }
     }
     expect(bright).toBeGreaterThan(dark * 1.5);
+  });
+
+  it('craters: deterministic, clear of the sample sites, and baked as bowl and rim', () => {
+    const keep: Array<[number, number]> = [
+      [0, 0],
+      [300, -200],
+    ];
+    const a = generateCraters('floor', 1700, 1700, keep);
+    expect(generateCraters('floor', 1700, 1700, keep)).toEqual(a);
+    expect(a.length).toBeGreaterThan(80);
+    for (const c of a) {
+      for (const [x, n] of keep)
+        expect(Math.hypot(c.x - x, c.north - n)).toBeGreaterThan(c.radiusM * 2.4 + 18 - 1e-6);
+      // Inside the 1 m model, away from its edges.
+      expect(Math.abs(c.x) + c.radiusM * 3).toBeLessThan(850);
+    }
+    // Profile: below the surroundings at the centre, raised at the rim, nothing beyond 3 R.
+    const c = a[0]!;
+    expect(craterProfile(c, 0)).toBeLessThan(-c.depthM * 0.5);
+    expect(craterProfile(c, c.radiusM)).toBeGreaterThan(0);
+    expect(craterProfile(c, c.radiusM * 3.1)).toBe(0);
+    // Continuous at the rim crest.
+    expect(
+      Math.abs(craterProfile(c, c.radiusM * 0.9999) - craterProfile(c, c.radiusM * 1.0001)),
+    ).toBeLessThan(0.01);
+    const cols = 400;
+    const heights = {
+      cols,
+      rows: cols,
+      cellM: 1,
+      widthM: cols,
+      heightM: cols,
+      data: new Float32Array(cols * cols),
+    };
+    const one = { ...c, x: 0.5, north: -0.5, radiusM: 20 };
+    const grey = {
+      data: new Uint8Array(cols * cols).fill(128),
+      width: cols,
+      height: cols,
+      cellM: 1,
+    };
+    bakeCraters([one], heights, grey);
+    expect(heights.data[200 * cols + 200]!).toBeLessThan(-1);
+    expect(heights.data[200 * cols + 220]!).toBeGreaterThan(0);
+    // Boulders on the fresh rim, none far away.
+    const field = new CraterField([one]);
+    expect(field.rockiness(20.5, -0.5)).toBeGreaterThan(1);
+    expect(field.rockiness(150, 150)).toBe(0);
+  });
+
+  it('micro-relief: a lattice hash in [0, 1], centimetre bumps, smooth', () => {
+    for (let i = -5; i < 5; i++) {
+      const h = latticeHash(i * 9973, -i * 7);
+      expect(h).toBeGreaterThanOrEqual(0);
+      expect(h).toBeLessThanOrEqual(1);
+    }
+    let max = 0;
+    for (let k = 0; k < 2000; k++) {
+      const x = (k % 50) * 0.37 - 9;
+      const n = Math.floor(k / 50) * 0.41 - 8;
+      const h = microRelief(x, n);
+      max = Math.max(max, Math.abs(h));
+      expect(Math.abs(microRelief(x + 0.01, n) - h)).toBeLessThan(0.003);
+    }
+    expect(max).toBeGreaterThan(0.01);
+    expect(max).toBeLessThan(0.08);
   });
 });

@@ -842,7 +842,7 @@
       "power": "La batería se recarga despacio con la fuente de energía nuclear del rover (su MMRTG), más rápido si está parado.",
       "keys": "C cámara · M mapa · Esc pausa · arrastra para mirar alrededor · rueda para acercar."
     },
-    "realNote": "El terreno es el real, del modelo de elevación de 1 m de HiRISE, hasta el borde del cráter en el horizonte. Las texturas del suelo se recortan de los panoramas Mastcam-Z del propio Perseverance, y los sitios de muestreo son reales (NASA/JPL MMGIS). Las rocas, el polvo y las huellas son generados. Para que quepa en minutos, el juego va unas 140 veces más rápido que Perseverance (velocidad máxima 4,2 cm/s).",
+    "realNote": "El terreno es el real, del modelo de elevación de 1 m de HiRISE, hasta el borde del cráter en el horizonte. Las texturas del suelo se recortan de los panoramas Mastcam-Z del propio Perseverance, y los sitios de muestreo son reales (NASA/JPL MMGIS). Las rocas, los cráteres pequeños, el polvo y las huellas son generados. Para que quepa en minutos, el juego va unas 140 veces más rápido que Perseverance (velocidad máxima 4,2 cm/s).",
     "hud": {
       "battery": "Batería",
       "speed": "Velocidad",

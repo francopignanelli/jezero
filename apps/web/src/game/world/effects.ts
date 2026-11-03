@@ -3,10 +3,13 @@ import {
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
+  CircleGeometry,
+  ClampToEdgeWrapping,
   Color,
   CylinderGeometry,
   DoubleSide,
   DynamicDrawUsage,
+  Group,
   Mesh,
   MeshStandardMaterial,
   NormalBlending,
@@ -14,6 +17,7 @@ import {
   RepeatWrapping,
   ShaderMaterial,
   SRGBColorSpace,
+  Vector2,
   Vector3,
 } from 'three';
 
@@ -181,8 +185,9 @@ export class DustDevil {
           // Swirl: noise advected around the column, faster near the ground.
           vec2 q = vec2(vUv.x * 6.0 - uTime * (1.6 - y), y * 5.0 - uTime * 0.7);
           float s = n(q) * 0.6 + n(q * 2.3 + 4.0) * 0.4;
-          float rim = pow(1.0 - abs(dot(vN, vView)), 0.6);
-          float a = s * (0.35 + 0.65 * rim) * pow(1.0 - y, 0.8) * smoothstep(0.0, 0.08, y);
+          // pow() of a negative (interpolation can overshoot 1) is NaN: clamp.
+          float rim = pow(max(1.0 - abs(dot(vN, vView)), 0.0), 0.6);
+          float a = s * (0.35 + 0.65 * rim) * pow(max(1.0 - y, 0.0), 0.8) * smoothstep(0.0, 0.08, y);
           gl_FragColor = vec4(uColor * (0.85 + 0.3 * s), a * 0.38 * uFade);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
@@ -226,96 +231,167 @@ export class DustDevil {
   }
 }
 
-/** Grouser pattern of the wheel tracks (Perseverance's wheels have curved treads). */
-function treadTexture(): CanvasTexture {
-  const c = document.createElement('canvas');
-  c.width = 64;
-  c.height = 256;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = 'rgb(128,128,128)';
-  ctx.fillRect(0, 0, 64, 256);
-  for (let y = 0; y < 256; y += 32) {
-    ctx.strokeStyle = 'rgb(70,70,70)';
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.moveTo(0, y + 6);
-    ctx.quadraticCurveTo(32, y - 8, 64, y + 6);
-    ctx.stroke();
-    ctx.strokeStyle = 'rgb(175,175,175)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, y + 12);
-    ctx.quadraticCurveTo(32, y - 2, 64, y + 12);
-    ctx.stroke();
-  }
-  const t = new CanvasTexture(c);
-  t.wrapS = t.wrapT = RepeatWrapping;
-  t.anisotropy = 8;
-  return t;
+/** Length of ground covered by one repeat of the tread maps (m): 8 grouser imprints. */
+const TREAD_TILE_M = 0.5;
+
+/**
+ * Tread maps of a wheel rut, as Perseverance's wheels print them in soft ground. Across the rut:
+ * a berm of soil pushed aside on each side, and the compacted groove between them, crossed by the
+ * imprints of the curved grousers. Returns a normal map (from the relief) and a tone map (RGB:
+ * brightness multiplier, A: opacity).
+ */
+function treadMaps(): { normal: CanvasTexture; tone: CanvasTexture } {
+  const W = 64;
+  const H = 256;
+  const height = new Float32Array(W * H);
+  const tone = new Uint8ClampedArray(new ArrayBuffer(W * H * 4));
+  const GROOVE = [0.14, 0.86];
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const u = (x + 0.5) / W;
+      const v = (y + 0.5) / H;
+      let h: number;
+      let t: number;
+      let a: number;
+      if (u < GROOVE[0]! || u > GROOVE[1]!) {
+        // Berm: a rounded ridge, fading into the surroundings at the outer edge.
+        const b = u < GROOVE[0]! ? u / GROOVE[0]! : (1 - u) / (1 - GROOVE[1]!);
+        h = 0.55 * Math.sin(b * Math.PI) ** 0.8;
+        t = 1.1 + 0.06 * Math.sin(b * Math.PI);
+        a = 0.6 * Math.min(1, b * 2.2);
+      } else {
+        // Groove: compacted floor with the grouser imprints (curved, 8 per tile).
+        const across = (u - 0.5) / (GROOVE[1]! - 0.5);
+        const k = v * 8 + 0.35 * across * across;
+        const d = Math.abs(k - Math.round(k)); // 0 on an imprint line
+        const imprint = Math.max(0, 1 - d / 0.16);
+        const edge = Math.min(1, (GROOVE[1]! - 0.5 - Math.abs(u - 0.5)) / 0.08);
+        h = -0.45 * edge - 0.35 * imprint * imprint * edge;
+        t = 0.74 - 0.12 * imprint;
+        a = 0.88;
+      }
+      height[y * W + x] = h;
+      const o = (y * W + x) * 4;
+      tone[o] = tone[o + 1] = tone[o + 2] = Math.round(Math.min(1, t / 1.2) * 255);
+      tone[o + 3] = Math.round(a * 255);
+    }
+  const normal = new Uint8ClampedArray(new ArrayBuffer(W * H * 4));
+  const at = (x: number, y: number) => height[((y + H) % H) * W + Math.max(0, Math.min(W - 1, x))]!;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      // Height units: 1 ≈ 4 cm over a texel of ~8 mm (across) and ~2 mm (along).
+      const dx = (at(x + 1, y) - at(x - 1, y)) * 2.4;
+      const dy = (at(x, y + 1) - at(x, y - 1)) * 2.4;
+      const len = Math.hypot(dx, dy, 1);
+      const o = (y * W + x) * 4;
+      normal[o] = Math.round((-dx / len) * 127.5 + 127.5);
+      normal[o + 1] = Math.round((dy / len) * 127.5 + 127.5);
+      normal[o + 2] = Math.round((1 / len) * 127.5 + 127.5);
+      normal[o + 3] = 255;
+    }
+  const tex = (px: Uint8ClampedArray<ArrayBuffer>) => {
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    c.getContext('2d')!.putImageData(new ImageData(px, W, H), 0, 0);
+    const t = new CanvasTexture(c);
+    t.wrapS = ClampToEdgeWrapping;
+    t.wrapT = RepeatWrapping;
+    t.anisotropy = 8;
+    return t;
+  };
+  return { normal: tex(normal), tone: tex(tone) };
+}
+
+/** What the tracks need to know about the ground. */
+export interface TrackGround {
+  height(x: number, z: number): number;
+  /** Unit normal (world). */
+  normal(x: number, z: number, target: Vector3): Vector3;
+  /** How clearly a wheel prints here: 1 in soft soil and sand, low on bedrock and rocks. */
+  softness(x: number, z: number): number;
+}
+
+interface Ribbon {
+  pos: Float32Array;
+  nrm: Float32Array;
+  uv: Float32Array;
+  strength: Float32Array;
+  geometry: BufferGeometry;
+  count: number;
+  dist: number;
+  last: Vector3 | null;
 }
 
 /**
- * Wheel tracks: two ribbons (the rear wheels run in the front wheels' ruts), draped just above
- * the ground, slightly darker compacted soil with the tread pattern, fading at the oldest end.
+ * Wheel tracks: two ribbons (the middle and rear wheels run in the front wheels' ruts) draped on
+ * the ground, normal-mapped with the rut's relief and lit with the ground's own normals, so the
+ * berms and grouser imprints catch the low sunlight. Deeper in sand, faint on bedrock, none on
+ * rocks; the oldest end fades out.
  */
 export class Tracks {
   readonly meshes: Mesh[] = [];
-  private readonly sides: Array<{
-    pos: Float32Array;
-    uv: Float32Array;
-    alpha: Float32Array;
-    geometry: BufferGeometry;
-    count: number;
-    head: number;
-    dist: number;
-    last: Vector3 | null;
-  }> = [];
+  private readonly material: MeshStandardMaterial;
+  private readonly ribbons: Ribbon[] = [];
+  private readonly n = new Vector3();
 
   constructor(
-    private readonly maxPoints = 2400,
-    private readonly widthM = 0.3,
+    private readonly maxPoints = 6000,
+    private readonly widthM = 0.5,
   ) {
-    const tread = treadTexture();
-    const material = new MeshStandardMaterial({
-      color: new Color(0.3, 0.2, 0.14),
+    const maps = treadMaps();
+    this.material = new MeshStandardMaterial({
+      color: new Color(0.42, 0.25, 0.16),
       roughness: 1,
       transparent: true,
       depthWrite: false,
       polygonOffset: true,
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
-      alphaMap: tread,
-      bumpMap: tread,
-      bumpScale: 3,
+      map: maps.tone,
+      normalMap: maps.normal,
+      normalScale: new Vector2(1.3, 1.3),
     });
-    material.onBeforeCompile = (shader) => {
+    this.material.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
-          '#include <common>\nattribute float aFade;\nvarying float vFade;',
+          '#include <common>\nattribute float aStrength;\nvarying float vStrength;',
         )
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFade = aFade;');
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying float vFade;')
         .replace(
-          '#include <alphamap_fragment>',
-          'diffuseColor.a *= (0.3 + 0.4 * (1.0 - texture2D(alphaMap, vAlphaMapUv).g)) * vFade;',
+          '#include <begin_vertex>',
+          // Fade in over the oldest 120 points (vertices come in pairs).
+          `#include <begin_vertex>
+           vStrength = aStrength * min(1.0, float(gl_VertexID / 2) / 120.0);`,
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying float vStrength;')
+        .replace(
+          '#include <map_fragment>',
+          `vec4 tread = texture2D(map, vMapUv);
+           diffuseColor.rgb *= mix(1.0, tread.r * 1.2, vStrength);
+           diffuseColor.a *= tread.a * vStrength;`,
+        )
+        .replace(
+          '#include <normal_fragment_maps>',
+          `vec3 mapN = texture2D(normalMap, vNormalMapUv).xyz * 2.0 - 1.0;
+           mapN.xy *= normalScale * vStrength;
+           normal = normalize(tbn * mapN);`,
         );
     };
     for (let s = 0; s < 2; s++) {
-      const pos = new Float32Array(maxPoints * 2 * 3);
-      const uv = new Float32Array(maxPoints * 2 * 2);
-      const alpha = new Float32Array(maxPoints * 2);
+      const verts = maxPoints * 2;
+      const pos = new Float32Array(verts * 3);
+      const nrm = new Float32Array(verts * 3);
+      const uv = new Float32Array(verts * 2);
+      const strength = new Float32Array(verts);
       const geometry = new BufferGeometry();
       geometry.setAttribute('position', new BufferAttribute(pos, 3).setUsage(DynamicDrawUsage));
+      geometry.setAttribute('normal', new BufferAttribute(nrm, 3).setUsage(DynamicDrawUsage));
       geometry.setAttribute('uv', new BufferAttribute(uv, 2).setUsage(DynamicDrawUsage));
-      geometry.setAttribute('aFade', new BufferAttribute(alpha, 1).setUsage(DynamicDrawUsage));
       geometry.setAttribute(
-        'normal',
-        new BufferAttribute(
-          new Float32Array(maxPoints * 2 * 3).map((_, i) => (i % 3 === 1 ? 1 : 0)),
-          3,
-        ),
+        'aStrength',
+        new BufferAttribute(strength, 1).setUsage(DynamicDrawUsage),
       );
       const index: number[] = [];
       for (let i = 0; i < maxPoints - 1; i++) {
@@ -324,52 +400,77 @@ export class Tracks {
       }
       geometry.setIndex(index);
       geometry.setDrawRange(0, 0);
-      const mesh = new Mesh(geometry, material);
+      const mesh = new Mesh(geometry, this.material);
       mesh.frustumCulled = false;
       mesh.receiveShadow = true;
       mesh.renderOrder = 0;
       this.meshes.push(mesh);
-      this.sides.push({ pos, uv, alpha, geometry, count: 0, head: 0, dist: 0, last: null });
+      this.ribbons.push({ pos, nrm, uv, strength, geometry, count: 0, dist: 0, last: null });
     }
   }
 
+  /** Soil colour under the tracks (the ground's mean colour). */
+  setColour(c: Color): void {
+    this.material.color.copy(c).multiplyScalar(0.92);
+  }
+
   /**
-   * Adds a track point for each side: `at` is the wheel contact (world), `across` the rover's
-   * left direction (unit, horizontal), `ground` the terrain height function.
+   * Adds a track point for a side (0 left, 1 right): `at` is the wheel contact (world), `across`
+   * the rover's left direction (unit, horizontal).
    */
-  add(side: 0 | 1, at: Vector3, across: Vector3, ground: (x: number, z: number) => number): void {
-    const s = this.sides[side]!;
-    if (s.last && s.last.distanceToSquared(at) < 0.3 * 0.3) return;
-    if (s.last) s.dist += s.last.distanceTo(at);
+  add(side: 0 | 1, at: Vector3, across: Vector3, ground: TrackGround): void {
+    const s = this.ribbons[side]!;
+    const step = s.last ? s.last.distanceTo(at) : Infinity;
+    if (s.last && step < 0.25) return;
+    // A jump (a restart, a teleport): an invisible link to the new start.
+    const jump = step > 3;
+    if (s.last && !jump) s.dist += step;
     s.last = (s.last ?? new Vector3()).copy(at);
-    // Ring buffer of points: when full, drop the oldest by shifting (cheap enough at this rate).
+    let full = false;
     if (s.count === this.maxPoints) {
-      s.pos.copyWithin(0, 6);
-      s.uv.copyWithin(0, 4);
-      s.count--;
+      // Drop the oldest tenth at once (one full upload, then appends only).
+      const drop = Math.floor(this.maxPoints / 10);
+      s.pos.copyWithin(0, drop * 6);
+      s.nrm.copyWithin(0, drop * 6);
+      s.uv.copyWithin(0, drop * 4);
+      s.strength.copyWithin(0, drop * 2);
+      s.count -= drop;
+      full = true;
     }
     const i = s.count;
+    if (jump && i > 0) s.strength[(i - 1) * 2] = s.strength[(i - 1) * 2 + 1] = 0;
     const h = this.widthM / 2;
+    const soft = jump || i === 0 ? 0 : ground.softness(at.x, at.z);
     for (let k = 0; k < 2; k++) {
       const sign = k === 0 ? 1 : -1;
       const x = at.x + across.x * h * sign;
       const z = at.z + across.z * h * sign;
-      s.pos.set([x, ground(x, z) + 0.02, z], (i * 2 + k) * 3);
-      s.uv.set([k, s.dist / 0.32], (i * 2 + k) * 2);
+      const v = i * 2 + k;
+      s.pos.set([x, ground.height(x, z) + 0.012, z], v * 3);
+      ground.normal(x, z, this.n);
+      s.nrm.set([this.n.x, this.n.y, this.n.z], v * 3);
+      s.uv.set([k, s.dist / TREAD_TILE_M], v * 2);
+      s.strength[v] = soft;
     }
     s.count++;
-    for (let p = 0; p < s.count; p++) {
-      const f = Math.min(1, p / 120) * 0.85;
-      s.alpha[p * 2] = s.alpha[p * 2 + 1] = f;
+    for (const [name, size] of [
+      ['position', 3],
+      ['normal', 3],
+      ['uv', 2],
+      ['aStrength', 1],
+    ] as const) {
+      const attr = s.geometry.getAttribute(name) as BufferAttribute;
+      attr.clearUpdateRanges();
+      // Appends upload the last two points only (the previous one may have been edited).
+      if (!full) attr.addUpdateRange(Math.max(0, i - 1) * 2 * size, 4 * size);
+      attr.needsUpdate = true;
     }
-    for (const n of ['position', 'uv', 'aFade'])
-      (s.geometry.getAttribute(n) as BufferAttribute).needsUpdate = true;
     s.geometry.setDrawRange(0, Math.max(0, (s.count - 1) * 6));
   }
 
   /** Breaks the ribbons (after a jump, e.g. a mission restart). */
   clear(): void {
-    for (const s of this.sides) {
+    for (const s of this.ribbons) {
       s.count = 0;
       s.last = null;
       s.geometry.setDrawRange(0, 0);
@@ -378,7 +479,65 @@ export class Tracks {
 
   dispose(): void {
     for (const m of this.meshes) m.geometry.dispose();
-    (this.meshes[0]?.material as MeshStandardMaterial | undefined)?.dispose();
+    this.material.map?.dispose();
+    this.material.normalMap?.dispose();
+    this.material.dispose();
+  }
+}
+
+/** The ground mark a core leaves: a grey abraded patch, the borehole, a ring of cuttings. */
+function coreMarkTexture(): CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(25,22,22,1)');
+  g.addColorStop(0.16, 'rgba(30,26,25,1)');
+  g.addColorStop(0.2, 'rgba(150,140,134,1)');
+  g.addColorStop(0.5, 'rgba(135,124,116,0.95)');
+  g.addColorStop(0.62, 'rgba(120,96,80,0.75)');
+  g.addColorStop(0.8, 'rgba(150,108,80,0.45)');
+  g.addColorStop(1, 'rgba(150,108,80,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  const t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace;
+  return t;
+}
+
+/** Marks left where the rover cored (cleared with the area). */
+export class CoreMarks {
+  readonly group = new Group();
+  private readonly geometry = new CircleGeometry(0.16, 32);
+  private readonly material = new MeshStandardMaterial({
+    map: coreMarkTexture(),
+    transparent: true,
+    depthWrite: false,
+    roughness: 0.9,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3,
+  });
+
+  add(at: Vector3, normal: Vector3): void {
+    const m = new Mesh(this.geometry, this.material);
+    m.position.copy(at).addScaledVector(normal, 0.01);
+    m.lookAt(at.clone().add(normal));
+    m.rotateZ(Math.random() * Math.PI * 2);
+    m.receiveShadow = true;
+    m.renderOrder = 1;
+    this.group.add(m);
+  }
+
+  clear(): void {
+    this.group.clear();
+  }
+
+  dispose(): void {
+    this.clear();
+    this.geometry.dispose();
+    this.material.map?.dispose();
+    this.material.dispose();
   }
 }
 
@@ -426,7 +585,7 @@ export class TargetMarker {
           float fade = (1.0 - steep) * (1.0 - steep) * smoothstep(18.0, 60.0, length(toCam.xz));
           float edge = 1.0 - abs(vUv.x - 0.5) * 2.0;
           float pulse = 0.75 + 0.25 * sin(uTime * 2.0 - vUv.y * 12.0);
-          float a = pow(edge, 3.0) * pow(1.0 - vUv.y, 1.6) * pulse * uStrength * fade;
+          float a = pow(max(edge, 0.0), 3.0) * pow(max(1.0 - vUv.y, 0.0), 1.6) * pulse * uStrength * fade;
           gl_FragColor = vec4(uColor * a * 0.8, a);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>

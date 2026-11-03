@@ -842,7 +842,7 @@
       "power": "The battery recharges slowly from the rover's nuclear power source (its MMRTG), faster when stopped.",
       "keys": "C camera · M map · Esc pause · drag to look around · scroll to zoom."
     },
-    "realNote": "The terrain is the real one, from the HiRISE 1 m elevation model, out to the crater rim on the horizon. The ground textures are cut from Perseverance’s own Mastcam-Z panoramas, and the sample sites are real (NASA/JPL MMGIS). Rocks, dust and tracks are generated. To fit in minutes, the game drives about 140 times faster than Perseverance (top speed 4.2 cm/s).",
+    "realNote": "The terrain is the real one, from the HiRISE 1 m elevation model, out to the crater rim on the horizon. The ground textures are cut from Perseverance’s own Mastcam-Z panoramas, and the sample sites are real (NASA/JPL MMGIS). Rocks, small craters, dust and tracks are generated. To fit in minutes, the game drives about 140 times faster than Perseverance (top speed 4.2 cm/s).",
     "hud": {
       "battery": "Battery",
       "speed": "Speed",

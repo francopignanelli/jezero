@@ -18,7 +18,9 @@ import {
  * rover's physics see the same rocks without storing them. Sizes follow a power law (many small
  * stones, few boulders, as in rover rock counts); density follows the ground: more on bright
  * bedrock and slopes, few on dark sand. Shapes are noise-displaced spheres (rounded cobbles and
- * flat slabs), sunk into the ground, textured with the real bedrock photo and dusted on top.
+ * flat slabs), sunk into the ground, textured with the real bedrock photo and dusted on top; about
+ * a third are dark (basaltic float rocks, as scattered over Jezero's floor). Fresh crater rims and
+ * ejecta carry boulder fields.
  */
 
 export interface Rock {
@@ -34,6 +36,7 @@ export interface Rock {
   tiltZ: number;
   variant: number;
   tone: number;
+  dark: boolean;
   /** Top of the rock above the ground at its centre, and its footprint radius (m). */
   topM: number;
   radiusM: number;
@@ -44,6 +47,8 @@ export interface GroundInfo {
   /** 0 (dark sand) … 1 (bright bedrock) orbital brightness, and slope (1 − normal.y). */
   brightness(x: number, north: number): number;
   slope(x: number, north: number): number;
+  /** Extra rock density near features (crater rims and ejecta), 0 elsewhere. */
+  rockiness?(x: number, north: number): number;
 }
 
 interface SizeClass {
@@ -86,7 +91,9 @@ export function rocksInCell(i: number, j: number, cls: SizeClass, ground: Ground
   const slope = ground.slope(cx, cn);
   // Local density: sand has few rocks, bedrock and slopes many; a cluster factor varies it.
   const cluster = 0.35 + 1.3 * rand();
-  const terrain = Math.min(2.5, 0.45 + 1.4 * Math.max(0, bright - 0.3) + 4 * slope);
+  const terrain =
+    Math.min(2.5, 0.45 + 1.4 * Math.max(0, bright - 0.3) + 4 * slope) *
+    (1 + 1.3 * (ground.rockiness?.(cx, cn) ?? 0));
   const expected = cls.density * cls.cellM * cls.cellM * terrain * cluster;
   // Poisson sample.
   let count = 0;
@@ -120,6 +127,7 @@ export function rocksInCell(i: number, j: number, cls: SizeClass, ground: Ground
       tiltZ: (rand() - 0.5) * 0.5,
       variant: Math.floor(rand() * VARIANTS),
       tone: rand(),
+      dark: rand() < 0.32,
       topM: sy - sink,
       radiusM: 0.85 * Math.min(sx, sz),
     });
@@ -312,8 +320,10 @@ export class RockField {
             this.t.set(rock.x, rock.y, -rock.north);
             this.m.compose(this.t, this.q, this.s);
             mesh.setMatrixAt(counts[k]!, this.m);
-            const v = 0.75 + 0.45 * rock.tone;
-            mesh.setColorAt(counts[k]!, this.c.setRGB(v, v * (0.96 + 0.06 * rock.tone), v * 0.94));
+            const v = (rock.dark ? 0.42 : 0.75) + (rock.dark ? 0.2 : 0.45) * rock.tone;
+            if (rock.dark) this.c.setRGB(v * 0.92, v * 0.9, v * 0.9);
+            else this.c.setRGB(v, v * (0.96 + 0.06 * rock.tone), v * 0.94);
+            mesh.setColorAt(counts[k]!, this.c);
             counts[k]!++;
           }
         }

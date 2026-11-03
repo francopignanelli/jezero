@@ -19,10 +19,18 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { CameraRig, type CameraMode } from './cameraRig';
-import { DustDevil, DustParticles, TargetMarker, Tracks } from './effects';
+import {
+  CoreMarks,
+  DustDevil,
+  DustParticles,
+  TargetMarker,
+  Tracks,
+  type TrackGround,
+} from './effects';
+import { CraterField, bakeCraters, generateCraters } from './features';
 import { LocalFrame, Terrain, loadHeights, type AreaMeta, type WorldManifest } from './heights';
 import { RockField } from './rocks';
-import { Rover3D } from './rover3d';
+import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
 import { HORIZON_LINEAR, SkyDome, sunDirection } from './sky';
 import { TerrainMesh, type GroundTextures } from './terrain';
 import { loadGrey, loadGroundTextures } from './textures';
@@ -93,6 +101,52 @@ const GradeShader = {
     }`,
 };
 
+/** Part of the coring sequence (progress 0–1) during which the drill runs. */
+export const DRILL_PHASE: [number, number] = [0.38, 0.78];
+
+/**
+ * Arm keyframes over the coring progress:
+ * [progress, shoulder (× CORE_SHOULDER), elbow (× the ground-reaching angle), elbow offset (rad), wrist (rad)].
+ * The sequence:
+ * - Unfold, and turn the turret to the coring drill.
+ * - Hover, then press onto the ground.
+ * - Drill in a few centimetres.
+ * - Lift, holding the core up.
+ * - Fold back.
+ */
+const ARM_KEYS: Array<[number, number, number, number, number]> = [
+  [0, 0, 0, 0, 0],
+  [0.04, 0, 0, 0, 0],
+  [0.14, 0.5, 0.35, 0, 0],
+  [0.3, 1, 1, -0.14, Math.PI / 2],
+  [0.36, 1, 1, 0, Math.PI / 2],
+  [0.78, 1, 1, 0.035, Math.PI / 2],
+  [0.86, 0.8, 1, -0.34, Math.PI / 2],
+  [0.9, 0.8, 1, -0.34, Math.PI / 2],
+  [1, 0, 0, 0, 0],
+];
+
+const ease = (t: number) => {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+};
+
+function armPoseAt(c: number, coreElbow: number): ArmPose {
+  let k = 0;
+  while (k < ARM_KEYS.length - 2 && c > ARM_KEYS[k + 1]![0]) k++;
+  const a = ARM_KEYS[k]!;
+  const b = ARM_KEYS[k + 1]!;
+  const t = ease((c - a[0]) / (b[0] - a[0]));
+  const lerp = (i: number) => a[i]! + (b[i]! - a[i]!) * t;
+  const [d0, d1] = DRILL_PHASE;
+  return {
+    shoulder: lerp(1) * CORE_SHOULDER,
+    elbow: lerp(2) * coreElbow + lerp(3),
+    wrist: lerp(4),
+    drill: Math.min(1, Math.max(0, (c - d0) * 40, 0)) * (c < d1 ? 1 : 0),
+  };
+}
+
 export interface ScenePose {
   x: number;
   y: number;
@@ -124,6 +178,8 @@ export class World {
   rover: Rover3D | null = null;
   readonly dust = new DustParticles();
   readonly tracks = new Tracks();
+  readonly coreMarks = new CoreMarks();
+  private craters: CraterField | null = null;
   private readonly devils: DustDevil[] = [];
   private markers = new Map<string, TargetMarker>();
   private albedoGrey: {
@@ -169,6 +225,7 @@ export class World {
     sh.radius = 3;
     this.scene.add(this.dust.points);
     for (const m of this.tracks.meshes) this.scene.add(m);
+    this.scene.add(this.coreMarks.group);
     for (let i = 0; i < this.cfg.devils; i++) {
       const d = new DustDevil(110);
       this.devils.push(d);
@@ -205,8 +262,15 @@ export class World {
     this.scene.add(this.rover.root);
   }
 
-  /** Loads (or switches to) a mission area: terrain layers, orbital albedo, ground textures, rocks. */
-  async loadArea(manifest: WorldManifest, id: string): Promise<void> {
+  /**
+   * Loads (or switches to) a mission area: terrain layers, orbital albedo, ground textures, rocks,
+   * and the generated craters (kept clear of the `keepClear` points: sample sites, starts).
+   */
+  async loadArea(
+    manifest: WorldManifest,
+    id: string,
+    keepClear: Array<{ lat: number; lon: number }> = [],
+  ): Promise<void> {
     const area = manifest.areas.find((a) => a.id === id);
     if (!area) throw new Error(`no game area ${id}`);
     if (this.areaId === id) return;
@@ -223,21 +287,39 @@ export class World {
     this.ground = ground;
     this.unloadArea();
     this.areaId = id;
-    this.frame = new LocalFrame(area.lat, area.lon);
+    const frame = new LocalFrame(area.lat, area.lon);
+    this.frame = frame;
+    const greyCellM = area.detail.albedo.cellM ?? 0.5;
+    const craters = generateCraters(
+      id,
+      detail.widthM,
+      detail.heightM,
+      keepClear.map((p) => frame.toLocal(p.lat, p.lon)),
+    );
+    bakeCraters(craters, detail, {
+      data: aDetail.grey,
+      width: aDetail.width,
+      height: aDetail.height,
+      cellM: greyCellM,
+    });
+    aDetail.texture.needsUpdate = true;
+    this.craters = new CraterField(craters);
     this.terrain = new Terrain(detail, mid, far);
     this.albedoGrey = {
       grey: aDetail.grey,
       width: aDetail.width,
       height: aDetail.height,
-      cellM: area.detail.albedo.cellM ?? 0.5,
+      cellM: greyCellM,
       widthM: area.detail.heights.widthM,
       heightM: area.detail.heights.heightM,
     };
-    this.terrainMesh = new TerrainMesh(this.terrain, ground, {
-      detail: aDetail.texture,
-      mid: aMid.texture,
-      far: aFar.texture,
-    });
+    this.terrainMesh = new TerrainMesh(
+      this.terrain,
+      ground,
+      { detail: aDetail.texture, mid: aMid.texture, far: aFar.texture },
+      this.quality !== 'low',
+    );
+    this.tracks.setColour(ground.mean[0]!);
     this.scene.add(this.terrainMesh.mesh);
     const terrain = this.terrain;
     this.rocks = new RockField(
@@ -245,6 +327,7 @@ export class World {
         height: (x, n) => terrain.heightAt(x, n),
         brightness: (x, n) => this.brightness(x, n),
         slope: (x, n) => 1 - terrain.normalAt(x, n, 1.5)[1],
+        rockiness: (x, n) => this.craters?.rockiness(x, n) ?? 0,
       },
       ground.albedo,
       this.cfg.rocks,
@@ -252,6 +335,7 @@ export class World {
     for (const m of this.rocks.group) this.scene.add(m);
     this.setSun(area);
     this.tracks.clear();
+    this.coreMarks.clear();
   }
 
   private setSun(area: AreaMeta): void {
@@ -352,6 +436,24 @@ export class World {
   private readonly across = new Vector3();
   private readonly drill = new Vector3();
   private lastPose: ScenePose | null = null;
+  private markPlaced = false;
+  /** Mast head: current angles and the idle panorama's state. */
+  private readonly head = { pan: 0, tilt: 0.12, idleS: 0, shotS: 0, aim: 0, dir: 1 };
+
+  /** The ground as the tracks see it. */
+  private readonly trackGround: TrackGround = {
+    height: (x, z) => this.groundY(x, z),
+    normal: (x, z, target) => {
+      const n = this.terrain ? this.terrain.normalAt(x, -z, 0.5) : [0, 1, 0];
+      return target.set(n[0]!, n[1]!, n[2]!);
+    },
+    softness: (x, z) => {
+      if ((this.rocks?.rockLift(x, -z) ?? 0) > 0.02) return 0;
+      // Bright ground is mostly bedrock, where wheels barely print.
+      const b = this.brightness(x, -z);
+      return 1 - 0.55 * Math.min(1, Math.max(0, (b - 0.52) / 0.2));
+    },
+  };
 
   /**
    * Advances effects and renders. `pose`: rover origin (world) and attitude; `coring`: progress of
@@ -375,21 +477,8 @@ export class World {
         return this.surfaceAt(this.tmp.x, -this.tmp.z) - this.tmp.y;
       });
       rover.animateWheels(motion.distanceM, motion.yawRate, motion.speed, dt, lift);
-      // Arm sequence: down (0–0.3), drilling (0.3–0.8), back up (0.8–1).
-      const c = coring ?? 0;
-      const down = coring === null ? 0 : c < 0.3 ? c / 0.3 : c < 0.8 ? 1 : 1 - (c - 0.8) / 0.2;
-      const drilling = coring !== null && c >= 0.3 && c < 0.8 ? 1 : 0;
-      rover.setArm(down, drilling, this.time);
-      rover.toWorld(rover.drillTip, this.drill);
-      this.drill.y = Math.max(this.drill.y, this.groundY(this.drill.x, this.drill.z) + 0.05);
-      if (drilling && Math.random() < dt * 40) {
-        this.tmp2.set(
-          (Math.random() - 0.5) * 0.6,
-          0.25 + Math.random() * 0.4,
-          (Math.random() - 0.5) * 0.6,
-        );
-        this.dust.emit(this.drill, this.tmp2, 0.12 + Math.random() * 0.12, 1.6 + Math.random());
-      }
+      this.updateArm(rover, coring, dt);
+      this.updateHead(rover, dt, motion, coring);
       // Wheel dust (mostly the rear wheels) and tracks.
       const sp = Math.abs(motion.speed);
       this.across.set(Math.cos(pose.headingRad), 0, Math.sin(pose.headingRad)).multiplyScalar(-1);
@@ -409,7 +498,8 @@ export class World {
             1.4 + Math.random() * 1.4,
           );
         }
-        if (w.row === 0) this.tracks.add(w.side > 0 ? 0 : 1, this.tmp, this.across, this.groundY);
+        if (w.row === 0)
+          this.tracks.add(w.side > 0 ? 0 : 1, this.tmp, this.across, this.trackGround);
       }
     }
     this.lastPose = pose;
@@ -426,6 +516,89 @@ export class World {
     }
     this.dust.update(dt, this.wind);
     for (const m of this.markers.values()) m.update(this.time);
+  }
+
+  /** Arm, drill dust, the turret's lights and the mark left on the ground. */
+  private updateArm(rover: Rover3D, coring: number | null, dt: number): void {
+    const c = coring ?? 0;
+    const pose = coring === null ? armPoseAt(0, rover.coreElbow) : armPoseAt(c, rover.coreElbow);
+    rover.setArm(pose, this.time);
+    rover.root.updateMatrixWorld(true);
+    rover.drillTipWorld(this.drill);
+    const ground = this.groundY(this.drill.x, this.drill.z);
+    this.drill.y = Math.max(this.drill.y, ground + 0.03);
+    rover.led.visible = coring !== null && c > 0.28 && c < 0.88;
+    if (pose.drill > 0) {
+      // Cuttings thrown out by the percussive drill, more as it bites deeper.
+      const n = Math.random() < dt * 50 ? 1 + Math.floor(Math.random() * 2) : 0;
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const v = 0.3 + Math.random() * 0.5;
+        this.tmp2.set(Math.cos(a) * v, 0.15 + Math.random() * 0.35, Math.sin(a) * v);
+        this.tmp.set(this.drill.x, ground + 0.03, this.drill.z);
+        this.dust.emit(this.tmp, this.tmp2, 0.05 + Math.random() * 0.1, 1.2 + Math.random());
+      }
+    }
+    if (coring !== null && c > 0.6 && !this.markPlaced && this.terrain) {
+      this.markPlaced = true;
+      const n = this.terrain.normalAt(this.drill.x, -this.drill.z, 0.3);
+      this.tmp.set(this.drill.x, ground, this.drill.z);
+      this.coreMarks.add(this.tmp, this.tmp2.set(n[0], n[1], n[2]));
+    }
+    if (coring === null) this.markPlaced = false;
+  }
+
+  /**
+   * Mast head (Mastcam-Z): looks at the drill while coring, into turns while driving, and when
+   * parked takes a panorama, stepping across the view and pausing for each frame.
+   */
+  private updateHead(
+    rover: Rover3D,
+    dt: number,
+    motion: { speed: number; yawRate: number },
+    coring: number | null,
+  ): void {
+    const h = this.head;
+    let pan: number;
+    let tilt: number;
+    const moving = Math.abs(motion.speed) > 0.1 || Math.abs(motion.yawRate) > 0.05;
+    if (coring !== null) {
+      rover.toLocal(this.drill, this.tmp).sub(rover.headPivot);
+      pan = Math.atan2(this.tmp.x, this.tmp.z);
+      tilt = Math.atan2(-(this.tmp.y - 0.11), Math.hypot(this.tmp.x, this.tmp.z));
+      h.idleS = 0;
+    } else if (moving) {
+      // Clockwise yaw is a right turn: look right (negative pan).
+      pan = Math.max(-0.6, Math.min(0.6, -motion.yawRate * 0.7));
+      tilt = 0.14;
+      h.idleS = 0;
+    } else {
+      h.idleS += dt;
+      if (h.idleS < 1.5) {
+        pan = h.pan;
+        tilt = h.tilt;
+      } else {
+        h.shotS -= dt;
+        if (h.shotS <= 0) {
+          // Next frame of the panorama: one step along, turning back at the ends.
+          h.aim += h.dir * 0.42;
+          if (Math.abs(h.aim) > 1.45) {
+            h.dir = -h.dir;
+            h.aim += 2 * h.dir * 0.42;
+          }
+          h.shotS = 1.5;
+        }
+        pan = h.aim;
+        tilt = 0.06 + 0.07 * Math.sin(h.aim * 2.1);
+      }
+    }
+    if (!moving && coring === null && h.idleS < 1.5) h.aim = h.pan;
+    // Servo speeds of the mast's actuators.
+    const step = (cur: number, target: number, rate: number) =>
+      cur + Math.max(-rate * dt, Math.min(rate * dt, target - cur));
+    h.pan = step(h.pan, pan, 1.1);
+    h.tilt = step(h.tilt, tilt, 0.8);
+    rover.setHead(h.pan, h.tilt);
   }
 
   /** Camera, level of detail, shadows, then the frame. */
@@ -452,6 +625,7 @@ export class World {
     this.unloadArea();
     this.dust.dispose();
     this.tracks.dispose();
+    this.coreMarks.dispose();
     for (const d of this.devils) d.dispose();
     this.sky?.dispose();
     this.composer.dispose();

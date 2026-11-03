@@ -9,6 +9,7 @@ import {
   CORE_COST_PCT,
   CORE_S,
   DEPOSIT_S,
+  DEPOT,
   MISSIONS,
   STOPPED_MPS,
   isComplete,
@@ -33,7 +34,7 @@ import {
 } from './roverSim';
 import { EMPTY_HUD, useGame, type MissionResult } from './store';
 import { loadManifest, type WorldManifest } from './world/heights';
-import { World, type Quality } from './world/world';
+import { DRILL_PHASE, World, type Quality } from './world/world';
 
 const HUD_EVERY_S = 0.1;
 /** Where the rover waits, slowly circled by the camera, while a mission is chosen. */
@@ -152,7 +153,9 @@ export class GameSession {
   }
 
   private async useArea(id: string): Promise<void> {
-    await this.world.loadArea(this.manifest!, id);
+    // Generated craters keep clear of every sample site, mission start and the depot.
+    const keepClear = [...this.samples, ...MISSIONS.map((m) => m.start), DEPOT];
+    await this.world.loadArea(this.manifest!, id, keepClear);
     const f = this.world.frame!;
     const area = this.manifest!.areas.find((a) => a.id === id)!;
     const w = area.detail.heights.widthM / 2 - AREA_MARGIN_M;
@@ -336,7 +339,7 @@ export class GameSession {
     });
     this.audio.update(dt, {
       speed: phase === 'playing' ? Math.abs(r.speed) : 0,
-      drilling: coring !== null && coring > 0.3 && coring < 0.8,
+      drilling: coring !== null && coring > DRILL_PHASE[0] && coring < DRILL_PHASE[1],
       wind: phase !== 'loading' ? 1 : 0,
     });
     this.updateLabels();
