@@ -77,9 +77,15 @@ export class Controls {
    * On-screen pad buttons held, by pointer. Opposite buttons can be held at once: letting go of
    * one must not cancel the other.
    */
-  private readonly pads = new Map<number, 'left' | 'right' | 'forward' | 'back' | 'boost' | 'core'>();
+  private readonly pads = new Map<
+    number,
+    'left' | 'right' | 'forward' | 'back' | 'boost' | 'core'
+  >();
 
-  pad(pointerId: number, button: 'left' | 'right' | 'forward' | 'back' | 'boost' | 'core' | null): void {
+  pad(
+    pointerId: number,
+    button: 'left' | 'right' | 'forward' | 'back' | 'boost' | 'core' | null,
+  ): void {
     if (button) this.pads.set(pointerId, button);
     else this.pads.delete(pointerId);
     const held = new Set(this.pads.values());
