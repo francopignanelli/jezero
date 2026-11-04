@@ -12,6 +12,7 @@ import {
   type DataArrayTexture,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
+import { GROUND_WB } from './terrain';
 
 /**
  * Rocks: placed deterministically per ground cell (a hash of the cell), so the renderer and the
@@ -110,10 +111,11 @@ export function rocksInCell(i: number, j: number, cls: SizeClass, ground: Ground
     const north = cn + (rand() - 0.5) * cls.cellM;
     // Inverse CDF of a truncated power law.
     const d = cls.minM * (1 - rand() * (1 - ratio)) ** (-1 / a);
-    const slab = rand() < 0.35 + 0.4 * Math.max(0, bright - 0.5);
+    // The delta's sedimentary rock breaks into flat, tabular blocks.
+    const slab = rand() < 0.6 + 0.3 * Math.max(0, bright - 0.45);
     const sx = (d / 2) * (0.8 + 0.5 * rand());
     const sz = (d / 2) * (0.8 + 0.5 * rand());
-    const sy = (d / 2) * (slab ? 0.3 + 0.2 * rand() : 0.55 + 0.4 * rand());
+    const sy = (d / 2) * (slab ? 0.2 + 0.16 * rand() : 0.5 + 0.35 * rand());
     const sink = sy * (0.25 + 0.25 * rand());
     out.push({
       x,
@@ -190,6 +192,7 @@ export class RockField {
     const material = new MeshStandardMaterial({ roughness: 0.88, metalness: 0 });
     material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
       shader.uniforms.tGround = { value: texture };
+      shader.uniforms.uWB = { value: new Vector3(...GROUND_WB) };
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
@@ -207,6 +210,7 @@ export class RockField {
           `#include <common>
            precision highp sampler2DArray;
            uniform sampler2DArray tGround;
+           uniform vec3 uWB;
            varying vec3 vRockP;
            varying vec3 vRockN;`,
         )
@@ -220,12 +224,15 @@ export class RockField {
              vec3 tx = texture(tGround, vec3(vRockP.zy * sc, 3.0)).rgb;
              vec3 ty = texture(tGround, vec3(vRockP.xz * sc, 3.0)).rgb;
              vec3 tz = texture(tGround, vec3(vRockP.xy * sc, 3.0)).rgb;
-             vec3 tex = tx * bw.x + ty * bw.y + tz * bw.z;
+             vec3 tex = (tx * bw.x + ty * bw.y + tz * bw.z) * uWB;
              float lum = dot(tex, vec3(0.3, 0.59, 0.11));
              vec3 rock = mix(vec3(lum) * vec3(0.95, 0.82, 0.72), tex, 0.45) * diffuseColor.rgb;
              vec3 dust = vec3(0.42, 0.24, 0.13);
              float top = smoothstep(0.35, 0.9, vRockN.y);
-             diffuseColor.rgb = mix(rock, dust * (0.8 + 0.4 * lum), top * 0.75);
+             diffuseColor.rgb = mix(rock, dust * uWB * (0.8 + 0.4 * lum), top * 0.75);
+             // Thin layers across the sides (the delta's rocks are laminated).
+             float lam = sin(vRockP.y * 6.2832 / 0.035 + 3.0 * sin(dot(vRockP.xz, vec2(1.3, 0.7))));
+             diffuseColor.rgb *= 1.0 - 0.14 * smoothstep(0.55, 1.0, lam) * (1.0 - abs(vRockN.y));
            }`,
         );
     };

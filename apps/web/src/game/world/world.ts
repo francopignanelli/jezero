@@ -1,5 +1,4 @@
 import {
-  ACESFilmicToneMapping,
   AdditiveBlending,
   Color,
   CylinderGeometry,
@@ -8,6 +7,7 @@ import {
   HalfFloatType,
   Mesh,
   MeshBasicMaterial,
+  NeutralToneMapping,
   PCFShadowMap,
   PerspectiveCamera,
   PointLight,
@@ -18,6 +18,7 @@ import {
   Vector3,
   WebGLRenderer,
   WebGLRenderTarget,
+  type Material,
 } from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -26,18 +27,14 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { installHeightHaze } from './atmosphere';
 import { CameraRig, type CameraMode } from './cameraRig';
-import {
-  CoreMarks,
-  DustDevil,
-  DustParticles,
-  TargetMarker,
-  Tracks,
-  type TrackGround,
-} from './effects';
+import { CoreMarks, DustDevil, DustParticles, Tracks, type TrackGround } from './effects';
+import { Chips, Ledges, type DebrisGround } from './debris';
 import { CraterField, bakeCraters, generateCraters, toneCraters } from './features';
 import { LocalFrame, Terrain, loadHeights, type AreaMeta, type WorldManifest } from './heights';
 import { Ingenuity } from './ingenuity';
+import { SiteMarker, type MarkerKind, type MarkerLook } from './markers';
 import { RockField, type Rock } from './rocks';
+import { SunShadows, receiveSunShadow } from './sunShadow';
 import { DepotTubes, RouteLine } from './route';
 import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
 import { HORIZON_LINEAR, SkyDome, sunDirection } from './sky';
@@ -63,22 +60,19 @@ const QUALITY: Record<
 };
 
 /**
- * Light levels: Mars gets 43 % of Earth's sunlight through a dusty sky, so the scene is kept dim.
- * Little sky light fills the shadows, which keeps the relief well defined.
+ * Light levels, calibrated against the real Mastcam-Z panorama of Wildcat Ridge (the ground's
+ * brightness, contrast and colour at the same spot, measured on both): the dusty sky fills the
+ * shadows strongly (they stay at about 80 % of the lit ground there), and the tone mapping keeps
+ * the photos' hues (Khronos PBR Neutral; ACES reddened and darkened them).
  */
-const LIGHT = { sun: 2.75, environment: 0.5, exposure: 0.84, sky: 1.0, haze: 1.6e-4 };
+const LIGHT = { sun: 2.9, environment: 1.85, exposure: 1.0, sky: 1.0, haze: 1.1e-4 };
 
-/** Sun per area: a mid-morning Sun (compass azimuth, elevation), for long but not hard shadows. */
+/**
+ * Sun per area (compass azimuth, elevation): late morning in Jezero's southern summer (the sols
+ * of the delta-front campaign), where the Wildcat Ridge panorama's sky shows it.
+ */
 const SUN: Record<string, [number, number]> = {
-  delta: [118, 36],
-};
-
-/** Marker colours per kind of target. */
-const TARGET_COLOURS: Record<string, [number, number, number]> = {
-  sample: [1.0, 0.62, 0.25],
-  depot: [0.35, 0.75, 1.0],
-  panorama: [0.78, 0.55, 1.0],
-  reach: [1.0, 0.9, 0.55],
+  delta: [160, 42],
 };
 
 /**
@@ -309,6 +303,8 @@ export class World {
   private bloom: UnrealBloomPass | null = null;
   private grade: ShaderPass;
   private readonly sun = new DirectionalLight(0xfff0e0, LIGHT.sun);
+  /** Sky (environment) light before a storm dims it. */
+  envBase = LIGHT.environment;
   private sky: SkyDome | null = null;
   private ground: GroundTextures | null = null;
   terrain: Terrain | null = null;
@@ -323,13 +319,20 @@ export class World {
   /** Sample sites, starts and the depot (local x, north): firm ground, no craters. */
   private clearPoints: Array<[number, number]> = [];
   private readonly devils: DustDevil[] = [];
-  private markers = new Map<string, TargetMarker>();
+  private markers = new Map<string, SiteMarker>();
   private albedoGrey: GreyImage | null = null;
   /** The 25 cm core image (sharper brightness where it covers). */
   private coreGrey: GreyImage | null = null;
   readonly ingenuity = new Ingenuity();
   readonly route = new RouteLine();
   readonly depotTubes = new DepotTubes();
+  /** The terrain's own shadows, baked once per area. */
+  readonly sunShadows = new SunShadows();
+  /** The delta's broken layered rock: chips around the camera, ledges on the slopes. */
+  private chips: Chips | null = null;
+  ledges: Ledges | null = null;
+  /** Perseverance's real route (local x, north), kept free of ledges. */
+  private keepRoute: Array<[number, number]> = [];
   readonly wind = new Vector3(1.6, 0, -0.6);
   private time = 0;
   private photoPass: ShaderPass;
@@ -352,9 +355,9 @@ export class World {
     this.renderer = new WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.cfg.pixelRatio));
     this.renderer.outputColorSpace = SRGBColorSpace;
-    this.renderer.toneMapping = ACESFilmicToneMapping;
+    this.renderer.toneMapping = NeutralToneMapping;
     this.renderer.toneMappingExposure = LIGHT.exposure;
-    installHeightHaze();
+    installHeightHaze(sunDirection(...SUN.delta!));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFShadowMap;
     host.appendChild(this.renderer.domElement);
@@ -451,6 +454,16 @@ export class World {
 
   async loadRover(url: string): Promise<void> {
     this.rover = await Rover3D.load(url);
+    // In the scarp's shadow, the rover is in shadow too.
+    const done = new Set<Material>();
+    this.rover.root.traverse((o) => {
+      const m = (o as Mesh).material;
+      for (const mat of Array.isArray(m) ? m : m ? [m] : []) {
+        if (done.has(mat) || mat.type === 'MeshBasicMaterial') continue;
+        done.add(mat);
+        receiveSunShadow(mat, this.sunShadows);
+      }
+    });
     this.scene.add(this.rover.root);
   }
 
@@ -462,6 +475,7 @@ export class World {
     manifest: WorldManifest,
     id: string,
     keepClear: Array<{ lat: number; lon: number }> = [],
+    keepRoute: Array<[number, number]> = [],
   ): Promise<void> {
     const area = manifest.areas.find((a) => a.id === id);
     if (!area) throw new Error(`no game area ${id}`);
@@ -538,6 +552,7 @@ export class World {
             }
           : {}),
       },
+      this.sunShadows,
       this.quality !== 'low',
     );
     this.terrainMesh.setClear(clear);
@@ -555,7 +570,41 @@ export class World {
       this.cfg.rocks,
     );
     for (const m of this.rocks.group) this.scene.add(m);
+    this.keepRoute = keepRoute.map(([lat, lon]) => frame.toLocal(lat, lon));
+    const debrisGround: DebrisGround = {
+      height: (x, n) => terrain.heightAt(x, n),
+      brightness: (x, n) => this.brightness(x, n),
+      normal: (x, n) => terrain.normalAt(x, n, 2),
+      sand: (x, n) => this.sandAt(x, n),
+      clearance: (x, n) => this.clearanceAt(x, n),
+    };
+    this.ledges = new Ledges(
+      debrisGround,
+      ground.albedo,
+      ground.mean[3]!,
+      detail.widthM - 80,
+      detail.heightM - 80,
+    );
+    this.chips = new Chips(
+      debrisGround,
+      ground.albedo,
+      ground.mean[3]!,
+      this.quality === 'high' ? 22 : this.quality === 'medium' ? 16 : 10,
+    );
+    for (const m of [...this.ledges.meshes, ...this.chips.meshes]) this.scene.add(m);
+    receiveSunShadow(this.ledges.material, this.sunShadows);
+    receiveSunShadow(this.chips.material, this.sunShadows);
+    const rockMaterial = this.rocks.group[0]?.material;
+    if (rockMaterial && !Array.isArray(rockMaterial))
+      receiveSunShadow(rockMaterial, this.sunShadows);
     this.setSun(area);
+    this.sunShadows.bake(
+      this.renderer,
+      { detail, mid, far },
+      this.terrainMesh.heightTextures,
+      this.sunDir,
+      this.quality === 'low' ? 0.5 : 1,
+    );
     this.tracks.clear();
     this.coreMarks.clear();
   }
@@ -571,12 +620,39 @@ export class World {
     this.scene.background = null;
     this.scene.environment?.dispose();
     this.scene.environment = this.sky.environment(this.renderer);
-    this.scene.environmentIntensity = LIGHT.environment * (1 - 0.35 * this.storm);
+    this.scene.environmentIntensity = this.envBase * (1 - 0.35 * this.storm);
     this.sunDir.copy(dir);
   }
   private readonly sunDir = new Vector3(0, 1, 0);
 
+  /**
+   * Distance (m) from a local point to the nearest place kept clear or to the real route; the
+   * places count 3 m nearer (their rings need room around them).
+   */
+  private clearanceAt(x: number, north: number): number {
+    let d = Infinity;
+    for (const [px, pn] of this.clearPoints) d = Math.min(d, Math.hypot(x - px, north - pn) - 3);
+    const r = this.keepRoute;
+    for (let i = 1; i < r.length; i++) {
+      const [ax, an] = r[i - 1]!;
+      const [bx, bn] = r[i]!;
+      const vx = bx - ax;
+      const vn = bn - an;
+      const l2 = vx * vx + vn * vn;
+      const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * vx + (north - an) * vn) / l2)) : 0;
+      d = Math.min(d, Math.hypot(x - ax - vx * t, north - an - vn * t));
+    }
+    return d;
+  }
+
   private unloadArea(): void {
+    for (const f of [this.chips, this.ledges]) {
+      if (!f) continue;
+      for (const m of f.meshes) this.scene.remove(m);
+      f.dispose();
+    }
+    this.chips = null;
+    this.ledges = null;
     if (this.terrainMesh) {
       this.scene.remove(this.terrainMesh.mesh);
       this.terrainMesh.dispose();
@@ -605,7 +681,12 @@ export class World {
   /** Ground height (world y) including rocks: what the wheels touch. */
   surfaceAt(x: number, north: number): number {
     if (!this.terrain) return 0;
-    return this.terrain.heightAt(x, north) + (this.rocks?.rockLift(x, north) ?? 0);
+    return this.terrain.heightAt(x, north) + this.obstacleLift(x, north);
+  }
+
+  /** Height of a rock or a ledge above the ground at a local point (0 on bare ground). */
+  obstacleLift(x: number, north: number): number {
+    return Math.max(this.rocks?.rockLift(x, north) ?? 0, this.ledges?.liftAt(x, north) ?? 0);
   }
 
   groundY = (x: number, z: number): number => (this.terrain ? this.terrain.heightAt(x, -z) : 0);
@@ -642,7 +723,7 @@ export class World {
     fog.density = this.clearFog * (1 + k * 30);
     fog.color.copy(HORIZON_LINEAR).multiplyScalar(LIGHT.sky * (1 - 0.42 * k));
     this.sun.intensity = LIGHT.sun * (1 - 0.62 * k);
-    this.scene.environmentIntensity = LIGHT.environment * (1 - 0.35 * k);
+    this.scene.environmentIntensity = this.envBase * (1 - 0.35 * k);
     this.sky?.setStorm(k);
     (this.grade.uniforms.uStorm as { value: number }).value = k;
     for (const d of this.devils) d.mesh.visible = d.mesh.visible && k < 0.3;
@@ -719,27 +800,32 @@ export class World {
       lat: number;
       lon: number;
       radiusM: number;
-      kind: string;
+      kind: MarkerKind;
     }>,
   ): void {
     this.clearTargets();
     if (!this.frame) return;
     for (const t of list) {
       const [x, n] = this.frame.toLocal(t.lat, t.lon);
-      const colour = new Color(...(TARGET_COLOURS[t.kind] ?? TARGET_COLOURS.sample!));
-      const m = new TargetMarker(x, -n, this.groundY, t.radiusM, colour);
-      this.scene.add(m.beam, m.ring);
+      const m = new SiteMarker(x, -n, this.groundY, t.radiusM, t.kind);
+      this.scene.add(m.group);
       this.markers.set(t.id, m);
     }
   }
 
-  markDone(id: string): void {
-    this.markers.get(id)?.markDone(new Color(0.35, 0.95, 0.55));
+  /** How each marker looks: the next objective, optional discoveries, the rover in a ring. */
+  setMarkerLooks(look: (id: string) => MarkerLook): void {
+    for (const [id, m] of this.markers) m.setLook(look(id));
+  }
+
+  /** World position above a marker where its label goes, if the marker exists. */
+  markerAnchor(id: string): Vector3 | null {
+    return this.markers.get(id)?.labelAnchor ?? null;
   }
 
   clearTargets(): void {
     for (const m of this.markers.values()) {
-      this.scene.remove(m.beam, m.ring);
+      this.scene.remove(m.group);
       m.dispose();
     }
     this.markers.clear();
@@ -880,7 +966,7 @@ export class World {
       dt,
       this.storm > 0.05 ? this.tmp2.copy(this.wind).multiplyScalar(1 + 5 * this.storm) : this.wind,
     );
-    for (const m of this.markers.values()) m.update(this.time);
+    for (const m of this.markers.values()) m.update(this.time, dt, this.camera);
   }
 
   /** Ingenuity's flight, and the dust its rotors raise near the ground. */
@@ -1075,6 +1161,7 @@ export class World {
     this.camera.updateMatrixWorld();
     this.terrainMesh?.update(this.camera);
     if (this.rocks) this.rocks.update(this.camera.position.x, -this.camera.position.z);
+    this.chips?.update(this.camera.position.x, -this.camera.position.z);
     this.sky?.mesh.position.copy(this.camera.position);
     // Shadows around the rover, the light snapped to shadow-map texels (no shimmering).
     const p = this.lastPose;
@@ -1093,6 +1180,7 @@ export class World {
   dispose(): void {
     this.unloadArea();
     this.ingenuity.dispose();
+    this.sunShadows.dispose();
     this.route.dispose();
     this.depotTubes.dispose();
     this.dust.dispose();

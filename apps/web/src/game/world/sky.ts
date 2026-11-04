@@ -17,6 +17,10 @@ import {
  * PIA26699 (as the planner's sky), the zenith extrapolated; around the Sun the bluish aureole
  * that Mars's fine dust produces (forward scattering, seen in rover images), plus a warm glow.
  * Values are scene-linear and pass through the renderer's tone mapping.
+ *
+ * Also the brighter band of dust just above the horizon. The glow on the Sun's side is wide and
+ * strong, as in the Wildcat Ridge panorama (the sky near the horizon there goes from cream on the
+ * Sun's side to orange-tan away from it).
  */
 const HORIZON = new Color().setRGB(0.87, 0.68, 0.49, SRGBColorSpace);
 const SKY_15 = new Color().setRGB(0.69, 0.55, 0.4, SRGBColorSpace);
@@ -60,6 +64,7 @@ export class SkyDome {
         uniform vec3 uSun, uHorizon, u15, uZenith;
         uniform float uStorm;
         varying vec3 vDir;
+
         void main() {
           vec3 d = normalize(vDir);
           float h = clamp(d.y, -1.0, 1.0);
@@ -73,10 +78,17 @@ export class SkyDome {
           float near = pow(max(c, 0.0), 90.0);
           float broad = pow(max(c, 0.0), 7.0);
           float clear = 1.0 - uStorm;
-          sky += (vec3(0.42, 0.52, 0.70) * near * 1.6 + vec3(1.0, 0.82, 0.62) * broad * 0.28) * clear;
+          float wide = 0.15 * pow(max(c, 0.0), 3.0) + 0.25 * broad;
+          // Brightest low over the horizon on the Sun's side, where the light crosses most dust.
+          float sunSide = pow(0.5 + 0.5 * dot(normalize(d.xz + vec2(1e-5)), normalize(uSun.xz)), 3.0);
+          float low = exp(-max(h, 0.0) * 4.0);
+          sky += (vec3(0.42, 0.52, 0.70) * near * 1.6 + vec3(1.0, 0.86, 0.64) * wide
+                  + vec3(1.0, 0.92, 0.72) * 0.42 * sunSide * low) * clear;
           // Solar disc (0.35°: the Sun is smaller from Mars), soft-edged and very bright.
           float disc = smoothstep(0.999978, 0.999988, c);
           sky += vec3(1.0, 0.97, 0.92) * disc * 40.0 * clear * clear;
+          // A brighter band of dust just above the horizon.
+          sky += uHorizon * 0.1 * exp(-h * h * 900.0) * clear;
           // Below the horizon (seen only past distant terrain): the haze colour.
           sky = h < 0.0 ? uHorizon * (1.0 + 0.3 * h) : sky;
           // Dust storm: an even, dim, ruddy sky (the Sun a pale glow).
@@ -99,7 +111,7 @@ export class SkyDome {
     // No solar disc in the environment: it would make specular highlights double the sun light.
     (dome.material as ShaderMaterial).fragmentShader = (
       dome.material as ShaderMaterial
-    ).fragmentShader.replace('sky += vec3(1.0, 0.97, 0.92) * disc * 40.0;', '');
+    ).fragmentShader.replace('sky += vec3(1.0, 0.97, 0.92) * disc * 40.0 * clear * clear;', '');
     scene.add(dome);
     const pmrem = new PMREMGenerator(renderer);
     const target = pmrem.fromScene(scene, 0, 0.1, 100);

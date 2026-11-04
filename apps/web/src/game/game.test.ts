@@ -18,6 +18,8 @@ import {
   microRelief,
 } from './world/features';
 import { CLASSES, rocksInCell, type GroundInfo } from './world/rocks';
+import { MeshStandardMaterial, ShaderLib, type WebGLProgramParametersWithUniforms } from 'three';
+import { SunShadows, receiveSunShadow } from './world/sunShadow';
 import {
   CHAPTERS,
   CORE_S,
@@ -517,6 +519,25 @@ describe('AutoNav', () => {
     expect(ahead.throttle).toBeGreaterThan(0.5);
     expect(Math.abs(ahead.steer)).toBeLessThan(0.05);
     expect(follow({ x: 0, north: 47, headingRad: 0 }, path, { index: 1 }, goal).done).toBe(true);
+  });
+});
+
+describe('terrain shadows', () => {
+  it("hook into three's standard shader: the chunks they patch are there", () => {
+    const m = new MeshStandardMaterial();
+    receiveSunShadow(m, new SunShadows());
+    const shader = {
+      uniforms: {},
+      vertexShader: ShaderLib.physical.vertexShader,
+      fragmentShader: ShaderLib.physical.fragmentShader,
+    } as unknown as WebGLProgramParametersWithUniforms;
+    m.onBeforeCompile(shader, undefined as never);
+    expect(shader.vertexShader).toContain('vSunWorld = (modelMatrix * sw).xyz;');
+    expect(shader.fragmentShader).toContain('reflectedLight.directDiffuse *= sunVis;');
+    expect(shader.fragmentShader).toContain('float sunVisAt(vec2 p)');
+    expect(Object.keys(shader.uniforms)).toEqual(
+      expect.arrayContaining(['tSDetail', 'tSMid', 'tSFar', 'uSDetail']),
+    );
   });
 });
 

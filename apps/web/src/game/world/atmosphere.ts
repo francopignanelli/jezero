@@ -1,4 +1,4 @@
-import { ShaderChunk } from 'three';
+import { ShaderChunk, type Vector3 } from 'three';
 
 /**
  * Dust haze that thins with height, replacing three.js's exponential fog for every built-in
@@ -13,14 +13,22 @@ import { ShaderChunk } from 'three';
  * ray from the camera to the point, the optical depth is
  *   τ = fogDensity · e^(−h_cam/H) · d · (1 − e^(−Δh/H)) / (Δh/H).
  * The haze factor is then 1 − e^(−τ) (Beer–Lambert).
+ *
+ * Its colour depends on the direction, as the sky's does at the horizon (sky.ts): brighter towards
+ * the Sun, with the warm glow of the light the dust scatters forwards, dimmer away from it. So
+ * distant hills fade into the sky behind them, and the view towards the Sun is hazier.
  */
 export const HAZE_SCALE_M = 1400;
 
 let installed = false;
 
-export function installHeightHaze(): void {
+export function installHeightHaze(sun?: Vector3): void {
   if (installed) return;
   installed = true;
+  const s = sun ? sun.clone().normalize() : null;
+  const sunGlsl = s
+    ? `vec3(${s.x.toFixed(5)}, ${s.y.toFixed(5)}, ${s.z.toFixed(5)})`
+    : 'vec3(0.0, -1.0, 0.0)';
   ShaderChunk.fog_pars_vertex = /* glsl */ `
 #ifdef USE_FOG
   varying float vFogDepth;
@@ -57,6 +65,20 @@ export function installHeightHaze(): void {
   #else
     float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
   #endif
-  gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, fogFactor);
+  #ifdef FOG_EXP2
+    // As the sky at the horizon: ×(1.01 + 0.11 cos θ), plus the forward glow (scaled with the haze
+    // brightness, so it dims in a dust storm).
+    float hazeMu = dot(hazeRay / max(length(hazeRay), 1e-3), ${sunGlsl});
+    float hazeLum = dot(fogColor, vec3(0.3333)) / 0.45;
+    vec3 hazeSun = ${sunGlsl};
+    float hazeSide = pow(0.5 + 0.5 * dot(normalize(hazeRay.xz + vec2(1e-5)), normalize(hazeSun.xz + vec2(1e-5))), 3.0);
+    vec3 hazeCol = fogColor * (1.01 + 0.11 * hazeMu)
+                 + vec3(1.0, 0.86, 0.64) * hazeLum
+                   * (0.15 * pow(max(hazeMu, 0.0), 3.0) + 0.25 * pow(max(hazeMu, 0.0), 7.0))
+                 + vec3(1.0, 0.92, 0.72) * hazeLum * 0.42 * hazeSide;
+  #else
+    vec3 hazeCol = fogColor;
+  #endif
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, hazeCol, fogFactor);
 #endif`;
 }

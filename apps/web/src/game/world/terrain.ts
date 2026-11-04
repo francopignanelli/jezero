@@ -22,6 +22,7 @@ import {
 } from 'three';
 import { GLSL_MICRO } from './features';
 import { DETAIL_RAMP_M, MID_RAMP_M, type HeightLayer, type Terrain } from './heights';
+import { GLSL_SUN_VIS, type SunShadows } from './sunShadow';
 
 /**
  * Terrain renderer: CDLOD (continuous distance-dependent level of detail, Strugar 2010). One
@@ -76,6 +77,13 @@ export interface MacroAlbedo {
   /** Native 25 cm imagery over the core of the area (a square around its centre), if any. */
   core?: { texture: DataTexture; widthM: number; heightM: number; cellM: number };
 }
+
+/**
+ * The ground textures are Perseverance's own photos: Mars's light is already in their colours.
+ * Lit again by the game's warm Sun and sky they came out too red and dark, so their colour is
+ * divided by that light first (a white balance), measured against the same panorama.
+ */
+export const GROUND_WB: [number, number, number] = [1, 1.5, 3.0];
 
 /** Width of the blend from the core imagery into the 0.5 m layer at its edge (m). */
 const CORE_RAMP_M = 30;
@@ -211,6 +219,8 @@ const FRAGMENT_PARS = /* glsl */ `
   uniform vec3 uCoreInfo;
   uniform float uCoreOn;
   uniform vec3 uCamW;
+  /** White balance of the ground photos (their colour divided by the game's light). */
+  uniform vec3 uWB;
   /** Firm ground around the sample sites, starts and depot (no sand drifts): x, north. */
   uniform vec2 uClear[${MAX_CLEAR}];
   uniform int uClearCount;
@@ -263,6 +273,8 @@ const FRAGMENT_PARS = /* glsl */ `
     nrm = normalize(mix(na, nb, t));
   }
   vec3 gDetailNormal = vec3(0.0, 0.0, 1.0);
+  float gSunVis = 1.0;
+  ${GLSL_SUN_VIS}
 
   vec2 hash22(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
@@ -306,19 +318,6 @@ const FRAGMENT_PARS = /* glsl */ `
         }
       }
     return vec4(md, dir, hash12(n + mg + 0.5));
-  }
-  /** Distances to the nearest and second-nearest cell points (for the fine cracks). */
-  vec2 cellF12(vec2 x) {
-    vec2 n = floor(x), f = x - n;
-    vec2 d = vec2(8.0);
-    for (int j = -1; j <= 1; j++)
-      for (int i = -1; i <= 1; i++) {
-        vec2 g = vec2(float(i), float(j));
-        vec2 r = g + hash22(n + g + 31.0) - f;
-        float dd = dot(r, r);
-        if (dd < d.x) d = vec2(dd, d.x); else if (dd < d.y) d.y = dd;
-      }
-    return sqrt(d);
   }
 `;
 
@@ -393,46 +392,53 @@ const FRAGMENT_COLOR = /* glsl */ `
   }
 #if TERRAIN_FX
   vec3 fxN = vec3(0.0);
-  // Polygonal fractured bedrock, where the ground is bright, flat and not sandy.
-  float fxNear = 1.0 - smoothstep(35.0, 75.0, viewDist);
-  float wPave = smoothstep(0.43, 0.57, m + 0.4 * (vnoise(vP * 0.05 + 3.0) - 0.5))
-              * (1.0 - smoothstep(0.1, 0.3, slope)) * (1.0 - w.z) * fxNear;
+  // The delta front's broken layered bedrock, as at Wildcat Ridge: a pavement of flat, angular
+  // plates a few centimetres to half a metre across, lighter and more orange than the darker sand
+  // between them; some plates are missing, some broken into smaller pieces.
+  float fxNear = (1.0 - smoothstep(28.0, 65.0, viewDist)) * (1.0 - smoothstep(0.06, 0.14, pxM));
+  float wPave = smoothstep(0.42, 0.62, m + 0.55 * (vnoise(vP * 0.08 + 3.0) - 0.5))
+              * (1.0 - smoothstep(0.14, 0.38, slope)) * (1.0 - 0.75 * w.z) * fxNear;
   if (wPave > 0.01) {
-    // Irregular plates: large cells (2.3 m), split by a second, finer crack network (0.95 m)
-    // only in places, with wobbly edges (domain warp at two scales).
     const mat2 R = mat2(0.94, 0.34, -0.34, 0.94);
-    vec2 warp = 0.3 * vec2(vnoise(vP * 0.45), vnoise(vP * 0.45 + 9.0))
-              + 0.06 * vec2(vnoise(vP * 2.3 + 5.0), vnoise(vP * 2.3 - 3.0));
+    vec2 warp = 0.07 * vec2(vnoise(vP * 1.7), vnoise(vP * 1.7 + 9.0));
     vec2 q = vP + warp;
-    vec4 s = slabs(R * q / 2.3);
-    float edgeM = s.x * 2.3;
+    const float CELL_A = 0.38;
+    vec4 s = slabs(R * q / CELL_A);
+    float edgeM = s.x * CELL_A;
     vec2 dirW = s.yz * R; // back to east/north
-    float split = smoothstep(0.42, 0.6, vnoise(vP * 0.3 + 11.0));
+    float id = s.w;
+    // Broken into ~0.2 m pieces in places (not where they would shimmer, far away).
+    float split = smoothstep(0.35, 0.65, vnoise(vP * 0.7 + 11.0)) * (1.0 - smoothstep(0.012, 0.035, pxM));
     if (split > 0.0) {
-      vec4 s2 = slabs(q / 0.95 + 0.5);
-      float e2 = s2.x * 0.95 + (1.0 - split) * 0.3;
-      if (e2 < edgeM) { edgeM = e2; dirW = s2.yz; }
+      const float CELL_B = 0.16;
+      vec4 s2 = slabs(q / CELL_B + 0.5);
+      float e2 = s2.x * CELL_B + (1.0 - split) * 0.12;
+      if (e2 < edgeM) { edgeM = e2; dirW = s2.yz; id = s2.w; }
     }
-    float gap = 0.025 + 0.11 * pow(vnoise(vP * 0.8 + 4.0), 2.0);
-    float aa = pxM * 1.2 + 0.004;
-    // Some cells have eroded away to sand.
-    float slab = smoothstep(gap, gap + aa, edgeM) * step(0.16, s.w);
-    // Slab surface: the bedrock photo at a per-slab offset, so each slab shows its own patch;
-    // lighter, and dusty.
-    float sc = uGroundScale[3] * 0.8;
-    vec3 bed = textureGrad(tGround, vec3(gUv * sc + vec2(s.w * 7.1, s.w * 3.7), 3.0), gDx * sc, gDy * sc).rgb;
-    vec3 slabCol = mix(bed, groundCol, 0.4) * vec3(1.16, 1.07, 1.0) * (0.9 + 0.2 * fract(s.w * 17.3));
-    // Fine cracks within the slabs.
-    vec2 f12 = cellF12(vP / 0.45);
-    float fine = (1.0 - smoothstep(0.0, 0.05 + pxM * 2.5, f12.y - f12.x)) * (1.0 - smoothstep(0.015, 0.05, pxM));
-    slabCol *= 1.0 - 0.28 * fine;
-    // Between the slabs: sand, darker deep in the cracks (shadowed).
-    vec3 sandCol = uGroundMean[2] * (0.75 + 0.3 * n3) * mix(0.55, 1.0, smoothstep(0.0, gap, edgeM));
-    groundCol = mix(groundCol, mix(sandCol, slabCol, slab), wPave);
-    // Normals: slab edges rounded down towards the cracks, each slab slightly tilted.
-    float bevel = 1.0 - smoothstep(gap, gap + 0.08, edgeM);
-    vec2 tilt = (vec2(fract(s.w * 13.7), fract(s.w * 91.3)) - 0.5) * 0.12;
-    fxN.xy += (-dirW * bevel * 0.7 * slab + tilt * slab) * wPave;
+    // Sand fills the gaps where plates have drifted apart; some plates are gone.
+    float gap = 0.02 + 0.07 * pow(vnoise(vP * 1.3 + 4.0), 1.2);
+    float aa = pxM * 1.2 + 0.002;
+    float cluster = smoothstep(0.38, 0.62, vnoise(vP * 0.55 + 21.0));
+    float present = step(0.42 + 0.3 * w.z, fract(id * 7.31)) * step(0.45, cluster * (0.4 + fract(id * 2.9)));
+    // Each plate buried in the sand to its own depth: sizes vary from plate to plate.
+    float bury = 0.1 * fract(id * 3.71) * fract(id * 5.3 + 0.4);
+    float slab = smoothstep(gap + bury, gap + bury + aa, edgeM) * present;
+    // Plate surface: the bedrock photo at a per-plate offset; each plate its own tone.
+    float sc = uGroundScale[3];
+    vec3 bed = textureGrad(tGround, vec3(gUv * sc + vec2(id * 7.1, id * 3.7), 3.0), gDx * sc, gDy * sc).rgb;
+    float tone = 0.86 + 0.34 * fract(id * 17.3);
+    vec3 slabCol = mix(bed, groundCol, 0.3) * vec3(1.2, 1.07, 0.96) * tone;
+    // The rock is laminated: lighter, worn rims at the plates' edges.
+    float rim = 1.0 - smoothstep(gap, gap + 0.025, edgeM);
+    slabCol *= 1.0 + 0.16 * rim;
+    // Between them: darker sand, darker still deep in the cracks (shadowed).
+    // (Only next to a plate: where one is missing, no crack outline is drawn.)
+    vec3 sandCol = uGroundMean[2] * (0.7 + 0.25 * n3) * mix(1.0 - 0.38 * present, 1.0, smoothstep(0.0, gap, edgeM));
+    groundCol = mix(groundCol, mix(sandCol, slabCol, slab), wPave * mix(0.3, 1.0, present));
+    // Normals: each plate bevelled at its edges and a little tilted.
+    float bevel = 1.0 - smoothstep(gap, gap + 0.035, edgeM);
+    vec2 tilt = (vec2(fract(id * 13.7), fract(id * 91.3)) - 0.5) * 0.18;
+    fxN.xy += (-dirW * bevel * 0.8 * slab + tilt * slab) * wPave;
     gDetailNormal = normalize(mix(gDetailNormal, vec3(0.0, 0.0, 1.0), 0.35 * slab * wPave));
   }
   // Wind ripples in the sand: crests across the prevailing wind, steep lee faces.
@@ -444,7 +450,7 @@ const FRAGMENT_COLOR = /* glsl */ `
     float fr = fract(ph);
     float dh = fr < 0.72 ? 1.0 / 0.72 : -1.0 / 0.28;
     float hr = fr < 0.72 ? fr / 0.72 : (1.0 - fr) / 0.28;
-    fxN.xy -= wd * dh * (0.035 / lambda) * 2.2 * wRip * (1.0 + 1.2 * drift);
+    fxN.xy -= wd * dh * (0.035 / lambda) * 1.45 * wRip * (1.0 + 1.0 * drift);
     groundCol *= 1.0 + 0.08 * (hr - 0.5) * wRip;
   }
   // Distant slopes: rugged relief shading (ridges and gullies finer than the mesh).
@@ -466,7 +472,15 @@ const FRAGMENT_COLOR = /* glsl */ `
   }
   gDetailNormal = normalize(gDetailNormal + vec3(fxN.xy, 0.0));
 #endif
-  diffuseColor.rgb = groundCol * orb;
+  // Far away, where the ground photos have faded to their mean colour, the orbital image sets
+  // the tones, with a hint of colour: dark sand greyer, bright dust and bedrock warmer.
+  float farK = 1.0 - fade;
+  orb = mix(orb, mix(1.0, 0.5 + 1.0 * m, 0.85), farK);
+  vec3 tint = mix(vec3(0.94, 0.95, 0.97), vec3(1.06, 1.0, 0.93), smoothstep(0.25, 0.7, m));
+  groundCol *= mix(vec3(1.0), tint, 0.2 + 0.45 * farK);
+  // The terrain's own shadows (baked: sunShadow.ts), applied to the sunlight after lighting.
+  gSunVis = sunVisAt(vP);
+  diffuseColor.rgb = groundCol * orb * uWB;
 `;
 
 /** Perturbs the (view-space) normal with the ground textures' detail normals. */
@@ -494,7 +508,13 @@ export class TerrainMesh {
   private readonly maxH: number;
   private count = 0;
 
-  constructor(terrain: Terrain, ground: GroundTextures, macro: MacroAlbedo, fx = true) {
+  constructor(
+    terrain: Terrain,
+    ground: GroundTextures,
+    macro: MacroAlbedo,
+    shadows: SunShadows,
+    fx = true,
+  ) {
     // One N×N patch; positions are computed in the vertex shader.
     const g = new InstancedBufferGeometry();
     const grid = new Float32Array((N + 1) * (N + 1) * 2);
@@ -551,6 +571,7 @@ export class TerrainMesh {
           : new Vector3(1, 1, 1),
       },
       uCoreOn: { value: macro.core ? 1 : 0 },
+      uWB: { value: new Vector3(...GROUND_WB) },
     };
     for (const t of [
       macro.detail,
@@ -565,7 +586,7 @@ export class TerrainMesh {
     const material = new MeshStandardMaterial({ roughness: 0.96, metalness: 0 });
     material.defines = { TERRAIN_FX: fx ? 1 : 0 };
     material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
-      Object.assign(shader.uniforms, this.uniforms);
+      Object.assign(shader.uniforms, this.uniforms, shadows.uniforms);
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>\n${VERTEX_PARS}`)
         .replace('#include <beginnormal_vertex>', VERTEX_MAIN)
@@ -573,7 +594,13 @@ export class TerrainMesh {
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>\n${FRAGMENT_PARS}`)
         .replace('#include <map_fragment>', FRAGMENT_COLOR)
-        .replace('#include <normal_fragment_maps>', FRAGMENT_NORMAL);
+        .replace('#include <normal_fragment_maps>', FRAGMENT_NORMAL)
+        .replace(
+          '#include <lights_fragment_end>',
+          `#include <lights_fragment_end>
+           reflectedLight.directDiffuse *= gSunVis;
+           reflectedLight.directSpecular *= gSunVis;`,
+        );
     };
     material.customProgramCacheKey = () => `copernico-terrain-${fx ? 1 : 0}`;
 
@@ -644,6 +671,15 @@ export class TerrainMesh {
     this.select(x + h, n, h, level - 1, cam);
     this.select(x, n + h, h, level - 1, cam);
     this.select(x + h, n + h, h, level - 1, cam);
+  }
+
+  /** The height layers as GPU textures (for baking the terrain's shadows). */
+  get heightTextures(): { detail: DataTexture; mid: DataTexture; far: DataTexture } {
+    return {
+      detail: this.uniforms.tHDetail!.value as DataTexture,
+      mid: this.uniforms.tHMid!.value as DataTexture,
+      far: this.uniforms.tHFar!.value as DataTexture,
+    };
   }
 
   dispose(): void {

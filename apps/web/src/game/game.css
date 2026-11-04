@@ -1358,3 +1358,37 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ---------- place labels: name and distance; the next objective stands out ---------- */
+.game-label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  transition:
+    opacity 0.3s,
+    font-size 0.3s;
+}
+.game-label-dist {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+}
+.game-label-dist:empty {
+  display: none;
+}
+.game-label.is-next {
+  padding: 5px 12px;
+  font-size: var(--fs-sm);
+  background: rgb(14 17 23 / 0.78);
+  border-width: 2px;
+  box-shadow: 0 0 14px rgb(242 160 75 / 0.45);
+}
+.game-label.is-next.is-panorama {
+  box-shadow: 0 0 14px rgb(180 140 255 / 0.5);
+}
+.game-label.is-next.is-depot {
+  box-shadow: 0 0 14px rgb(108 198 230 / 0.5);
+}
+.game-label.is-optional {
+  opacity: 0.78;
+}

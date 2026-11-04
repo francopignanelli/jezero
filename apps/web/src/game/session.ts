@@ -1,7 +1,9 @@
 import { RAD_TO_DEG } from '@copernico/domain';
+import i18n from 'i18next';
 import { Vector3 } from 'three';
 import { DATA_VERSION, dataUrl } from '../config';
 import { loadRover, loadSamples, type SampleSite } from '../data/surfaceData';
+import { formatDistance } from '../lib/format';
 import { wrapAngle } from '../lib/math';
 import { prefersReducedMotion } from '../lib/motion';
 import { GameAudio } from './audio';
@@ -21,6 +23,7 @@ import {
 import { Controls, type Command } from './controls';
 import {
   AREA_ID,
+  CHAPTERS,
   CORE_COST_PCT,
   FLIGHTS,
   FLIGHT_TRIGGER_M,
@@ -36,6 +39,7 @@ import {
   openTargets,
   stepExpedition,
   targetHere,
+  targetOf,
   type Action,
   type ExpeditionEvent,
   type ExpeditionState,
@@ -153,6 +157,10 @@ export class GameSession {
   /** Ingenuity: the airfield it sits at (index in FLIGHTS), the flight under way. */
   private heli: { at: number; next: number | null } | null = null;
   private heliFlying: number | null = null;
+  /** Markers: the open places the chapter does not need, and the last look applied. */
+  private optionalIds = new Set<string>();
+  private lookKey = '';
+  private nextId: string | null = null;
 
   readonly ground: GroundProbe = {
     height: (lat, lon) => {
@@ -171,7 +179,7 @@ export class GameSession {
       const f = this.world.frame;
       if (!f || !this.options.hazards) return 0;
       const [x, n] = f.toLocal(lat, lon);
-      return this.world.rocks?.rockLift(x, n) ?? 0;
+      return this.world.obstacleLift(x, n);
     },
   };
 
@@ -230,7 +238,7 @@ export class GameSession {
   private async useArea(): Promise<void> {
     // Generated craters keep clear of every place of the map, the start and the airfields.
     const keepClear = [...this.all, START, ...FLIGHTS];
-    await this.world.loadArea(this.manifest!, AREA_ID, keepClear);
+    await this.world.loadArea(this.manifest!, AREA_ID, keepClear, this.realRoute);
     const f = this.world.frame!;
     const area = this.manifest!.areas.find((a) => a.id === AREA_ID)!;
     const w = area.detail.heights.widthM / 2 - AREA_MARGIN_M;
@@ -337,6 +345,17 @@ export class GameSession {
   private refreshTargets(): void {
     this.open = openTargets(this.exp, this.all);
     this.world.setTargets(this.open);
+    // Quieter markers for what the chapter does not need: optional objectives, and the panorama
+    // spots that are not this chapter's.
+    const c = CHAPTERS[this.exp.chapter];
+    const main = new Set(
+      (c?.objectives ?? [])
+        .filter((o) => !o.optional)
+        .map((o) => targetOf(o, this.all)?.id)
+        .filter((id): id is string => !!id),
+    );
+    this.optionalIds = new Set(this.open.filter((t) => !main.has(t.id)).map((t) => t.id));
+    this.lookKey = '';
     this.refreshHeli();
     this.buildLabels();
     useGame.getState().set({ targets: this.open, expedition: this.exp });
@@ -454,11 +473,14 @@ export class GameSession {
       marginM: AREA_MARGIN_M + 30,
       height: (x, n) => sampleBilinear(t.detail, x, n) ?? 0,
       sand: (x, n) => (hazards ? this.world.sandAt(x, n) : 0),
-      obstacles: (rocks?.boulders(0.3, t.detail.widthM, t.detail.heightM) ?? []).map((r) => ({
-        x: r.x,
-        north: r.north,
-        radiusM: r.radiusM,
-      })),
+      obstacles: [
+        ...(rocks?.boulders(0.3, t.detail.widthM, t.detail.heightM) ?? []).map((r) => ({
+          x: r.x,
+          north: r.north,
+          radiusM: r.radiusM,
+        })),
+        ...(this.world.ledges?.obstacles() ?? []),
+      ],
     });
     return this.nav;
   }
@@ -1010,6 +1032,21 @@ export class GameSession {
       r,
       this.open.filter((t) => t.kind !== 'reach'),
     );
+    // Markers: the objective the compass points to stands out; the one the rover is in lights up.
+    const lookKey = `${next?.id}|${here?.id}`;
+    if (lookKey !== this.lookKey) {
+      this.lookKey = lookKey;
+      this.nextId = next?.id ?? null;
+      this.world.setMarkerLooks((id) => ({
+        next: id === next?.id,
+        optional: this.optionalIds.has(id),
+        active: id === here?.id,
+      }));
+      for (const [id, el] of this.labels) {
+        el.classList.toggle('is-next', id === this.nextId);
+        el.classList.toggle('is-optional', this.optionalIds.has(id));
+      }
+    }
     // The rock SuperCam would analyse (stopped, nothing else under way).
     const idle = Math.abs(r.speed) <= STOPPED_MPS && !this.action && !this.laser;
     this.laserCandidate = idle ? this.world.laserTarget(LASER_RANGE_M) : null;
@@ -1097,7 +1134,12 @@ export class GameSession {
     for (const t of this.open) {
       const el = document.createElement('div');
       el.className = `game-label is-${t.kind}`;
-      el.textContent = t.name;
+      const name = document.createElement('span');
+      name.className = 'game-label-name';
+      name.textContent = t.name;
+      const dist = document.createElement('span');
+      dist.className = 'game-label-dist';
+      el.append(name, dist);
       this.labelLayer.appendChild(el);
       this.labels.set(t.id, el);
     }
@@ -1145,9 +1187,19 @@ export class GameSession {
     const p = this.world.camera.position;
     const w = this.world.host.clientWidth;
     const h = this.world.host.clientHeight;
+    const lang = i18n.language;
     const items = this.open.map((t) => {
+      // Above the marker's floating badge.
+      const a = this.world.markerAnchor(t.id);
       const [x, n] = f.toLocal(t.lat, t.lon);
-      const y = this.world.groundY(x, -n) + 9;
+      const y = a ? a.y : this.world.groundY(x, -n) + 9;
+      // Distance from the rover, written only when it changes.
+      const el = this.labels.get(t.id);
+      const dist = el?.lastElementChild;
+      if (dist) {
+        const text = formatDistance(groundDistanceM(this.rover, t), lang);
+        if (dist.textContent !== text) dist.textContent = text;
+      }
       return { id: t.id, x, y, z: -n, d: Math.hypot(x - p.x, y - p.y, -n - p.z) };
     });
     if (this.labels.has('ingenuity')) {
@@ -1160,7 +1212,7 @@ export class GameSession {
       const el = this.labels.get(it.id);
       if (!el) continue;
       const v = this.world.project(it.x, it.y, it.z);
-      let visible = v.z < 1 && it.d > (it.id === 'ingenuity' ? 6 : 14) && it.d < 6000;
+      let visible = v.z < 1 && it.d > (it.id === 'ingenuity' ? 6 : 18) && it.d < 6000;
       const sx = ((v.x + 1) / 2) * w;
       const sy = ((1 - v.y) / 2) * h;
       const half = (el.textContent?.length ?? 8) * 3.6 + 10;
