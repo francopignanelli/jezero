@@ -4,9 +4,11 @@ import { openApp, trackExternalRequests } from './helpers';
 /** Development test hook of the game page (src/game/session.ts). */
 interface GameHook {
   state: { odometerM: number; lat: number; lon: number; batteryPct: number };
+  exp: { chapter: number };
+  refreshTargets(): void;
   teleport(lat: number, lon: number): void;
 }
-const game = (page: Page) =>
+const hook = (page: Page) =>
   page.evaluate(() => {
     const s = (window as unknown as { __copernicoGame: GameHook }).__copernicoGame.state;
     return { odometerM: s.odometerM, batteryPct: s.batteryPct };
@@ -27,7 +29,7 @@ test('the planner links to the rover game from the Mars tab and the Perseverance
   );
 });
 
-test('rover game: drive in the 3D Jezero, core a sample, read its card, pause', async ({
+test('rover game: the delta-front expedition, a core, the inventory, AutoNav, saving', async ({
   page,
 }) => {
   test.slow(); // software WebGL in headless Chrome renders the 3D world at a few frames per second
@@ -41,43 +43,58 @@ test('rover game: drive in the 3D Jezero, core a sample, read its card, pause', 
     timeout: 90_000,
   });
   await expect(page.locator('.game-boot')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Start' }).first().click();
-  await expect(page.locator('.game-objectives')).toContainText('Roubion', { timeout: 60_000 });
+
+  // A new expedition opens on chapter 1's page.
+  await page.getByRole('button', { name: 'Start the expedition' }).click();
+  const chapter = page.getByRole('dialog', { name: 'Arrival at the delta front' });
+  await expect(chapter).toBeVisible({ timeout: 60_000 });
+  await chapter.getByRole('button', { name: 'Start driving' }).click();
+  await expect(page.locator('.game-objectives')).toContainText('Reach Enchanted Lake');
 
   // W drives forward.
   await page.keyboard.down('KeyW');
   await expect
-    .poll(async () => (await game(page)).odometerM, { timeout: 20_000 })
+    .poll(async () => (await hook(page)).odometerM, { timeout: 20_000 })
     .toBeGreaterThan(3);
   await page.keyboard.up('KeyW');
 
-  // Next to the Ha'ahóni + Atsá site (samples 8 & 9), stopped: one press of Space cores it
-  // (arm down, drill, arm up).
-  await page.evaluate(() =>
-    (window as unknown as { __copernicoGame: GameHook }).__copernicoGame.teleport(
-      18.443864 - 6 / 59_274,
-      77.452422,
-    ),
-  );
+  // Chapter 2 (as if chapter 1 were done), next to Skinner Ridge (samples 10 & 11), stopped:
+  // one press of Space cores it (arm down, drill, arm up).
+  await page.evaluate(() => {
+    const g = (window as unknown as { __copernicoGame: GameHook }).__copernicoGame;
+    g.exp = { ...g.exp, chapter: 1 };
+    g.refreshTargets();
+    g.teleport(18.458931 - 6 / 59_274, 77.406175);
+  });
   await expect(page.locator('.game-prompt')).toContainText('Press Space to core', {
     timeout: 30_000,
   });
   await page.keyboard.press('Space');
   await expect(page.locator('.game-prompt')).toContainText('Coring', { timeout: 30_000 });
-  const card = page.getByRole('dialog', { name: "Ha'ahóni + Atsá" });
+  const card = page.getByRole('dialog', { name: 'Swift Run + Skyland' });
   await expect(card).toBeVisible({ timeout: 120_000 });
-  await expect(card).toContainText('Samples 8 & 9');
-  await expect(card).toContainText('Igneous rock');
+  await expect(card).toContainText('Samples 10 & 11');
+  await expect(card).toContainText('Sedimentary rock');
   await expect(card.locator('img')).toHaveJSProperty('complete', true);
-  await card.getByRole('button', { name: 'Continue driving' }).click();
+  await card.getByRole('button', { name: 'Continue' }).click();
   await expect(page.locator('.game-objectives li.is-done')).toHaveCount(1);
 
-  // Esc pauses; Resume returns to driving.
-  await page.keyboard.press('Escape');
-  const pause = page.getByRole('dialog', { name: 'Paused' });
-  await expect(pause).toBeVisible();
-  await pause.getByRole('button', { name: 'Resume' }).click();
-  await expect(pause).toHaveCount(0);
+  // I opens the inventory: the two new tubes are in the rack.
+  await page.keyboard.press('KeyI');
+  const inventory = page.getByRole('dialog', { name: 'Inventory' });
+  await expect(inventory).toBeVisible();
+  await expect(inventory).toContainText('11 of the 38 sample tubes are filled');
+  await inventory.getByRole('tab', { name: 'Samples' }).click();
+  await expect(inventory.getByRole('tabpanel')).toContainText('Swift Run + Skyland');
+  await page.keyboard.press('KeyI');
+  await expect(inventory).toHaveCount(0);
+
+  // N: AutoNav plans a path to the next objective and drives; any drive key takes over.
+  await page.keyboard.press('KeyN');
+  await expect(page.locator('.game-autonav')).toContainText('AutoNav', { timeout: 60_000 });
+  await page.keyboard.down('KeyS');
+  await expect(page.locator('.game-autonav')).toHaveCount(0, { timeout: 20_000 });
+  await page.keyboard.up('KeyS');
 
   // P opens photo mode (the HUD hides, a camera filter can be picked); Esc returns to driving.
   await page.keyboard.press('KeyP');
@@ -93,14 +110,17 @@ test('rover game: drive in the 3D Jezero, core a sample, read its card, pause', 
   await expect(photo).toHaveCount(0);
   await expect(page.locator('.game-hud')).toBeVisible();
 
-  // The cored site is now in the collection (main menu).
+  // Esc pauses; the main menu offers to continue the saved expedition; the core is collected.
   await page.keyboard.press('Escape');
   await page
     .getByRole('dialog', { name: 'Paused' })
-    .getByRole('button', { name: 'Missions' })
+    .getByRole('button', { name: 'Main menu' })
     .click();
-  await page.getByRole('tab', { name: 'Collection' }).click({ timeout: 60_000 });
-  await expect(page.getByRole('tabpanel')).toContainText("Ha'ahóni + Atsá");
+  await expect(page.getByRole('button', { name: 'Continue (chapter 2)' })).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.getByRole('tab', { name: 'Collection' }).click();
+  await expect(page.getByRole('tabpanel')).toContainText('Swift Run + Skyland');
 
   expect(errors).toEqual([]);
   expect(external).toEqual([]);

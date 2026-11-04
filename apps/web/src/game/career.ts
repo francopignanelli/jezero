@@ -1,3 +1,4 @@
+import { CHAPTERS, type ExpeditionState } from './expedition';
 import type { RockType } from './science';
 
 /**
@@ -5,7 +6,7 @@ import type { RockType } from './science';
  * - the sample sites ever cored (target ids);
  * - the rock types analysed with the laser, and the rocks already analysed;
  * - the science points.
- * Best times stay under their own keys (session.ts). Also here: the game's options.
+ * Also here: the expedition in progress (to continue it later), the best time and the options.
  */
 
 export interface Career {
@@ -23,6 +24,8 @@ export interface GameOptions {
 
 const CAREER_KEY = 'copernico.game.career.v1';
 const OPTIONS_KEY = 'copernico.game.options.v1';
+const SAVE_KEY = 'copernico.game.expedition.v1';
+const BEST_KEY = 'copernico.game.best.expedition';
 const BEST_PREFIX = 'copernico.game.best.';
 /** Analysed-rock keys kept (the oldest are dropped). */
 const MAX_ANALYSED = 2000;
@@ -78,10 +81,91 @@ export function recordRock(
 export const readOptions = (): GameOptions => read(OPTIONS_KEY, DEFAULT_OPTIONS);
 export const writeOptions = (o: GameOptions): void => write(OPTIONS_KEY, o);
 
-/** Clears the career and the best times (the options and photos stay). */
+// ---------- the expedition in progress ----------
+
+export interface ExpeditionSave {
+  state: ExpeditionState;
+  rover: {
+    lat: number;
+    lon: number;
+    headingRad: number;
+    batteryPct: number;
+    wheelsPct: number;
+    odometerM: number;
+    energyUsedPct: number;
+  };
+  elapsedS: number;
+  savedMs: number;
+  /** Where the depot tubes were laid (local x, north, rover heading), once they are. */
+  tubesAt?: [number, number, number] | null;
+}
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const isList = (v: unknown): v is unknown[] => Array.isArray(v);
+
+/** The saved expedition, or null (none, or not readable: a broken save is dropped). */
+export function readSave(): ExpeditionSave | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as ExpeditionSave;
+    const st = s?.state;
+    const r = s?.rover;
+    const ok =
+      st &&
+      isNum(st.chapter) &&
+      st.chapter >= 0 &&
+      st.chapter < CHAPTERS.length &&
+      isList(st.samples) &&
+      isList(st.panoramas) &&
+      isList(st.reached) &&
+      isList(st.flights) &&
+      isList(st.finds) &&
+      isNum(st.science) &&
+      r &&
+      [r.lat, r.lon, r.headingRad, r.batteryPct, r.wheelsPct, r.odometerM, r.energyUsedPct].every(
+        isNum,
+      ) &&
+      isNum(s.elapsedS);
+    return ok ? { ...s, state: { ...st, deposited: !!st.deposited } } : null;
+  } catch {
+    return null;
+  }
+}
+export const writeSave = (s: ExpeditionSave): void => write(SAVE_KEY, s);
+export function clearSave(): void {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function readBest(): number | null {
+  try {
+    const v = Number(localStorage.getItem(BEST_KEY));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+/** Keeps the time if it is the best; returns whether it was. */
+export function recordBest(s: number): boolean {
+  const previous = readBest();
+  if (previous !== null && previous <= s) return false;
+  try {
+    localStorage.setItem(BEST_KEY, String(Math.round(s)));
+  } catch {
+    // ignore
+  }
+  return true;
+}
+
+/** Clears the career, the saved expedition and the best times (the options and photos stay). */
 export function resetProgress(): void {
   try {
     localStorage.removeItem(CAREER_KEY);
+    localStorage.removeItem(SAVE_KEY);
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
       if (k?.startsWith(BEST_PREFIX)) localStorage.removeItem(k);

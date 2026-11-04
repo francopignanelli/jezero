@@ -13,6 +13,8 @@ export class GameAudio {
   private motor: OscillatorNode | null = null;
   private motorGain: GainNode | null = null;
   private drillGain: GainNode | null = null;
+  private rotor: OscillatorNode | null = null;
+  private rotorGain: GainNode | null = null;
   private noiseBuf: AudioBuffer | null = null;
   private time = 0;
   muted = false;
@@ -79,6 +81,19 @@ export class GameAudio {
     this.drillGain = ctx.createGain();
     this.drillGain.gain.value = 0;
     noise().connect(drillFilter).connect(this.drillGain).connect(master);
+
+    // Ingenuity's rotors: the 84 Hz hum Perseverance's microphone recorded on its fourth flight
+    // (two blades × 2,537 rpm), faint with distance in the thin air.
+    this.rotor = ctx.createOscillator();
+    this.rotor.type = 'sawtooth';
+    this.rotor.frequency.value = 84;
+    const rotorFilter = ctx.createBiquadFilter();
+    rotorFilter.type = 'lowpass';
+    rotorFilter.frequency.value = 260;
+    this.rotorGain = ctx.createGain();
+    this.rotorGain.gain.value = 0;
+    this.rotor.connect(rotorFilter).connect(this.rotorGain).connect(master);
+    this.rotor.start();
   }
 
   setMuted(muted: boolean): void {
@@ -87,7 +102,10 @@ export class GameAudio {
       this.master.gain.setTargetAtTime(muted ? 0 : 0.55, this.ctx.currentTime, 0.05);
   }
 
-  update(dt: number, s: { speed: number; drilling: boolean; wind: number }): void {
+  update(
+    dt: number,
+    s: { speed: number; drilling: boolean; wind: number; rotor?: number; rotorM?: number },
+  ): void {
     const ctx = this.ctx;
     if (
       !ctx ||
@@ -110,6 +128,12 @@ export class GameAudio {
     // Percussive drill: ~9 hammer blows per second.
     const hammer = s.drilling ? 0.12 + 0.12 * Math.max(0, Math.sin(this.time * Math.PI * 18)) : 0;
     this.drillGain.gain.setTargetAtTime(hammer, t, 0.01);
+    if (this.rotor && this.rotorGain) {
+      const r = s.rotor ?? 0;
+      const near = 1 / (1 + ((s.rotorM ?? 1e9) / 25) ** 2);
+      this.rotor.frequency.setTargetAtTime(30 + 54 * r, t, 0.2);
+      this.rotorGain.gain.setTargetAtTime(0.16 * r * near, t, 0.15);
+    }
   }
 
   /** A short two-note chime (sample sealed); a rising three-note one when `final`. */

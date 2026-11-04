@@ -808,39 +808,19 @@
   },
   "game": {
     "title": "Jezero Sample Run",
-    "tagline": "Drive Perseverance over the real terrain of Jezero Crater and collect the samples it took, at the places where it took them.",
+    "tagline": "Drive Perseverance across the delta front of Jezero Crater, from sol 408 to the Three Forks sample depot: the real terrain, the real sample sites, the real panoramas.",
     "back": "Back to Copernico",
     "loading": "Landing Perseverance in Jezero…",
     "loadingMission": "Driving to the start…",
     "failed": "The game could not start: the terrain or the rover model is missing, or this device cannot display WebGL 2.",
-    "chooseMission": "Choose a mission",
-    "missions": {
-      "floor": {
-        "name": "Crater floor",
-        "desc": "Five sites near the landing site: the volcanic rocks of Jezero's floor."
-      },
-      "delta": {
-        "name": "Delta front",
-        "desc": "Five sites at the foot of the ancient river delta, then leave the tubes at the Three Forks depot."
-      },
-      "margin": {
-        "name": "Delta top",
-        "desc": "Five sites over about 2.5 km on top of the ancient delta, west to the margin unit."
-      }
-    },
-    "sites_one": "{{count}} site",
-    "sites_other": "{{count}} sites",
-    "tubes_one": "{{count}} tube",
-    "tubes_other": "{{count}} tubes",
     "best": "Best {{time}}",
-    "start": "Start",
     "howTitle": "How to play",
     "how": {
       "drive": "Drive with W A S D or the arrow keys. Hold Shift to go faster (it uses more battery).",
       "core": "Stop inside a ring and press Space (or E): the arm comes down and cores the sample.",
       "slope": "Slopes over 30° stop the rover, as they would stop the real one.",
       "power": "The battery recharges slowly from the rover's nuclear power source (its MMRTG), faster when stopped.",
-      "keys": "C camera · M map · F laser · P photo · Esc pause · drag to look around · scroll to zoom.",
+      "keys": "C camera · M map · N AutoNav · T time · I inventory · F laser · P photo · Esc pause · drag to look · scroll to zoom.",
       "laser": "Stopped near rocks, centre one in the view and press F: SuperCam’s laser tells what it is made of and earns science points.",
       "photo": "Press P for photo mode: pick a rover camera, frame the shot and keep it in your gallery.",
       "hazardsTitle": "Real hazards",
@@ -849,18 +829,19 @@
         "rocks": "Sharp rocks: driving over boulders fast wears the wheels, as it punctured Curiosity’s. Below 50 % the rover is slower.",
         "tilt": "Slopes: over 30° the rover stops, uphill or sideways.",
         "storm": "Dust storms: the haze closes in for half a minute. Follow the compass and the map."
-      }
+      },
+      "pano": "At a panorama spot (violet ?), stop and press Space: Mastcam-Z takes a 360° mosaic, and you see the real one Perseverance took there.",
+      "autonav": "N, the AutoNav button or a click on the map: AutoNav plans a safe path around steep ground, soft sand and boulders, and drives it. Any drive key takes over.",
+      "warp": "T: time ×2 or ×4 while AutoNav drives or while the rover waits (recharging, for instance).",
+      "inventory": "I: the inventory, with the tube rack, your samples, SuperCam’s analyses, the panoramas, Ingenuity’s flights and the journal."
     },
-    "realNote": "The terrain is the real one, from the HiRISE 1 m elevation model, out to the crater rim on the horizon. The ground textures are cut from Perseverance’s own Mastcam-Z panoramas, and the sample sites are real (NASA/JPL MMGIS). Rocks, small craters, dust and tracks are generated. To fit in minutes, the game drives about 140 times faster than Perseverance (top speed 4.2 cm/s).",
+    "realNote": "The terrain is the real one, from the HiRISE 1 m elevation model, with the 25 cm HiRISE image over the core of the map and out to the crater rim on the horizon. The ground textures are cut from Perseverance’s own Mastcam-Z panoramas; the sample sites, the panorama spots, the rover’s route and Ingenuity’s airfields are real (NASA/JPL). Rocks, small craters, dust and tracks are generated. To fit in an evening, the game drives about 140 times faster than Perseverance (top speed 4.2 cm/s) and Ingenuity’s flights are shortened.",
     "hud": {
       "battery": "Battery",
       "speed": "Speed",
       "tilt": "Tilt",
       "time": "Time",
       "driven": "Driven",
-      "samples": "Samples",
-      "next": "Next",
-      "depot": "Depot",
       "camera": "Camera",
       "map": "Map",
       "pause": "Pause",
@@ -876,16 +857,19 @@
       "laser": "Laser (F)",
       "photo": "Photo (P)",
       "storm": "Dust storm",
-      "stormSoon": "Dust storm coming"
+      "stormSoon": "Dust storm coming",
+      "objectives": "Objectives",
+      "autonav": "AutoNav (N)",
+      "inventory": "Inventory (I)"
     },
     "prompt": {
       "stopToCore": "Stop to core the sample at {{name}}",
       "holdToCore": "Press Space to core {{name}}",
       "coring": "Coring {{name}}…",
       "stopToDrop": "Stop to leave the tubes",
-      "holdToDrop": "Press Space to leave the tubes at the Three Forks depot",
+      "holdToDrop": "Press Space to leave the duplicate tubes at Three Forks",
       "dropping": "Leaving the tubes…",
-      "toDepot": "All samples in: take them to the Three Forks depot",
+      "toDepot": "Take the tubes to the Three Forks depot",
       "steep": "Too steep: Perseverance is designed for slopes up to 30°",
       "boulder": "A boulder is in the way: back up and drive around it",
       "edge": "Edge of the 1 m terrain model: turn back",
@@ -899,7 +883,13 @@
       "rocks": "Sharp rocks: slow down to save the wheels ({{pct}}% left)",
       "sand": "Soft sand: the wheels slip {{pct}}%. Do not stop or boost here",
       "laserReady": "F: analyse this rock with the SuperCam laser",
-      "laserDone": "This rock has already been analysed: aim at another one"
+      "laserDone": "This rock has already been analysed: aim at another one",
+      "stopToPano": "Stop to take a 360° panorama of {{name}}",
+      "holdToPano": "Press Space to take a 360° panorama of {{name}}",
+      "shooting": "Mastcam-Z: panorama of {{name}}…",
+      "heli": "Ingenuity is {{distance}} m away: come within 70 m to watch it fly",
+      "autonavHint": "Press N: AutoNav drives to the next objective",
+      "heliFlying": "Ingenuity is flying: drag the view to follow it"
     },
     "touch": {
       "forward": "Forward",
@@ -913,8 +903,9 @@
     "pause": {
       "title": "Paused",
       "resume": "Resume",
-      "restart": "Restart mission",
-      "missions": "Missions"
+      "inventory": "Inventory",
+      "menu": "Main menu",
+      "saved": "Your expedition is saved in this browser."
     },
     "card": {
       "title": "Sample collected",
@@ -922,8 +913,7 @@
       "numbers": "Samples {{number}}",
       "cored": "Perseverance cored it on sol {{sol}} ({{date}}).",
       "at": "{{outcrop}} outcrop, {{location}}",
-      "continue": "Continue driving",
-      "finish": "Finish mission",
+      "continue": "Continue",
       "why": {
         "atmospheric": "The rock crumbled during coring, so this tube holds a sample of the Martian air instead.",
         "igneous": "Igneous rock, crystallised from molten rock. Dated in a laboratory on Earth, it would tell when Jezero's floor formed.",
@@ -931,22 +921,27 @@
         "mixed": "Grains of sedimentary and igneous rock, carried by the river from across the region.",
         "regolith": "Regolith: loose rock and dust from the surface. It shows how Martian soil would affect astronauts and their equipment.",
         "carbonate": "Silica-cemented carbonate: minerals that grow in water and can trap traces of the environment they formed in."
-      }
+      },
+      "inRack": "Sealed and stored in the tube rack (I: inventory)."
     },
     "complete": {
-      "title": "Mission complete",
+      "title": "Expedition complete",
       "time": "Time",
       "driven": "Driven",
       "energy": "Energy used",
       "tubes": "Tubes filled",
       "newBest": "New best time!",
       "best": "Best: {{time}}",
-      "real": "Perseverance took these samples between sol {{first}} and sol {{last}}: {{sols}} sols, about {{months}} months on Earth.",
-      "again": "Play again",
-      "other": "Other missions",
+      "real": "Perseverance did all this between sol {{first}} and sol {{last}}: {{sols}} sols, about {{months}} months on Earth.",
+      "again": "New expedition",
       "science": "Science",
       "rocks": "Rocks analysed",
-      "wheels": "Wheels"
+      "wheels": "Wheels",
+      "depot": "Tubes at Three Forks",
+      "panoramas": "Panoramas",
+      "flights": "Ingenuity flights",
+      "explore": "Keep exploring",
+      "menu": "Main menu"
     },
     "quality": {
       "title": "Graphics",
@@ -960,12 +955,11 @@
     },
     "menu": {
       "label": "Game menu",
-      "missions": "Missions",
       "collection": "Collection",
       "photos": "Photos",
       "options": "Options",
       "how": "How to play",
-      "found": "{{got}}/{{total}} cored"
+      "expedition": "Expedition"
     },
     "collection": {
       "samples": "Samples",
@@ -973,7 +967,7 @@
       "science": "Science points",
       "unknown": "Not found yet",
       "sol": "sol {{sol}}",
-      "locked": "Core it in the {{mission}} mission to add it to your collection.",
+      "locked": "Core it during the expedition to add it to your collection.",
       "rocksTitle": "Rocks analysed with SuperCam",
       "rocksIntro": "Stop near a rock, centre it in the view and press F: the laser reads what it is made of.",
       "analysed_one": "{{count}} analysed",
@@ -1067,6 +1061,136 @@
       "hint": "Drag to turn the view · scroll to zoom in close.",
       "saved": "Saved in your gallery.",
       "notKept": "This browser cannot keep it: download it now."
+    },
+    "expedition": {
+      "intro": "One map, the delta front, in four chapters that follow Perseverance’s real campaign (April 2022 – February 2023). Your progress is saved in this browser.",
+      "start": "Start the expedition",
+      "continue": "Continue (chapter {{chapter}})",
+      "new": "New expedition",
+      "newConfirm": "Start over (the saved expedition is lost)",
+      "meta": "4 chapters · 9 tubes to fill · 3 panoramas · Ingenuity · about 3 km"
+    },
+    "chapter": {
+      "kicker": "Chapter {{n}} · sols {{first}}–{{last}}",
+      "short": "Chapter {{n}}",
+      "sols": "Sols {{first}}–{{last}}",
+      "begin": "Start driving",
+      "continue": "Continue",
+      "tip": "N: AutoNav to the next objective · I: inventory · M: map · T: faster time while AutoNav drives"
+    },
+    "chapters": {
+      "arrival": {
+        "title": "Arrival at the delta front",
+        "story": "April 2022, sol 408. After a fast drive across the crater floor, Perseverance reaches the foot of Jezero’s ancient river delta: cliffs of layered rock laid down by water about 3.5 billion years ago. Drive west to Enchanted Lake, where the front rises ahead, and try SuperCam’s laser on the rocks on the way."
+      },
+      "hawksbill": {
+        "title": "Hawksbill Gap",
+        "story": "The team chose Hawksbill Gap to climb the delta front. On Skinner Ridge the rover cores a sandstone; at Wildcat Ridge, a fine-grained rock in which SHERLOC found the richest signs of organic molecules of the mission so far. Then take a 360° panorama from the ridge."
+      },
+      "amalik": {
+        "title": "Back down the front",
+        "story": "Down again to the foot of the front: the Amalik outcrop, Hidden Harbor and, at Observation Mountain, two tubes of regolith, the loose surface material future astronauts would walk on. Ingenuity is flying from airfields nearby: get close and watch it."
+      },
+      "depot": {
+        "title": "The Three Forks depot",
+        "story": "December 2022 – January 2023: the first sample depot on another world. Perseverance leaves duplicate tubes on the ground at Three Forks, a backup for bringing samples to Earth, and keeps their twins on board. Drop the tubes in the depot zone and take the panorama of the site."
+      }
+    },
+    "objectives": {
+      "reach-front": "Reach Enchanted Lake",
+      "first-laser": "Analyse a rock with SuperCam (F)",
+      "three-lasers": "Analyse 3 rocks",
+      "skinner": "Core Swift Run + Skyland (Skinner Ridge)",
+      "wildcat": "Core Hazeltop + Bearwallow (Wildcat Ridge)",
+      "pano-wildcat": "360° panorama at Wildcat Ridge",
+      "amalik": "Core Shuyak + Mageik (Amalik)",
+      "hidden-harbor": "Core Kukaklek (Hidden Harbor)",
+      "observation": "Core regolith at Observation Mountain",
+      "pano-enchanted": "360° panorama at Enchanted Lake",
+      "flight-3": "Watch Ingenuity fly",
+      "depot": "Leave the duplicate tubes at Three Forks",
+      "pano-forks": "360° panorama at Three Forks",
+      "flight-4": "Watch 3 of Ingenuity’s flights",
+      "optional": "optional"
+    },
+    "toast": {
+      "reached": "Reached {{name}}",
+      "resumed": "Expedition resumed: chapter {{chapter}}",
+      "deposited": "{{count}} tubes left at Three Forks: they stay on Mars, their twins on board"
+    },
+    "autonav": {
+      "start": "AutoNav: safe path planned, {{distance}} m",
+      "driving": "AutoNav → {{name}} · {{distance}}",
+      "recovering": "AutoNav: backing off an obstacle, planning again…",
+      "point": "map point",
+      "stop": "Take over",
+      "noGoal": "AutoNav: no objective to drive to",
+      "noPath": "AutoNav found no safe way there",
+      "gaveUp": "AutoNav could not get through: drive yourself for a while",
+      "arrived": "AutoNav: arrived at {{name}}",
+      "arrivedPoint": "AutoNav: arrived"
+    },
+    "warp": {
+      "on": "Time ×{{warp}}",
+      "only": "Time runs faster only while AutoNav drives or the rover is stopped"
+    },
+    "heli": {
+      "takeoff": "Ingenuity takes off: flight {{flight}} ({{date}})",
+      "landed": "Ingenuity landed: flight {{flight}}, sol {{sol}} ({{date}})"
+    },
+    "map": {
+      "label": "Map of the delta front",
+      "hint": "Click: AutoNav there",
+      "larger": "Larger",
+      "smaller": "Smaller"
+    },
+    "inventory": {
+      "title": "Inventory",
+      "close": "Close (I)",
+      "tabs": {
+        "tubes": "Tubes",
+        "samples": "Samples",
+        "science": "SuperCam",
+        "discoveries": "Discoveries",
+        "journal": "Journal"
+      },
+      "tubes": {
+        "intro": "Perseverance carries 43 tubes: 38 for samples and 5 witness tubes, which record any contamination the rover brought from Earth. {{filled}} of the {{total}} sample tubes are filled.",
+        "earlier": "Cored on the crater floor (before this map)",
+        "here": "Cored on the delta front",
+        "depot": "Left at Three Forks",
+        "empty": "Empty",
+        "witness": "Witness tube"
+      },
+      "samples": {
+        "none": "No samples cored yet."
+      },
+      "science": {
+        "none": "No rocks analysed yet: stop near one, centre it in the view and press F.",
+        "total": "{{count}} rocks analysed · {{types}} rock types · {{points}} science points"
+      },
+      "discoveries": {
+        "panoramas": "Mastcam-Z panoramas",
+        "panoramaHint": "A violet ? on the map: stop there and take the panorama.",
+        "view": "View 360°",
+        "flights": "Ingenuity’s flights watched",
+        "flightsNone": "None yet: Ingenuity flies near the delta front from chapter 3.",
+        "flight": "Flight {{flight}} · sol {{sol}} · {{date}}"
+      }
+    },
+    "pano": {
+      "kicker": "Mastcam-Z 360° panorama",
+      "view": "The real panorama taken at {{name}}",
+      "sols": "Sols {{first}}–{{last}} · {{date}}",
+      "hint": "Drag or arrow keys to look around · scroll or +/− to zoom · Esc to close",
+      "loading": "Loading the panorama…",
+      "failed": "The panorama could not be loaded.",
+      "close": "Continue",
+      "about": {
+        "wildcat-ridge": "From Wildcat Ridge, on the way up Hawksbill Gap: the layered rocks of the delta front around the rover, the crater floor it crossed below.",
+        "enchanted-lake": "At the foot of the delta front, where the rover cored the Amalik outcrop: the cliffs of the front rise behind it.",
+        "three-forks": "Three Forks, the first sample depot on another world, seen from the rover during the weeks it laid the tubes."
+      }
     }
   }
 }

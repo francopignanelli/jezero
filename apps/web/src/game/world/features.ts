@@ -153,7 +153,27 @@ export function bakeCraters(
         data[r * cols + k]! += craterProfile(c, Math.hypot(x - c.x, n - c.north));
       }
     }
-    const g = grey;
+  }
+  toneCraters(craters, { ...grey, widthM, heightM });
+}
+
+/**
+ * Bakes the craters' tones (dark floors, bright rims) into an orbital image centred on the area,
+ * `widthM` × `heightM` across.
+ */
+export function toneCraters(
+  craters: Crater[],
+  g: {
+    data: Uint8Array;
+    width: number;
+    height: number;
+    cellM: number;
+    widthM: number;
+    heightM: number;
+  },
+): void {
+  const { widthM, heightM } = g;
+  for (const c of craters) {
     const reachT = c.radiusM * 2.6;
     const gc0 = Math.max(0, Math.floor((c.x - reachT + widthM / 2) / g.cellM));
     const gc1 = Math.min(g.width - 1, Math.ceil((c.x + reachT + widthM / 2) / g.cellM));

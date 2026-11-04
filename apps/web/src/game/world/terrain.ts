@@ -73,7 +73,12 @@ export interface MacroAlbedo {
   detail: DataTexture;
   mid: DataTexture;
   far: DataTexture;
+  /** Native 25 cm imagery over the core of the area (a square around its centre), if any. */
+  core?: { texture: DataTexture; widthM: number; heightM: number; cellM: number };
 }
+
+/** Width of the blend from the core imagery into the 0.5 m layer at its edge (m). */
+const CORE_RAMP_M = 30;
 
 const GLSL_COMMON = /* glsl */ `
   uniform sampler2D tHDetail;
@@ -202,6 +207,9 @@ const FRAGMENT_PARS = /* glsl */ `
   uniform sampler2D tADetail;
   uniform sampler2D tAMid;
   uniform sampler2D tAFar;
+  uniform sampler2D tACore;
+  uniform vec3 uCoreInfo;
+  uniform float uCoreOn;
   uniform vec3 uCamW;
   /** Firm ground around the sample sites, starts and depot (no sand drifts): x, north. */
   uniform vec2 uClear[${MAX_CLEAR}];
@@ -232,6 +240,10 @@ const FRAGMENT_PARS = /* glsl */ `
     if (wm > 0.0) m = mix(m, texture(tAMid, uvOf(uMidInfo, p)).r, wm);
     float wd = edgeW(uDetailInfo, p, ${DETAIL_RAMP_M.toFixed(1)});
     if (wd > 0.0) m = mix(m, texture(tADetail, uvOf(uDetailInfo, p)).r, wd);
+    if (uCoreOn > 0.5) {
+      float wc = edgeW(uCoreInfo, p, ${CORE_RAMP_M.toFixed(1)});
+      if (wc > 0.0) m = mix(m, texture(tACore, uvOf(uCoreInfo, p)).r, wc);
+    }
     return m;
   }
   /** Two lookups with per-region offsets (after I. Quilez, "texture repetition"), same offsets
@@ -532,8 +544,20 @@ export class TerrainMesh {
       tADetail: { value: macro.detail },
       tAMid: { value: macro.mid },
       tAFar: { value: macro.far },
+      tACore: { value: macro.core?.texture ?? macro.detail },
+      uCoreInfo: {
+        value: macro.core
+          ? new Vector3(macro.core.widthM, macro.core.heightM, macro.core.cellM)
+          : new Vector3(1, 1, 1),
+      },
+      uCoreOn: { value: macro.core ? 1 : 0 },
     };
-    for (const t of [macro.detail, macro.mid, macro.far]) {
+    for (const t of [
+      macro.detail,
+      macro.mid,
+      macro.far,
+      ...(macro.core ? [macro.core.texture] : []),
+    ]) {
       t.minFilter = LinearMipmapLinearFilter;
       t.magFilter = LinearFilter;
     }

@@ -40,11 +40,11 @@ class Area:
     height_m: int
 
 
-# Mission areas (centre, size): every target, the start and a margin of drivable ground.
+# The game's one map (centre, size): the delta front, sample sites 10–18, Three Forks and
+# Hawksbill Gap, with a margin of drivable ground. Its 25 cm core imagery is added by
+# scripts/data/build-game-core.ts (kept when this area is rebuilt).
 AREAS = [
-    Area("floor", 18.4362, 77.4469, 1700, 1700),
     Area("delta", 18.4537, 77.4063, 1500, 1300),
-    Area("margin", 18.4795, 77.3680, 2900, 1700),
 ]
 MID_M, MID_RES = 12_000, 8.0
 FAR_M, FAR_RES = 64_000, 100.0
@@ -308,6 +308,7 @@ def build(only: str | None = None) -> None:
     areas = {x["id"]: x for x in manifest.get("areas", [])}
     for a in AREAS:
         if only in (None, a.id):
-            areas[a.id] = build_area(a)
+            core = areas.get(a.id, {}).get("core")
+            areas[a.id] = build_area(a) | ({"core": core} if core else {})
     manifest["areas"] = [areas[a.id] for a in AREAS if a.id in areas]
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")

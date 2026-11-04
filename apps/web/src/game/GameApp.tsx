@@ -2,19 +2,28 @@ import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEve
 import { useTranslation } from 'react-i18next';
 import { DATA_VERSION, dataUrl } from '../config';
 import { POIS, samplePhotos } from '../data/catalog';
-import type { SampleSite } from '../data/surfaceData';
 import { LANGUAGES } from '../i18n';
-import { loadGroundBasemap, mapPx, type LocalMap } from '../lib/basemap';
 import { formatClock, formatDegrees, formatDistance } from '../lib/format';
 import { M_PER_DEG } from '../lib/math';
-import { readCareer, resetProgress, type Career } from './career';
-import { DRIVE } from './roverSim';
-import { MISSIONS, missionTargets, realSols, type MissionId, type Target } from './missions';
+import { readBest, readCareer, resetProgress, type Career } from './career';
+import {
+  CHAPTERS,
+  FLIGHTS,
+  START,
+  isDone,
+  objectiveCount,
+  objectiveDone,
+  type Target,
+} from './expedition';
+import { Inventory, whyKey } from './Inventory';
+import { PanoramaView } from './PanoramaView';
 import { deletePhoto, downloadBlob, listPhotos, photoFileName, type Photo } from './photos';
-import { LINES, POINTS, ROCK_TYPES, mainElements, spectrum, type RockType } from './science';
+import { DRIVE } from './roverSim';
+import { mainElements, POINTS, ROCK_TYPES } from './science';
 import { GameSession, readQuality, writeQuality } from './session';
-import { PHOTO_FILTERS, type Quality } from './world/world';
+import { Spectrum } from './Spectrum';
 import { useGame } from './store';
+import { PHOTO_FILTERS, type Quality } from './world/world';
 
 const HOME = './';
 
@@ -68,10 +77,16 @@ export function GameApp() {
           {t('game.loadingMission')}
         </div>
       )}
-      {session && ['playing', 'paused', 'card'].includes(phase) && <Hud session={session} />}
+      {session && ['playing', 'paused', 'card', 'inventory', 'chapter'].includes(phase) && (
+        <Hud session={session} />
+      )}
       {session && phase === 'playing' && <FindingPanel />}
+      {session && ['playing', 'chapter', 'card', 'panorama'].includes(phase) && <Toasts />}
+      {session && phase === 'chapter' && <ChapterPage session={session} />}
       {session && phase === 'paused' && <PauseMenu session={session} />}
       {session && phase === 'card' && <SampleCard session={session} />}
+      {session && phase === 'inventory' && <Inventory session={session} />}
+      {session && phase === 'panorama' && <PanoramaPhase session={session} />}
       {session && phase === 'complete' && <Complete session={session} />}
       {session && phase === 'photo' && <PhotoMode session={session} />}
     </div>
@@ -98,15 +113,6 @@ function LanguageSwitch() {
     </div>
   );
 }
-
-const bestTime = (id: MissionId): number | null => {
-  try {
-    const v = Number(localStorage.getItem(`copernico.game.best.${id}`));
-    return Number.isFinite(v) && v > 0 ? v : null;
-  } catch {
-    return null;
-  }
-};
 
 /** Graphics quality (renderer settings are fixed at start, so a change reloads the page). */
 function QualitySelect() {
@@ -148,12 +154,12 @@ function SoundToggle({ session }: { session: GameSession }) {
   );
 }
 
-const TABS = ['missions', 'collection', 'photos', 'options', 'how'] as const;
+const TABS = ['expedition', 'collection', 'photos', 'options', 'how'] as const;
 type Tab = (typeof TABS)[number];
 
 function MainMenu({ session }: { session: GameSession }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>('missions');
+  const [tab, setTab] = useState<Tab>('expedition');
   const [career, setCareer] = useState<Career>(readCareer);
   return (
     <div className="game-screen">
@@ -193,7 +199,7 @@ function MainMenu({ session }: { session: GameSession }) {
           id={`game-panel-${tab}`}
           aria-labelledby={`game-tab-${tab}`}
         >
-          {tab === 'missions' && <MissionList session={session} career={career} />}
+          {tab === 'expedition' && <ExpeditionTab session={session} />}
           {tab === 'collection' && <Collection session={session} career={career} />}
           {tab === 'photos' && <Gallery />}
           {tab === 'options' && (
@@ -206,49 +212,68 @@ function MainMenu({ session }: { session: GameSession }) {
   );
 }
 
-function MissionList({ session, career }: { session: GameSession; career: Career }) {
+/** Continue the saved expedition, or start a new one; the four chapters at a glance. */
+function ExpeditionTab({ session }: { session: GameSession }) {
   const { t } = useTranslation();
-  const samples = session.sampleSites;
+  const hasSave = useGame((s) => s.hasSave);
+  const exp = useGame((s) => s.expedition);
+  const [confirm, setConfirm] = useState(false);
+  const best = readBest();
   return (
-    <ul className="game-missions">
-      {MISSIONS.map((m, i) => {
-        const targets = missionTargets(m, samples).filter((x) => x.kind === 'sample');
-        const tubes = targets.reduce((n, x) => n + x.tubes, 0);
-        const got = targets.filter((x) => career.samples.includes(x.id)).length;
-        const best = bestTime(m.id);
-        return (
-          <li key={m.id}>
+    <div className="game-expedition">
+      <p>{t('game.expedition.intro')}</p>
+      <ol className="game-chapter-list">
+        {CHAPTERS.map((c, i) => (
+          <li key={c.id} className={hasSave && i < exp.chapter ? 'is-done' : ''}>
+            <span className="game-chapter-n">{i + 1}</span>
             <div>
-              <strong>{t(`game.missions.${m.id}.name`)}</strong>
-              <p>{t(`game.missions.${m.id}.desc`)}</p>
-              <p className="meta">
-                {t('game.sites', { count: targets.length })} · {t('game.tubes', { count: tubes })} ·{' '}
-                {t('game.menu.found', { got, total: targets.length })}
-                {best !== null && <> · {t('game.best', { time: formatClock(best) })}</>}
-              </p>
+              <strong>{t(`game.chapters.${c.id}.title`)}</strong>
+              <span className="meta">
+                {t('game.chapter.sols', { first: c.sols[0], last: c.sols[1] })}
+              </span>
             </div>
-            <button
-              type="button"
-              className="btn btn-primary"
-              autoFocus={i === 0}
-              onClick={() => void session.start(m.id)}
-            >
-              {t('game.start')}
-            </button>
           </li>
-        );
-      })}
-    </ul>
+        ))}
+      </ol>
+      <div className="btn-row">
+        {hasSave && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            autoFocus
+            onClick={() => session.continueExpedition()}
+          >
+            {t('game.expedition.continue', { chapter: exp.chapter + 1 })}
+          </button>
+        )}
+        {hasSave && !confirm ? (
+          <button type="button" className="btn" onClick={() => setConfirm(true)}>
+            {t('game.expedition.new')}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={hasSave ? 'btn' : 'btn btn-primary'}
+            autoFocus={!hasSave}
+            onClick={() => session.newExpedition()}
+          >
+            {hasSave ? t('game.expedition.newConfirm') : t('game.expedition.start')}
+          </button>
+        )}
+      </div>
+      <p className="meta">
+        {t('game.expedition.meta')}
+        {best !== null && <> · {t('game.best', { time: formatClock(best) })}</>}
+      </p>
+    </div>
   );
 }
 
-/** Samples cored (ever) per mission, and the rock types found with the laser. */
+/** Samples ever cored on this map, and the rock types found with the laser. */
 function Collection({ session, career }: { session: GameSession; career: Career }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'es' ? 'es' : 'en';
-  const all = MISSIONS.flatMap((m) =>
-    missionTargets(m, session.sampleSites).filter((x) => x.kind === 'sample'),
-  );
+  const all = session.places.filter((x) => x.kind === 'sample');
   const got = all.filter((x) => career.samples.includes(x.id)).length;
   const types = ROCK_TYPES.filter((r) => career.rocks[r]).length;
   return (
@@ -271,61 +296,50 @@ function Collection({ session, career }: { session: GameSession; career: Career 
           <dd>{career.science}</dd>
         </div>
       </dl>
-      {MISSIONS.map((m) => (
-        <section key={m.id}>
-          <h2>{t(`game.missions.${m.id}.name`)}</h2>
-          <ul className="game-samples">
-            {missionTargets(m, session.sampleSites)
-              .filter((x) => x.kind === 'sample' && x.site)
-              .map((x) => {
-                const site = x.site!;
-                const have = career.samples.includes(x.id);
-                const photo = have ? samplePhotos(site.sampleNumber)[0] : undefined;
-                const numbers: string[] = site.sampleNumber.match(/\d+/g) ?? [];
-                const poi = POIS.find((p) => p.sampleNumbers.some((n) => numbers.includes(n)));
-                return (
-                  <li key={x.id} className={have ? 'is-have' : 'is-locked'}>
-                    <details>
-                      <summary>
-                        <span className="game-sample-thumb" aria-hidden="true">
-                          {photo ? (
-                            <img src={dataUrl(`${photo.file}?v=${DATA_VERSION}`)} alt="" />
-                          ) : (
-                            <span>{have ? '✓' : '?'}</span>
-                          )}
-                        </span>
-                        <span>
-                          <strong>{have ? site.name : t('game.collection.unknown')}</strong>
-                          <span className="meta">
-                            {t(numbers.length > 1 ? 'game.card.numbers' : 'game.card.number', {
-                              number: site.sampleNumber,
-                            })}
-                            {have && <> · {t('game.collection.sol', { sol: site.sol })}</>}
-                          </span>
-                        </span>
-                      </summary>
-                      {have ? (
-                        <div className="game-sample-more">
-                          <p className="meta">
-                            {t('game.card.at', { outcrop: site.outcrop, location: site.location })}
-                          </p>
-                          <p>{t(`game.card.why.${whyKey(site)}`)}</p>
-                          {poi && <p>{poi.why[lang]}</p>}
-                        </div>
-                      ) : (
-                        <p className="meta game-sample-more">
-                          {t('game.collection.locked', {
-                            mission: t(`game.missions.${m.id}.name`),
-                          })}
-                        </p>
-                      )}
-                    </details>
-                  </li>
-                );
-              })}
-          </ul>
-        </section>
-      ))}
+      <ul className="game-samples">
+        {all.map((x) => {
+          const site = x.site!;
+          const have = career.samples.includes(x.id);
+          const photo = have ? samplePhotos(site.sampleNumber)[0] : undefined;
+          const numbers: string[] = site.sampleNumber.match(/\d+/g) ?? [];
+          const poi = POIS.find((p) => p.sampleNumbers.some((n) => numbers.includes(n)));
+          return (
+            <li key={x.id} className={have ? 'is-have' : 'is-locked'}>
+              <details>
+                <summary>
+                  <span className="game-sample-thumb" aria-hidden="true">
+                    {photo ? (
+                      <img src={dataUrl(`${photo.thumb ?? photo.file}?v=${DATA_VERSION}`)} alt="" />
+                    ) : (
+                      <span>{have ? '✓' : '?'}</span>
+                    )}
+                  </span>
+                  <span>
+                    <strong>{have ? site.name : t('game.collection.unknown')}</strong>
+                    <span className="meta">
+                      {t(numbers.length > 1 ? 'game.card.numbers' : 'game.card.number', {
+                        number: site.sampleNumber,
+                      })}
+                      {have && <> · {t('game.collection.sol', { sol: site.sol })}</>}
+                    </span>
+                  </span>
+                </summary>
+                {have ? (
+                  <div className="game-sample-more">
+                    <p className="meta">
+                      {t('game.card.at', { outcrop: site.outcrop, location: site.location })}
+                    </p>
+                    <p>{t(`game.card.why.${whyKey(site)}`)}</p>
+                    {poi && <p>{poi.why[lang]}</p>}
+                  </div>
+                ) : (
+                  <p className="meta game-sample-more">{t('game.collection.locked')}</p>
+                )}
+              </details>
+            </li>
+          );
+        })}
+      </ul>
       <h2>{t('game.collection.rocksTitle')}</h2>
       <p className="meta">{t('game.collection.rocksIntro')}</p>
       <ul className="game-rocks">
@@ -469,6 +483,7 @@ function Options({ session, onReset }: { session: GameSession; onReset: () => vo
             onClick={() => {
               resetProgress();
               setConfirm(false);
+              useGame.getState().set({ hasSave: false });
               onReset();
             }}
           >
@@ -489,7 +504,21 @@ function HowToPlay() {
   return (
     <>
       <ul className="game-how">
-        {(['drive', 'core', 'laser', 'photo', 'slope', 'power', 'keys'] as const).map((k) => (
+        {(
+          [
+            'drive',
+            'core',
+            'pano',
+            'laser',
+            'autonav',
+            'warp',
+            'inventory',
+            'photo',
+            'slope',
+            'power',
+            'keys',
+          ] as const
+        ).map((k) => (
           <li key={k}>{t(`game.how.${k}`)}</li>
         ))}
       </ul>
@@ -504,45 +533,100 @@ function HowToPlay() {
   );
 }
 
+// ---------- chapter page ----------
+
+function ChapterPage({ session }: { session: GameSession }) {
+  const { t } = useTranslation();
+  const exp = useGame((s) => s.expedition);
+  const c = CHAPTERS[exp.chapter]!;
+  return (
+    <div className="game-screen">
+      <div
+        className="game-dialog game-chapter"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="game-chapter-title"
+      >
+        <div className="game-panel-title">
+          {t('game.chapter.kicker', { n: exp.chapter + 1, first: c.sols[0], last: c.sols[1] })}
+        </div>
+        <h2 id="game-chapter-title">{t(`game.chapters.${c.id}.title`)}</h2>
+        <p>{t(`game.chapters.${c.id}.story`)}</p>
+        <ul className="game-chapter-goals">
+          {c.objectives.map((o) => (
+            <li key={o.id} className={o.optional ? 'is-optional' : ''}>
+              <span aria-hidden="true">{o.optional ? '◇' : '○'}</span>{' '}
+              {t(`game.objectives.${o.id}`)}
+              {o.optional && <em> · {t('game.objectives.optional')}</em>}
+            </li>
+          ))}
+        </ul>
+        <p className="meta">{t('game.chapter.tip')}</p>
+        <button
+          type="button"
+          className="btn btn-primary"
+          autoFocus
+          onClick={() => session.resume()}
+        >
+          {exp.chapter === 0 && exp.reached.length === 0
+            ? t('game.chapter.begin')
+            : t('game.chapter.continue')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ---------- HUD ----------
+
+function Objectives() {
+  const { t } = useTranslation();
+  const exp = useGame((s) => s.expedition);
+  const storm = useGame((s) => s.hud.storm);
+  const c = CHAPTERS[exp.chapter];
+  if (!c) return null;
+  return (
+    <section className="game-panel game-objectives" aria-label={t('game.hud.objectives')}>
+      <div className="game-panel-title">
+        {t('game.chapter.short', { n: exp.chapter + 1 })} · {t(`game.chapters.${c.id}.title`)}
+      </div>
+      <ol>
+        {c.objectives.map((o) => {
+          const done = objectiveDone(exp, o, c);
+          const count = objectiveCount(exp, o, c);
+          return (
+            <li
+              key={o.id}
+              className={`${done ? 'is-done' : ''} ${o.optional ? 'is-optional' : ''}`}
+            >
+              <span aria-hidden="true">{done ? '✓' : o.optional ? '◇' : '○'}</span>{' '}
+              {t(`game.objectives.${o.id}`)}
+              {count && count[1] > 1 && !done && ` ${count[0]}/${count[1]}`}
+            </li>
+          );
+        })}
+      </ol>
+      {storm && (
+        <p className={`game-storm ${storm === 'active' ? 'is-active' : ''}`}>
+          {t(storm === 'active' ? 'game.hud.storm' : 'game.hud.stormSoon')}
+        </p>
+      )}
+    </section>
+  );
+}
 
 function Hud({ session }: { session: GameSession }) {
   const { t, i18n } = useTranslation();
   const hud = useGame((s) => s.hud);
-  const targets = useGame((s) => s.targets);
-  const collected = useGame((s) => s.collected);
-  const deposited = useGame((s) => s.deposited);
   const camera = useGame((s) => s.camera);
   const mapOpen = useGame((s) => s.mapOpen);
-  const missionId = useGame((s) => s.missionId);
+  const exp = useGame((s) => s.expedition);
+  const phase = useGame((s) => s.phase);
   const lang = i18n.language;
-  const samples = targets.filter((x) => x.kind === 'sample');
-  const depot = targets.find((x) => x.kind === 'depot');
-  const done = (x: Target) => (x.kind === 'depot' ? deposited : collected.includes(x.id));
 
   return (
     <div className="game-hud">
-      <section className="game-panel game-objectives" aria-label={t('game.hud.samples')}>
-        <div className="game-panel-title">{missionId && t(`game.missions.${missionId}.name`)}</div>
-        <ol>
-          {samples.map((x) => (
-            <li key={x.id} className={done(x) ? 'is-done' : ''}>
-              <span aria-hidden="true">{done(x) ? '✓' : '○'}</span> {x.name}
-            </li>
-          ))}
-          {depot && (
-            <li className={`is-depot ${deposited ? 'is-done' : ''}`}>
-              <span aria-hidden="true">{deposited ? '✓' : '◇'}</span> {t('game.hud.depot')}:{' '}
-              {depot.name}
-            </li>
-          )}
-        </ol>
-        {hud.storm && (
-          <p className={`game-storm ${hud.storm === 'active' ? 'is-active' : ''}`}>
-            {t(hud.storm === 'active' ? 'game.hud.storm' : 'game.hud.stormSoon')}
-          </p>
-        )}
-      </section>
+      <Objectives />
 
       {hud.next && (
         <div className="game-compass" aria-live="off">
@@ -557,6 +641,37 @@ function Hud({ session }: { session: GameSession }) {
             <strong>{hud.next.name}</strong>
             {formatDistance(hud.next.distanceM, lang)}
           </span>
+        </div>
+      )}
+
+      {hud.autonav && (
+        <div className="game-panel game-autonav" role="status">
+          <span className="game-autonav-dot" aria-hidden="true" />
+          <span>
+            {t(
+              hud.autonav.state === 'recovering'
+                ? 'game.autonav.recovering'
+                : 'game.autonav.driving',
+              {
+                name: hud.autonav.goal || t('game.autonav.point'),
+                distance: formatDistance(hud.autonav.distanceM, lang),
+              },
+            )}
+          </span>
+          <button type="button" className="btn btn-icon" onClick={() => session.cycleWarp()}>
+            ×{hud.warp}
+          </button>
+          <button type="button" className="btn btn-icon" onClick={() => session.stopAutoNav()}>
+            {t('game.autonav.stop')}
+          </button>
+        </div>
+      )}
+      {!hud.autonav && hud.warp > 1 && (
+        <div className="game-panel game-autonav" role="status">
+          <span>{t('game.warp.on', { warp: hud.warp })}</span>
+          <button type="button" className="btn btn-icon" onClick={() => session.cycleWarp()}>
+            ×{hud.warp}
+          </button>
         </div>
       )}
 
@@ -618,10 +733,18 @@ function Hud({ session }: { session: GameSession }) {
           </div>
           <div>
             <dt>{t('game.hud.science')}</dt>
-            <dd>{hud.science}</dd>
+            <dd>{exp.science}</dd>
           </div>
         </dl>
         <div className="game-tools">
+          <button
+            type="button"
+            className={`btn btn-icon ${hud.autonav ? 'is-on' : ''}`}
+            aria-pressed={!!hud.autonav}
+            onClick={() => (hud.autonav ? session.stopAutoNav() : session.startAutoNav())}
+          >
+            {t('game.hud.autonav')}
+          </button>
           <button
             type="button"
             className="btn btn-icon"
@@ -629,6 +752,9 @@ function Hud({ session }: { session: GameSession }) {
             onClick={() => session.fireLaser()}
           >
             {t('game.hud.laser')}
+          </button>
+          <button type="button" className="btn btn-icon" onClick={() => session.openInventory()}>
+            {t('game.hud.inventory')}
           </button>
           <button type="button" className="btn btn-icon" onClick={() => session.enterPhoto()}>
             {t('game.hud.photo')}
@@ -651,7 +777,7 @@ function Hud({ session }: { session: GameSession }) {
         </div>
       </section>
 
-      <Prompt />
+      {phase === 'playing' && <Prompt />}
       {mapOpen && <GameMap session={session} />}
       <TouchPad session={session} />
     </div>
@@ -661,8 +787,6 @@ function Hud({ session }: { session: GameSession }) {
 function Prompt() {
   const { t } = useTranslation();
   const hud = useGame((s) => s.hud);
-  const targets = useGame((s) => s.targets);
-  const collected = useGame((s) => s.collected);
   let text: string | null = null;
   let tone = '';
   const { here, action } = hud;
@@ -671,7 +795,9 @@ function Prompt() {
     text =
       action.kind === 'core'
         ? t('game.prompt.coring', { name: here.name })
-        : t('game.prompt.dropping');
+        : action.kind === 'panorama'
+          ? t('game.prompt.shooting', { name: here.name })
+          : t('game.prompt.dropping');
   } else if (hud.laser) {
     text = t('game.prompt.lasering');
   } else if (hud.stuck) {
@@ -680,13 +806,13 @@ function Prompt() {
   } else if (hud.blocked === 'power' || hud.recharging) {
     text = t('game.prompt.power');
     tone = 'is-warn';
-  } else if (hud.blocked === 'steep') {
+  } else if (hud.blocked === 'steep' && !hud.autonav) {
     text = t('game.prompt.steep');
     tone = 'is-warn';
-  } else if (hud.blocked === 'rock') {
+  } else if (hud.blocked === 'rock' && !hud.autonav) {
     text = t('game.prompt.boulder');
     tone = 'is-warn';
-  } else if (hud.blocked === 'tilt') {
+  } else if (hud.blocked === 'tilt' && !hud.autonav) {
     text = t('game.prompt.tiltBlocked');
     tone = 'is-warn';
   } else if (hud.blocked === 'edge') {
@@ -702,13 +828,13 @@ function Prompt() {
     text = t('game.prompt.sand', { pct: Math.round(hud.slip * 100) });
     tone = 'is-warn';
   } else if (here) {
-    if (here.kind === 'depot')
-      text = here.stopped ? t('game.prompt.holdToDrop') : t('game.prompt.stopToDrop');
-    else
-      text = here.stopped
-        ? t('game.prompt.holdToCore', { name: here.name })
-        : t('game.prompt.stopToCore', { name: here.name });
+    const key = here.kind === 'depot' ? 'Drop' : here.kind === 'panorama' ? 'Pano' : 'Core';
+    text = t(`game.prompt.${here.stopped ? 'hold' : 'stop'}To${key}`, { name: here.name });
     tone = 'is-go';
+  } else if (hud.ingenuity?.flying && hud.ingenuity.distanceM < 250) {
+    text = t('game.prompt.heliFlying');
+  } else if (hud.ingenuity?.ready && hud.ingenuity.distanceM < 200) {
+    text = t('game.prompt.heli', { distance: Math.round(hud.ingenuity.distanceM) });
   } else if (hud.laserTarget === 'ready') {
     text = t('game.prompt.laserReady');
   } else if (hud.laserTarget === 'done') {
@@ -718,11 +844,10 @@ function Prompt() {
     tone = 'is-warn';
   } else if (hud.storm === 'active') {
     text = t('game.prompt.storm');
-  } else if (
-    hud.next?.kind === 'depot' &&
-    targets.filter((x) => x.kind === 'sample').every((x) => collected.includes(x.id))
-  ) {
+  } else if (hud.next?.kind === 'depot') {
     text = t('game.prompt.toDepot');
+  } else if (hud.next && !hud.autonav && hud.next.distanceM > 60) {
+    text = t('game.prompt.autonavHint');
   }
   return (
     <div className={`game-prompt ${tone}`} role="status" aria-live="polite">
@@ -736,43 +861,26 @@ function Prompt() {
   );
 }
 
-// ---------- SuperCam read-out ----------
-
-const SPEC_W = 260;
-const SPEC_H = 70;
-
-/** LIBS spectrum: intensity against wavelength (240–800 nm), the main lines labelled. */
-function Spectrum({ type, seed }: { type: RockType; seed: string }) {
-  const values = spectrum(type, seed);
-  const max = Math.max(...values);
-  const x = (nm: number) => ((nm - 240) / 560) * SPEC_W;
-  const pts = values
-    .map(
-      (v, i) =>
-        `${((i / (values.length - 1)) * SPEC_W).toFixed(1)},${(SPEC_H - 12 - (v / max) * (SPEC_H - 22)).toFixed(1)}`,
-    )
-    .join(' ');
-  const main = mainElements(type, 4);
-  const labelled = LINES.filter(
-    (l, i) => main.includes(l.el) && LINES.findIndex((m) => m.el === l.el) === i,
-  );
+/** Notices (a place reached, Ingenuity flying, tubes left…), a few seconds each. */
+function Toasts() {
+  const { t } = useTranslation();
+  const toast = useGame((s) => s.toast);
+  const [shown, setShown] = useState(toast);
+  useEffect(() => {
+    if (!toast) return;
+    setShown(toast);
+    const id = window.setTimeout(() => setShown(null), 5200);
+    return () => window.clearTimeout(id);
+  }, [toast]);
+  if (!shown) return null;
   return (
-    <svg className="game-spectrum" viewBox={`0 0 ${SPEC_W} ${SPEC_H}`} aria-hidden="true">
-      <polyline points={pts} />
-      {labelled.map((l) => (
-        <text key={l.el} x={x(l.nm)} y={9} textAnchor="middle">
-          {l.el}
-        </text>
-      ))}
-      <text x={0} y={SPEC_H - 1}>
-        240 nm
-      </text>
-      <text x={SPEC_W} y={SPEC_H - 1} textAnchor="end">
-        800 nm
-      </text>
-    </svg>
+    <div className="game-toast" role="status" aria-live="polite" key={shown.id}>
+      {t(shown.key, shown.params ?? {})}
+    </div>
   );
 }
+
+// ---------- SuperCam read-out ----------
 
 /** The result of the last laser analysis, for a few seconds. */
 function FindingPanel() {
@@ -813,11 +921,12 @@ function FindingPanel() {
 function PhotoMode({ session }: { session: GameSession }) {
   const { t, i18n } = useTranslation();
   const filter = useGame((s) => s.photoFilter);
-  const missionId = useGame((s) => s.missionId);
+  const exp = useGame((s) => s.expedition);
   const [saved, setSaved] = useState<{ blob: Blob; name: string; kept: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
-  const area = t(`game.missions.${missionId ?? 'floor'}.name`);
-  const caption = `Perseverance · Jezero · ${area} · ${new Date().toLocaleDateString(i18n.language)} · Copernico`;
+  const chapter = CHAPTERS[exp.chapter];
+  const place = chapter ? t(`game.chapters.${chapter.id}.title`) : t('game.title');
+  const caption = `Perseverance · Jezero · ${place} · ${new Date().toLocaleDateString(i18n.language)} · Copernico`;
   return (
     <div className="game-photo" role="dialog" aria-label={t('game.photo.title')}>
       <div className="game-panel game-photo-bar">
@@ -876,107 +985,208 @@ function PhotoMode({ session }: { session: GameSession }) {
 
 // ---------- map ----------
 
-const MAP_PX = 220;
+const MAP_W = 300;
+const MAP_H = 210;
+const MAP_SCALE_LARGE = 2.4;
 
-/** Re-rendered only when the mission or its progress changes, not with every HUD update. */
+/** Local metres of a position from the map centre (x east, y north). */
+const toMap = (lat0: number, lon0: number, lat: number, lon: number): [number, number] => [
+  (lon - lon0) * Math.cos((lat0 * Math.PI) / 180) * M_PER_DEG,
+  (lat - lat0) * M_PER_DEG,
+];
+
+/**
+ * The map: the 0.5 m HiRISE image of the area (the game's own), Perseverance's real route, the
+ * places open now and those done, Ingenuity, AutoNav's path and the rover. Click to send AutoNav.
+ * Re-rendered only when progress changes, not with every HUD update.
+ */
 const GameMap = memo(function GameMap({ session }: { session: GameSession }) {
   const { t, i18n } = useTranslation();
   const targets = useGame((s) => s.targets);
-  const collected = useGame((s) => s.collected);
-  const deposited = useGame((s) => s.deposited);
-  const missionId = useGame((s) => s.missionId);
+  const exp = useGame((s) => s.expedition);
+  const route = useGame((s) => s.route);
+  const [large, setLarge] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const roverRef = useRef<SVGGElement>(null);
+  const heliRef = useRef<SVGGElement>(null);
+  const k = large ? MAP_SCALE_LARGE : 1;
+  const W = MAP_W * k;
+  const H = MAP_H * k;
 
-  // Mission area: the start and every target, with a margin, north up.
-  const mission = MISSIONS.find((m) => m.id === missionId);
-  const pts = [...targets, ...(mission ? [mission.start] : [])];
+  // Extent: every place of the map, the start and the airfields, with a margin.
+  const pts = [...session.places, START, ...FLIGHTS];
   const lats = pts.map((p) => p.lat);
   const lons = pts.map((p) => p.lon);
   const lat0 = (Math.min(...lats) + Math.max(...lats)) / 2;
   const lon0 = (Math.min(...lons) + Math.max(...lons)) / 2;
-  const spanM =
-    Math.max(
-      (Math.max(...lats) - Math.min(...lats)) * M_PER_DEG,
-      (Math.max(...lons) - Math.min(...lons)) * M_PER_DEG * Math.cos((lat0 * Math.PI) / 180),
-    ) + 500;
-  const map: LocalMap = { lat0, lon0, widthPx: MAP_PX, heightPx: MAP_PX, mPerPx: spanM / MAP_PX };
-  const key = `${missionId}`;
+  const spanX =
+    (Math.max(...lons) - Math.min(...lons)) * Math.cos((lat0 * Math.PI) / 180) * M_PER_DEG + 160;
+  const spanY = (Math.max(...lats) - Math.min(...lats)) * M_PER_DEG + 160;
+  const mPerPx = Math.max(spanX / W, spanY / H);
+  const px = (lat: number, lon: number): [number, number] => {
+    const [x, y] = toMap(lat0, lon0, lat, lon);
+    return [W / 2 + x / mPerPx, H / 2 - y / mPerPx];
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || targets.length === 0) return;
+    const area = session.world.frame;
+    const base = session.mapImage;
+    if (!canvas || !area || !base) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = canvas.height = MAP_PX * dpr;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
     const ctx = canvas.getContext('2d')!;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     let live = true;
-    // CTX at about the map's own scale (z13 ≈ 5 m/px … z11 ≈ 20 m/px).
-    const z = map.mPerPx < 8 ? 13 : map.mPerPx < 16 ? 12 : 11;
-    void loadGroundBasemap(map, z).then((draw) => live && draw(ctx));
+    const img = new Image();
+    img.src = dataUrl(`${base.file}?v=${DATA_VERSION}`);
+    void img.decode().then(
+      () => {
+        if (!live) return;
+        // The image covers the area's detail layer, centred on the area.
+        const cell = base.cellM;
+        const [cx, cy] = toMap(lat0, lon0, area.lat0, area.lon0);
+        const ox = img.width / 2 + (-cx - (W / 2) * mPerPx) / cell;
+        const oy = img.height / 2 - (-cy + (H / 2) * mPerPx) / cell;
+        ctx.drawImage(img, ox, oy, (W * mPerPx) / cell, (H * mPerPx) / cell, 0, 0, W, H);
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = 'rgb(214, 150, 104)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        ctx.fillRect(0, 0, W, H);
+      },
+      () => {},
+    );
     return () => {
       live = false;
     };
-    // The map depends only on the mission.
-  }, [key, targets.length]);
+    // The image depends only on the map's size.
+  }, [W, H, mPerPx, lat0, lon0, session]);
 
-  // The rover arrow follows every animation frame (not through React).
+  // The rover and Ingenuity follow every animation frame (not through React).
   useEffect(() => {
     let raf = 0;
     const loop = () => {
       const p = session.roverPose;
-      const [x, y] = mapPx(map, p.lat, p.lon);
+      const [x, y] = px(p.lat, p.lon);
       roverRef.current?.setAttribute(
         'transform',
         `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${((p.headingRad * 180) / Math.PI).toFixed(1)})`,
       );
+      const h = session.ingenuityPose;
+      if (heliRef.current) {
+        heliRef.current.style.display = h ? '' : 'none';
+        if (h) {
+          const [hx, hy] = px(h.lat, h.lon);
+          heliRef.current.setAttribute('transform', `translate(${hx.toFixed(1)} ${hy.toFixed(1)})`);
+        }
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [key, targets.length]);
+  });
 
-  const scaleM = spanM > 4000 ? 2000 : spanM > 1500 ? 500 : 200;
+  const onClick = (e: ReactPointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const sx = ((e.clientX - r.left) / r.width) * W;
+    const sy = ((e.clientY - r.top) / r.height) * H;
+    // A place under the pointer is the goal; otherwise the point itself.
+    const hit = targets.find((x) => {
+      const [cx, cy] = px(x.lat, x.lon);
+      return Math.hypot(cx - sx, cy - sy) < 9;
+    });
+    const mx = (sx - W / 2) * mPerPx;
+    const my = (H / 2 - sy) * mPerPx;
+    const lat = lat0 + my / M_PER_DEG;
+    const lon = lon0 + mx / (Math.cos((lat0 * Math.PI) / 180) * M_PER_DEG);
+    session.startAutoNav(hit ?? { lat, lon });
+  };
+
+  const done = session.places.filter((x) => isDone(exp, x));
+  const scaleM = mPerPx * W > 900 ? 200 : 100;
+  const routePts = (list: Array<[number, number]>) =>
+    list
+      .map(([la, lo]) =>
+        px(la, lo)
+          .map((v) => v.toFixed(1))
+          .join(','),
+      )
+      .join(' ');
+  const glyph = (x: Target, cx: number, cy: number, cls: string) =>
+    x.kind === 'depot' ? (
+      <rect
+        key={`${cls}-${x.id}`}
+        x={cx - 5}
+        y={cy - 5}
+        width="10"
+        height="10"
+        transform={`rotate(45 ${cx} ${cy})`}
+        className={`game-map-depot ${cls}`}
+      />
+    ) : x.kind === 'panorama' ? (
+      <g key={`${cls}-${x.id}`} className={`game-map-pano ${cls}`}>
+        <circle cx={cx} cy={cy} r="6" />
+        {!cls.includes('is-done') && (
+          <text x={cx} y={cy + 3.5} textAnchor="middle">
+            ?
+          </text>
+        )}
+      </g>
+    ) : (
+      <circle
+        key={`${cls}-${x.id}`}
+        cx={cx}
+        cy={cy}
+        r="5"
+        className={`game-map-target is-${x.kind} ${cls}`}
+      />
+    );
   return (
-    <div className="game-map" role="img" aria-label={t('game.hud.map')}>
-      <canvas ref={canvasRef} style={{ width: MAP_PX, height: MAP_PX }} aria-hidden="true" />
-      <svg viewBox={`0 0 ${MAP_PX} ${MAP_PX}`} aria-hidden="true">
-        {targets.map((x) => {
-          const [cx, cy] = mapPx(map, x.lat, x.lon);
-          const isDone = x.kind === 'depot' ? deposited : collected.includes(x.id);
-          return x.kind === 'depot' ? (
-            <rect
-              key={x.id}
-              x={cx - 5}
-              y={cy - 5}
-              width="10"
-              height="10"
-              transform={`rotate(45 ${cx} ${cy})`}
-              className={`game-map-depot ${isDone ? 'is-done' : ''}`}
-            />
-          ) : (
-            <circle
-              key={x.id}
-              cx={cx}
-              cy={cy}
-              r="5"
-              className={`game-map-target ${isDone ? 'is-done' : ''}`}
-            />
-          );
+    <div className={`game-map ${large ? 'is-large' : ''}`}>
+      <canvas ref={canvasRef} style={{ width: W, height: H }} aria-hidden="true" />
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: W, height: H }}
+        role="img"
+        aria-label={t('game.map.label')}
+        onPointerDown={onClick}
+      >
+        <polyline points={routePts(session.realRoute)} className="game-map-real" />
+        {route && <polyline points={routePts(route)} className="game-map-route" />}
+        {done.map((x) => {
+          const [cx, cy] = px(x.lat, x.lon);
+          return glyph(x, cx, cy, 'is-done');
         })}
+        {targets.map((x) => {
+          const [cx, cy] = px(x.lat, x.lon);
+          return glyph(x, cx, cy, '');
+        })}
+        <g ref={heliRef} className="game-map-heli">
+          <path d="M-5 -5 L5 5 M5 -5 L-5 5" />
+          <circle r="1.6" />
+        </g>
         <g ref={roverRef}>
           <path d="M0 -8 L6 6 L0 3 L-6 6 Z" className="game-map-rover" />
         </g>
-        <text x={MAP_PX / 2} y="14" textAnchor="middle" className="game-map-n">
+        <text x={W / 2} y="14" textAnchor="middle" className="game-map-n">
           N
         </text>
         <g className="game-map-scale">
-          <line x1="10" x2={10 + scaleM / map.mPerPx} y1={MAP_PX - 10} y2={MAP_PX - 10} />
-          <text x="10" y={MAP_PX - 15}>
+          <line x1="10" x2={10 + scaleM / mPerPx} y1={H - 10} y2={H - 10} />
+          <text x="10" y={H - 15}>
             {formatDistance(scaleM, i18n.language)}
           </text>
         </g>
       </svg>
+      <div className="game-map-bar">
+        <span className="meta">{t('game.map.hint')}</span>
+        <button type="button" className="btn btn-icon" onClick={() => setLarge(!large)}>
+          {large ? t('game.map.smaller') : t('game.map.larger')}
+        </button>
+      </div>
     </div>
   );
 });
@@ -1049,7 +1259,6 @@ function TouchPad({ session }: { session: GameSession }) {
 
 function PauseMenu({ session }: { session: GameSession }) {
   const { t } = useTranslation();
-  const missionId = useGame((s) => s.missionId);
   return (
     <div className="game-screen">
       <div
@@ -1071,45 +1280,35 @@ function PauseMenu({ session }: { session: GameSession }) {
           <button
             type="button"
             className="btn"
-            onClick={() => missionId && void session.start(missionId)}
+            onClick={() => {
+              session.resume();
+              session.openInventory();
+            }}
           >
-            {t('game.pause.restart')}
+            {t('game.pause.inventory')}
           </button>
           <button type="button" className="btn" onClick={() => session.quit()}>
-            {t('game.pause.missions')}
+            {t('game.pause.menu')}
           </button>
           <a className="btn btn-ghost" href={HOME}>
             {t('game.back')}
           </a>
         </div>
+        <p className="meta">{t('game.pause.saved')}</p>
       </div>
     </div>
   );
 }
 
-/** Kind of sample, for its explanation. */
-function whyKey(site: SampleSite): string {
-  if (site.sampleType === 'Atmospheric') return 'atmospheric';
-  if (site.sampleType === 'Regolith') return 'regolith';
-  if (/carbonate/i.test(site.rockType)) return 'carbonate';
-  if (/mixed/i.test(site.rockType)) return 'mixed';
-  if (/^igneous/i.test(site.rockType)) return 'igneous';
-  return 'sedimentary';
-}
-
 function SampleCard({ session }: { session: GameSession }) {
   const { t, i18n } = useTranslation();
   const card = useGame((s) => s.card);
-  const targets = useGame((s) => s.targets);
-  const collected = useGame((s) => s.collected);
   const site = card?.site;
   if (!card || !site) return null;
   const photo = samplePhotos(site.sampleNumber)[0];
   const numbers: string[] = site.sampleNumber.match(/\d+/g) ?? [];
   const poi = POIS.find((p) => p.sampleNumbers.some((n) => numbers.includes(n)));
   const lang = i18n.language === 'es' ? 'es' : 'en';
-  const last = targets.filter((x) => x.kind === 'sample').every((x) => collected.includes(x.id));
-  const finishing = last && !targets.some((x) => x.kind === 'depot');
   return (
     <div className="game-screen">
       <div
@@ -1140,13 +1339,14 @@ function SampleCard({ session }: { session: GameSession }) {
           <p>{t(`game.card.why.${whyKey(site)}`)}</p>
           {poi && <p>{poi.why[lang]}</p>}
           <p className="meta">{t('game.card.cored', { sol: site.sol, date: site.earthDate })}</p>
+          <p className="meta">{t('game.card.inRack')}</p>
           <button
             type="button"
             className="btn btn-primary"
             autoFocus
             onClick={() => session.closeCard()}
           >
-            {finishing ? t('game.card.finish') : t('game.card.continue')}
+            {t('game.card.continue')}
           </button>
         </div>
       </div>
@@ -1154,13 +1354,20 @@ function SampleCard({ session }: { session: GameSession }) {
   );
 }
 
+function PanoramaPhase({ session }: { session: GameSession }) {
+  const id = useGame((s) => s.panorama);
+  if (!id) return null;
+  const yaw = (session.roverPose.cameraRad * 180) / Math.PI;
+  return <PanoramaView id={id} startYawDeg={yaw} onClose={() => session.closePanorama()} />;
+}
+
 function Complete({ session }: { session: GameSession }) {
   const { t, i18n } = useTranslation();
   const result = useGame((s) => s.result);
-  const targets = useGame((s) => s.targets);
   if (!result) return null;
-  const sols = realSols(targets);
   const lang = i18n.language;
+  const first = CHAPTERS[0]!.sols[0];
+  const last = CHAPTERS[CHAPTERS.length - 1]!.sols[1];
   return (
     <div className="game-screen">
       <div
@@ -1169,7 +1376,7 @@ function Complete({ session }: { session: GameSession }) {
         aria-modal="true"
         aria-labelledby="game-done"
       >
-        <div className="game-panel-title">{t(`game.missions.${result.missionId}.name`)}</div>
+        <div className="game-panel-title">{t('game.title')}</div>
         <h2 id="game-done">{t('game.complete.title')}</h2>
         {result.newBest && <p className="game-best">{t('game.complete.newBest')}</p>}
         <dl className="game-stats">
@@ -1190,6 +1397,10 @@ function Complete({ session }: { session: GameSession }) {
             <dd>{result.tubes}</dd>
           </div>
           <div>
+            <dt>{t('game.complete.depot')}</dt>
+            <dd>{result.depotTubes}</dd>
+          </div>
+          <div>
             <dt>{t('game.complete.science')}</dt>
             <dd>{result.science}</dd>
           </div>
@@ -1198,38 +1409,41 @@ function Complete({ session }: { session: GameSession }) {
             <dd>{result.rocks}</dd>
           </div>
           <div>
+            <dt>{t('game.complete.panoramas')}</dt>
+            <dd>{result.panoramas}/3</dd>
+          </div>
+          <div>
+            <dt>{t('game.complete.flights')}</dt>
+            <dd>{result.flights}</dd>
+          </div>
+          <div>
             <dt>{t('game.complete.wheels')}</dt>
             <dd>{Math.round(result.wheelsPct)}%</dd>
           </div>
         </dl>
-        {!result.newBest && result.bestS !== null && (
-          <p className="meta">{t('game.complete.best', { time: formatClock(result.bestS) })}</p>
-        )}
-        {sols && (
-          <p>
-            {t('game.complete.real', {
-              first: sols[0],
-              last: sols[1],
-              sols: sols[1] - sols[0],
-              months: Math.round(((sols[1] - sols[0]) * 1.0275) / 30.44),
-            })}
-          </p>
-        )}
+        <p>
+          {t('game.complete.real', {
+            first,
+            last,
+            sols: last - first,
+            months: Math.round(((last - first) * 1.0275) / 30.44),
+          })}
+        </p>
         <div className="btn-stack">
           <button
             type="button"
             className="btn btn-primary"
             autoFocus
-            onClick={() => void session.start(result.missionId)}
+            onClick={() => session.keepExploring()}
           >
+            {t('game.complete.explore')}
+          </button>
+          <button type="button" className="btn" onClick={() => session.newExpedition()}>
             {t('game.complete.again')}
           </button>
           <button type="button" className="btn" onClick={() => session.quit()}>
-            {t('game.complete.other')}
+            {t('game.complete.menu')}
           </button>
-          <a className="btn btn-ghost" href={HOME}>
-            {t('game.back')}
-          </a>
         </div>
       </div>
     </div>

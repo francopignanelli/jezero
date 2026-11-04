@@ -34,9 +34,11 @@ import {
   Tracks,
   type TrackGround,
 } from './effects';
-import { CraterField, bakeCraters, generateCraters } from './features';
+import { CraterField, bakeCraters, generateCraters, toneCraters } from './features';
 import { LocalFrame, Terrain, loadHeights, type AreaMeta, type WorldManifest } from './heights';
+import { Ingenuity } from './ingenuity';
 import { RockField, type Rock } from './rocks';
+import { DepotTubes, RouteLine } from './route';
 import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
 import { HORIZON_LINEAR, SkyDome, sunDirection } from './sky';
 import { CLEAR_INNER_M, CLEAR_OUTER_M, TerrainMesh, type GroundTextures } from './terrain';
@@ -68,9 +70,15 @@ const LIGHT = { sun: 2.75, environment: 0.5, exposure: 0.84, sky: 1.0, haze: 1.6
 
 /** Sun per area: a mid-morning Sun (compass azimuth, elevation), for long but not hard shadows. */
 const SUN: Record<string, [number, number]> = {
-  floor: [104, 31],
   delta: [118, 36],
-  margin: [96, 27],
+};
+
+/** Marker colours per kind of target. */
+const TARGET_COLOURS: Record<string, [number, number, number]> = {
+  sample: [1.0, 0.62, 0.25],
+  depot: [0.35, 0.75, 1.0],
+  panorama: [0.78, 0.55, 1.0],
+  reach: [1.0, 0.9, 0.55],
 };
 
 /**
@@ -270,6 +278,15 @@ function armPoseAt(c: number, coreElbow: number): ArmPose {
   };
 }
 
+interface GreyImage {
+  grey: Uint8Array;
+  width: number;
+  height: number;
+  cellM: number;
+  widthM: number;
+  heightM: number;
+}
+
 export interface ScenePose {
   x: number;
   y: number;
@@ -307,14 +324,12 @@ export class World {
   private clearPoints: Array<[number, number]> = [];
   private readonly devils: DustDevil[] = [];
   private markers = new Map<string, TargetMarker>();
-  private albedoGrey: {
-    grey: Uint8Array;
-    width: number;
-    height: number;
-    cellM: number;
-    widthM: number;
-    heightM: number;
-  } | null = null;
+  private albedoGrey: GreyImage | null = null;
+  /** The 25 cm core image (sharper brightness where it covers). */
+  private coreGrey: GreyImage | null = null;
+  readonly ingenuity = new Ingenuity();
+  readonly route = new RouteLine();
+  readonly depotTubes = new DepotTubes();
   readonly wind = new Vector3(1.6, 0, -0.6);
   private time = 0;
   private photoPass: ShaderPass;
@@ -361,7 +376,12 @@ export class World {
     sh.radius = 3;
     this.scene.add(this.dust.points);
     for (const m of this.tracks.meshes) this.scene.add(m);
-    this.scene.add(this.coreMarks.group);
+    this.scene.add(
+      this.coreMarks.group,
+      this.ingenuity.root,
+      this.route.mesh,
+      this.depotTubes.group,
+    );
     for (let i = 0; i < this.cfg.devils; i++) {
       const d = new DustDevil(110);
       this.devils.push(d);
@@ -447,7 +467,9 @@ export class World {
     if (!area) throw new Error(`no game area ${id}`);
     if (this.areaId === id) return;
     const base = area.detail.heights.baseM;
-    const [detail, mid, far, aDetail, aMid, aFar, ground] = await Promise.all([
+    // The 25 cm core image: not on Low (its 4096² texture and the memory it takes).
+    const coreMeta = this.quality !== 'low' ? area.core?.albedo : undefined;
+    const [detail, mid, far, aDetail, aMid, aFar, ground, aCore] = await Promise.all([
       loadHeights(area.detail.heights, base),
       loadHeights(area.mid.heights, base),
       loadHeights(area.far.heights, base),
@@ -455,6 +477,7 @@ export class World {
       loadGrey(area.mid.albedo),
       loadGrey(area.far.albedo),
       this.ground ? Promise.resolve(this.ground) : loadGroundTextures(manifest.ground),
+      coreMeta ? loadGrey(coreMeta) : Promise.resolve(null),
     ]);
     this.ground = ground;
     this.unloadArea();
@@ -474,6 +497,19 @@ export class World {
       cellM: greyCellM,
     });
     aDetail.texture.needsUpdate = true;
+    this.coreGrey = null;
+    if (aCore && coreMeta) {
+      this.coreGrey = {
+        grey: aCore.grey,
+        width: aCore.width,
+        height: aCore.height,
+        cellM: coreMeta.cellM,
+        widthM: coreMeta.widthM,
+        heightM: coreMeta.heightM,
+      };
+      toneCraters(craters, { ...this.coreGrey, data: aCore.grey });
+      aCore.texture.needsUpdate = true;
+    }
     this.craters = new CraterField(craters);
     this.terrain = new Terrain(detail, mid, far);
     this.albedoGrey = {
@@ -487,7 +523,21 @@ export class World {
     this.terrainMesh = new TerrainMesh(
       this.terrain,
       ground,
-      { detail: aDetail.texture, mid: aMid.texture, far: aFar.texture },
+      {
+        detail: aDetail.texture,
+        mid: aMid.texture,
+        far: aFar.texture,
+        ...(aCore && this.coreGrey
+          ? {
+              core: {
+                texture: aCore.texture,
+                widthM: this.coreGrey.widthM,
+                heightM: this.coreGrey.heightM,
+                cellM: this.coreGrey.cellM,
+              },
+            }
+          : {}),
+      },
       this.quality !== 'low',
     );
     this.terrainMesh.setClear(clear);
@@ -540,14 +590,16 @@ export class World {
     this.clearTargets();
   }
 
-  /** Orbital brightness 0–1 at a local point (the HiRISE image), 0.5 outside it. */
+  /** Orbital brightness 0–1 at a local point (HiRISE, 25 cm where it covers), 0.5 outside. */
   brightness(x: number, north: number): number {
-    const a = this.albedoGrey;
-    if (!a) return 0.5;
-    const c = Math.floor((x + a.widthM / 2) / a.cellM);
-    const r = Math.floor((a.heightM / 2 - north) / a.cellM);
-    if (c < 0 || r < 0 || c >= a.width || r >= a.height) return 0.5;
-    return a.grey[r * a.width + c]! / 255;
+    for (const a of [this.coreGrey, this.albedoGrey]) {
+      if (!a) continue;
+      const c = Math.floor((x + a.widthM / 2) / a.cellM);
+      const r = Math.floor((a.heightM / 2 - north) / a.cellM);
+      if (c < 0 || r < 0 || c >= a.width || r >= a.height) continue;
+      return a.grey[r * a.width + c]! / 255;
+    }
+    return 0.5;
   }
 
   /** Ground height (world y) including rocks: what the wheels touch. */
@@ -667,14 +719,14 @@ export class World {
       lat: number;
       lon: number;
       radiusM: number;
-      kind: 'sample' | 'depot';
+      kind: string;
     }>,
   ): void {
     this.clearTargets();
     if (!this.frame) return;
     for (const t of list) {
       const [x, n] = this.frame.toLocal(t.lat, t.lon);
-      const colour = t.kind === 'depot' ? new Color(0.35, 0.75, 1.0) : new Color(1.0, 0.62, 0.25);
+      const colour = new Color(...(TARGET_COLOURS[t.kind] ?? TARGET_COLOURS.sample!));
       const m = new TargetMarker(x, -n, this.groundY, t.radiusM, colour);
       this.scene.add(m.beam, m.ring);
       this.markers.set(t.id, m);
@@ -732,13 +784,14 @@ export class World {
 
   /**
    * Advances effects and renders. `pose`: rover origin (world) and attitude; `coring`: progress of
-   * the arm sequence (0–1) or null.
+   * the arm sequence (0–1) or null; `panorama`: progress of a 360° panorama (0–1) or null.
    */
   frameUpdate(
     dt: number,
     pose: ScenePose,
     motion: { speed: number; yawRate: number; distanceM: number; slip?: number; sinkage?: number },
     coring: number | null,
+    panorama: number | null = null,
   ): void {
     this.time += dt;
     // Sinking into soft sand: the body sits lower, the wheels spin faster than they move.
@@ -757,7 +810,7 @@ export class World {
       });
       rover.animateWheels(spinM, motion.yawRate, motion.speed, dt, lift);
       this.updateArm(rover, coring, dt);
-      this.updateHead(rover, dt, motion, coring);
+      this.updateHead(rover, dt, motion, coring, panorama);
       // Wheel dust (mostly the rear wheels) and tracks.
       const sp = Math.abs(motion.speed);
       this.across.set(Math.cos(pose.headingRad), 0, Math.sin(pose.headingRad)).multiplyScalar(-1);
@@ -821,11 +874,62 @@ export class World {
       }
     }
     this.updateLaser();
+    this.updateIngenuity(dt);
+    this.route.update(this.time, pose.x, -pose.z);
     this.dust.update(
       dt,
       this.storm > 0.05 ? this.tmp2.copy(this.wind).multiplyScalar(1 + 5 * this.storm) : this.wind,
     );
     for (const m of this.markers.values()) m.update(this.time);
+  }
+
+  /** Ingenuity's flight, and the dust its rotors raise near the ground. */
+  private updateIngenuity(dt: number): void {
+    const s = this.ingenuity.update(dt, this.groundY);
+    this.ingenuityLanded ||= s.landed;
+    if (s.rotor < 0.5 || s.altitudeM > 4 || !this.ingenuity.root.visible) return;
+    const p = this.ingenuity.position;
+    const n = Math.floor(dt * 70 * s.rotor * (1 - s.altitudeM / 4) + Math.random());
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 0.3 + Math.random() * 0.8;
+      this.tmp.set(p.x + Math.cos(a) * r, 0, p.z + Math.sin(a) * r);
+      this.tmp.y = this.groundY(this.tmp.x, this.tmp.z) + 0.05;
+      const v = 1.2 + Math.random() * 1.5;
+      this.tmp2.set(Math.cos(a) * v, 0.15 + Math.random() * 0.3, Math.sin(a) * v);
+      this.dust.emit(this.tmp, this.tmp2, 0.05 + Math.random() * 0.08, 1 + Math.random());
+    }
+  }
+  /** Set when a flight ends (read and cleared by the session). */
+  ingenuityLanded = false;
+
+  /** Ingenuity parked at a local point (x, north), or hidden. */
+  placeIngenuity(at: [number, number] | null, headingRad?: number): void {
+    if (!at) {
+      this.ingenuity.place(null);
+      return;
+    }
+    this.tmp.set(at[0], this.groundY(at[0], -at[1]), -at[1]);
+    this.ingenuity.place(this.tmp, headingRad);
+  }
+
+  flyIngenuity(to: [number, number]): void {
+    this.tmp.set(to[0], this.groundY(to[0], -to[1]), -to[1]);
+    this.ingenuityLanded = false;
+    this.ingenuity.fly(this.tmp);
+  }
+
+  /** AutoNav's path on the ground (local points), or none. */
+  setRoute(points: Array<[number, number]> | null): void {
+    this.route.set(points, this.groundY);
+  }
+
+  /** Tubes left at the depot, in a line behind a rover at (x, north) facing `headingRad`. */
+  layTubesAt(x: number, north: number, headingRad: number, count: number): void {
+    // Behind the rover (heading: compass from north; world z points south).
+    this.tmp2.set(-Math.sin(headingRad), 0, Math.cos(headingRad));
+    this.tmp.set(x, 0, -north).addScaledVector(this.tmp2, 1.5);
+    this.depotTubes.lay(count, this.tmp, this.tmp2, 2.2, this.groundY);
   }
 
   /** Beam from the mast head to the rock, pulsing; a spark and a puff on each pulse. */
@@ -899,11 +1003,27 @@ export class World {
     dt: number,
     motion: { speed: number; yawRate: number },
     coring: number | null,
+    panorama: number | null,
   ): void {
     const h = this.head;
     let pan: number;
     let tilt: number;
     const moving = Math.abs(motion.speed) > 0.1 || Math.abs(motion.yawRate) > 0.05;
+    if (panorama !== null) {
+      // A full turn of the mast, frame by frame (stepping, as the real mosaics are shot).
+      const k = Math.min(1, Math.max(0, (panorama - 0.08) / 0.84));
+      const frames = 16;
+      const f = k * frames;
+      const step = Math.floor(f) + Math.min(1, (f % 1) * 3);
+      h.pan = (Math.min(frames, step) / frames) * Math.PI * 2;
+      h.tilt = 0.04 + 0.05 * Math.sin(panorama * Math.PI);
+      h.idleS = 0;
+      h.aim = 0;
+      rover.setHead(h.pan, h.tilt);
+      return;
+    }
+    // After a panorama the mast is a full turn round: the same direction.
+    if (h.pan > Math.PI) h.pan -= Math.PI * 2;
     if (this.laser) {
       rover.toLocal(this.laser.at, this.tmp).sub(rover.headPivot);
       pan = Math.atan2(this.tmp.x, this.tmp.z);
@@ -972,6 +1092,9 @@ export class World {
 
   dispose(): void {
     this.unloadArea();
+    this.ingenuity.dispose();
+    this.route.dispose();
+    this.depotTubes.dispose();
     this.dust.dispose();
     this.tracks.dispose();
     this.coreMarks.dispose();

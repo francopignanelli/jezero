@@ -1,6 +1,7 @@
 import type { DriveInput } from './roverSim';
 
-export type Command = 'camera' | 'pause' | 'map' | 'laser' | 'photo' | 'inventory';
+export type Command =
+  'camera' | 'pause' | 'map' | 'laser' | 'photo' | 'inventory' | 'autonav' | 'warp';
 
 export interface ControlState extends DriveInput {
   /** Core a sample / drop the tubes (held). */
@@ -20,6 +21,8 @@ const COMMANDS: Record<string, Command> = {
   KeyF: 'laser',
   KeyP: 'photo',
   KeyI: 'inventory',
+  KeyN: 'autonav',
+  KeyT: 'warp',
 };
 /** Keys whose browser default (scrolling, focus moves) is suppressed while driving. */
 const CAPTURED = new Set([...FORWARD, ...BACK, ...LEFT, ...RIGHT, 'Space']);

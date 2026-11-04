@@ -19,18 +19,36 @@ import {
 } from './world/features';
 import { CLASSES, rocksInCell, type GroundInfo } from './world/rocks';
 import {
+  CHAPTERS,
   CORE_S,
-  MISSIONS,
-  isComplete,
-  missionTargets,
-  nearestRemaining,
-  newProgress,
-  realSols,
-  remaining,
-  stepProgress,
+  FLIGHTS,
+  PANORAMA_S,
+  SAMPLE_TUBES,
+  allTargets,
+  chapterDone,
+  expeditionDone,
+  ingenuity,
+  newExpedition,
+  nextTarget,
+  openTargets,
+  stepExpedition,
+  tubeRack,
   tubesIn,
-} from './missions';
-import { readCareer, recordRock, recordSample, resetProgress } from './career';
+  type Action,
+  type ExpeditionEvent,
+  type ExpeditionState,
+  type Target,
+} from './expedition';
+import { NAV, NavGrid, follow, pathLength } from './navigation';
+import {
+  clearSave,
+  readCareer,
+  readSave,
+  recordRock,
+  recordSample,
+  resetProgress,
+  writeSave,
+} from './career';
 import { ROCK_TYPES, mainElements, rockKey, rockType, spectrum } from './science';
 import {
   DRIVE,
@@ -129,17 +147,17 @@ describe('hazards', () => {
 });
 
 describe('science and collection', () => {
-  it('rock types are deterministic per rock and follow the area', () => {
+  it('rock types are deterministic per rock and follow its tone', () => {
     const key = rockKey(12.34, -56.78);
-    expect(rockType('floor', key, true)).toBe(rockType('floor', key, true));
-    const count = (area: 'floor' | 'margin', type: string) => {
+    expect(rockType(key, true)).toBe(rockType(key, true));
+    const count = (dark: boolean, type: string) => {
       let n = 0;
-      for (let i = 0; i < 2000; i++)
-        if (rockType(area, rockKey(i * 1.7, i * -0.9), false) === type) n++;
+      for (let i = 0; i < 2000; i++) if (rockType(rockKey(i * 1.7, i * -0.9), dark) === type) n++;
       return n;
     };
-    expect(count('margin', 'carbonate')).toBeGreaterThan(count('floor', 'carbonate'));
-    expect(count('floor', 'basalt')).toBeGreaterThan(count('margin', 'basalt'));
+    // Dark boulders are mostly igneous, light layered rocks mostly sediments.
+    expect(count(true, 'basalt')).toBeGreaterThan(count(false, 'basalt'));
+    expect(count(false, 'clay')).toBeGreaterThan(count(true, 'clay'));
     for (const t of ROCK_TYPES) {
       expect(mainElements(t).length).toBeGreaterThan(1);
       const sp = spectrum(t, 'k');
@@ -270,67 +288,235 @@ const site = (sampleNumber: string, lat: number, lon: number, sol: string): Samp
   positionCorrectedFromEastingNorthing: false,
 });
 
-describe('missions', () => {
-  const floor = MISSIONS.find((m) => m.id === 'floor')!;
-  const delta = MISSIONS.find((m) => m.id === 'delta')!;
+describe('expedition', () => {
   const samples = [
-    site('1', 18.4277, 77.4517, '164'),
-    site('2 & 3', 18.4307, 77.4443, '194 & 196'),
-    site('10 & 11', 18.4589, 77.4062, '490 & 495'),
+    site('10 & 11', 18.458931, 77.406175, '490 & 495'),
+    site('12 & 13', 18.458637, 77.405889, '509 & 516'),
+    site('14 & 15', 18.450726, 77.40144, '575 & 579'),
+    site('16', 18.453636, 77.399114, '631'),
+    site('17 & 18', 18.451314, 77.401218, '634 & 639'),
   ];
+  const all = allTargets(samples);
+  const at = (t: { lat: number; lon: number }, speed = 0): RoverState => ({
+    ...initialRover(t.lat, t.lon, 0),
+    speed,
+  });
+  /** Runs steps with the rover at a target until the sequence ends; returns state and events. */
+  const run = (s0: ExpeditionState, t: Target, seconds: number) => {
+    let s = s0;
+    let action: Action | null = null;
+    const events: ExpeditionEvent[] = [];
+    for (let k = 0; k < seconds / 0.1; k++) {
+      const r = stepExpedition(s, action, at(t), all, k === 0, 0.1);
+      s = r.state;
+      action = r.action;
+      events.push(...r.events);
+    }
+    return { s, action, events };
+  };
+  const target = (id: string) => all.find((t) => t.id === id)!;
 
-  it('builds targets from the sample catalogue, with tubes per site and the depot last', () => {
-    const t = missionTargets(floor, samples);
-    expect(t.map((x) => x.id)).toEqual(['sample-1', 'sample-2 & 3']);
-    expect(t.map((x) => x.tubes)).toEqual([1, 2]);
+  it('builds every place of the map: the reach spot, five sites, three panoramas, the depot', () => {
+    expect(all.map((t) => t.kind)).toEqual([
+      'reach',
+      'sample',
+      'sample',
+      'sample',
+      'sample',
+      'sample',
+      'panorama',
+      'panorama',
+      'panorama',
+      'depot',
+    ]);
+    expect(all.filter((t) => t.kind === 'sample').reduce((n, t) => n + t.tubes, 0)).toBe(9);
     expect(tubesIn('17 & 18')).toBe(2);
-    expect(realSols(t)).toEqual([164, 196]);
-    const d = missionTargets(delta, samples);
-    expect(d.at(-1)?.kind).toBe('depot');
+    expect(CHAPTERS.map((c) => c.sols[0])).toEqual([408, 436, 535, 648]);
+  });
+
+  it('opens one chapter at a time (plus the panorama spots), in order', () => {
+    const s = newExpedition();
+    const open = openTargets(s, all).map((t) => t.id);
+    expect(open).toContain('reach-enchanted-lake');
+    expect(open).not.toContain('sample-10 & 11');
+    expect(open).not.toContain('depot');
+    expect(open.filter((id) => id.startsWith('pano-'))).toHaveLength(3);
+    expect(nextTarget(s, openTargets(s, all))?.id).toBe('reach-enchanted-lake');
+  });
+
+  it('chapter 1: reaching Enchanted Lake and one laser analysis open chapter 2', () => {
+    let s = newExpedition();
+    const r = stepExpedition(s, null, at(target('reach-enchanted-lake')), all, false, 0.1);
+    expect(r.state.reached).toEqual(['enchanted-lake']);
+    expect(r.events.map((e) => e.kind)).toEqual(['reached']);
+    expect(chapterDone(r.state)).toBe(false); // the laser analysis is still to do
+    s = { ...r.state, finds: [{ type: 'clay', key: 'k', points: 25, first: true }] };
+    const r2 = stepExpedition(s, null, at(target('reach-enchanted-lake')), all, false, 0.1);
+    expect(r2.state.chapter).toBe(1);
+    expect(r2.events.map((e) => e.kind)).toEqual(['chapter']);
+    expect(openTargets(r2.state, all).map((t) => t.id)).toContain('sample-10 & 11');
   });
 
   it('one press, stopped in a ring, runs the whole coring sequence', () => {
-    const targets = missionTargets(floor, samples);
-    const at = (lat: number, lon: number, speed = 0): RoverState => ({
-      ...initialRover(lat, lon, 0),
-      speed,
-    });
-    const target = targets[0]!;
-    let p = newProgress();
-    // Moving: nothing happens.
-    expect(
-      stepProgress(p, at(target.lat, target.lon, 2), targets, true, 1).progress.action,
-    ).toBeNull();
-    // Outside the ring: nothing happens.
-    const away = offsetPoint(target.lat, target.lon, 0, target.radiusM + 5, 0);
-    expect(stepProgress(p, at(away.lat, away.lon), targets, true, 1).progress.action).toBeNull();
+    const s = { ...newExpedition(), chapter: 1 };
+    const t = target('sample-10 & 11');
+    // Moving: nothing starts.
+    expect(stepExpedition(s, null, at(t, 2), all, true, 0.1).action).toBeNull();
+    // Outside the ring: nothing starts.
+    const away = offsetPoint(t.lat, t.lon, 0, t.radiusM + 5, 0);
+    expect(stepExpedition(s, null, at(away), all, true, 0.1).action).toBeNull();
     // Stopped inside: one frame with the key down starts it; it then runs without the key.
-    p = stepProgress(p, at(target.lat, target.lon), targets, true, 0.1).progress;
-    expect(p.action?.kind).toBe('core');
-    let collected = false;
-    for (let t = 0.1; t < CORE_S + 0.2; t += 0.1) {
-      const r = stepProgress(p, at(target.lat, target.lon), targets, false, 0.1);
-      p = r.progress;
-      if (r.event?.kind === 'collected') collected = true;
-    }
-    expect(collected).toBe(true);
-    expect(p.collected).toEqual([target.id]);
-    expect(p.action).toBeNull();
-    // A collected site cannot be cored again.
-    expect(
-      stepProgress(p, at(target.lat, target.lon), targets, true, 0.1).progress.action,
-    ).toBeNull();
+    const done = run(s, t, CORE_S + 0.3);
+    expect(done.s.samples).toEqual(['10 & 11']);
+    expect(done.events.map((e) => e.kind)).toEqual(['collected']);
+    expect(done.action).toBeNull();
+    // Cored once only.
+    expect(stepExpedition(done.s, null, at(t), all, true, 0.1).action).toBeNull();
   });
 
-  it('opens the depot only once every sample is in, and completes on the drop', () => {
-    const targets = missionTargets(delta, samples);
-    const p = newProgress();
-    expect(remaining(targets, p).map((t) => t.kind)).toEqual(['sample']);
-    const done = { ...p, collected: ['sample-10 & 11'] };
-    const next = nearestRemaining(initialRover(18.45, 77.41, 0), targets, done);
-    expect(next?.kind).toBe('depot');
-    expect(isComplete(targets, done)).toBe(false);
-    expect(isComplete(targets, { ...done, deposited: true })).toBe(true);
+  it('where a sample ring and a panorama spot overlap, the sample comes first', () => {
+    const s = { ...newExpedition(), chapter: 1, samples: ['10 & 11'] };
+    // Standing on the Wildcat Ridge panorama spot, 4 m from the sample site.
+    const r = stepExpedition(s, null, at(target('pano-wildcat-ridge')), all, true, 0.1);
+    expect(r.action?.kind).toBe('core');
+    expect(r.action?.targetId).toBe('sample-12 & 13');
+  });
+
+  it('a panorama takes the mast a full turn, then the spot is done', () => {
+    const t = target('pano-wildcat-ridge');
+    const s = { ...newExpedition(), chapter: 1, samples: ['10 & 11', '12 & 13'] };
+    const half = run(s, t, PANORAMA_S / 2);
+    expect(half.action?.kind).toBe('panorama');
+    const r = run(s, t, PANORAMA_S + 0.3);
+    expect(r.s.panoramas).toEqual(['wildcat-ridge']);
+    // The chapter's last main objective: chapter 3 opens.
+    expect(r.events.map((e) => e.kind)).toEqual(['panorama', 'chapter']);
+    expect(openTargets(r.s, all).some((x) => x.id === 'pano-wildcat-ridge')).toBe(false);
+  });
+
+  it('the depot opens in chapter 4; the drop and the last panorama end the expedition', () => {
+    const s: ExpeditionState = {
+      ...newExpedition(),
+      chapter: 3,
+      samples: ['10 & 11', '12 & 13', '14 & 15', '16', '17 & 18'],
+      panoramas: ['wildcat-ridge', 'three-forks'],
+      reached: ['enchanted-lake'],
+    };
+    expect(openTargets({ ...s, chapter: 2 }, all).some((t) => t.kind === 'depot')).toBe(false);
+    const r = run(s, target('depot'), 3);
+    expect(r.s.deposited).toBe(true);
+    expect(r.events.map((e) => e.kind)).toEqual(['deposited', 'complete']);
+    expect(expeditionDone(r.s)).toBe(true);
+    // One tube of each pair is left at the depot.
+    const rack = tubeRack(r.s);
+    expect(rack).toHaveLength(SAMPLE_TUBES);
+    expect(rack.filter((x) => x.earlier)).toHaveLength(9);
+    expect(rack.filter((x) => x.depot).map((x) => x.number)).toEqual(['11', '13', '15', '18']);
+    expect(rack.filter((x) => !x.number)).toHaveLength(SAMPLE_TUBES - 18);
+  });
+
+  it('Ingenuity: absent at first, then flies its real flights in their chapters', () => {
+    const s = newExpedition();
+    expect(ingenuity(s)).toBeNull();
+    expect(ingenuity({ ...s, chapter: 1 })).toBeNull();
+    const c3 = { ...s, chapter: 2 };
+    expect(ingenuity(c3)).toEqual({ at: 0, next: 1 }); // at flight 30's airfield, flight 31 next
+    expect(ingenuity({ ...c3, flights: [31, 32, 33, 34] })).toEqual({ at: 4, next: 5 });
+    // Flight 36 (sol 642) is after chapter 3 ends (sol 639).
+    expect(ingenuity({ ...c3, flights: [31, 32, 33, 34, 35] })?.next).toBeNull();
+    // Chapter 4 catches up to where it really was (flight 36), whatever was watched.
+    const c4 = ingenuity({ ...s, chapter: 3 });
+    expect(FLIGHTS[c4!.at]!.flight).toBe(36);
+    expect(FLIGHTS[c4!.next!]!.flight).toBe(37);
+  });
+
+  it('saves the expedition and drops a broken save', () => {
+    clearSave();
+    expect(readSave()).toBeNull();
+    const state = { ...newExpedition(), chapter: 2, samples: ['10 & 11'] };
+    const rover = {
+      lat: 18.45,
+      lon: 77.4,
+      headingRad: 1,
+      batteryPct: 80,
+      wheelsPct: 90,
+      odometerM: 1200,
+      energyUsedPct: 30,
+    };
+    writeSave({ state, rover, elapsedS: 300, savedMs: 1, tubesAt: null });
+    expect(readSave()?.state.samples).toEqual(['10 & 11']);
+    expect(readSave()?.rover.odometerM).toBe(1200);
+    localStorage.setItem('copernico.game.expedition.v1', '{"state":{"chapter":9}}');
+    expect(readSave()).toBeNull();
+    clearSave();
+  });
+});
+
+describe('AutoNav', () => {
+  // A 400 × 400 m flat area with a steep ridge across it (x from −200 to +200 at north = 0),
+  // broken by a 20 m gap at x = 120.
+  const ridge = (x: number, n: number) =>
+    Math.abs(n) < 6 && Math.abs(x - 120) > 10 ? 12 * (1 - Math.abs(n) / 6) : 0;
+  const grid = (obstacles: Array<{ x: number; north: number; radiusM: number }> = []) =>
+    new NavGrid({
+      widthM: 400,
+      heightM: 400,
+      marginM: 10,
+      height: ridge,
+      sand: () => 0,
+      obstacles,
+    });
+
+  it('plans through the gap in a ridge too steep to drive', () => {
+    const path = grid().plan([-100, -100], [-100, 100], 3)!;
+    expect(path).not.toBeNull();
+    // It crosses north = 0 through the gap.
+    const crossing = path.find((p, i) => i && Math.sign(p[1]) !== Math.sign(path[i - 1]![1]));
+    expect(crossing).toBeDefined();
+    let cx = 0;
+    for (let i = 1; i < path.length; i++) {
+      const [ax, an] = path[i - 1]!;
+      const [bx, bn] = path[i]!;
+      if (an <= 0 && bn > 0) cx = ax + ((bx - ax) * -an) / (bn - an);
+    }
+    expect(Math.abs(cx - 120)).toBeLessThan(10);
+    expect(pathLength(path)).toBeGreaterThan(400);
+  });
+
+  it('keeps clear of boulders, and finds no way into a closed ring', () => {
+    const g = grid([{ x: 0, north: -100, radiusM: 1 }]);
+    const path = g.plan([-50, -100], [50, -100], 2)!;
+    for (let i = 1; i < path.length; i++) {
+      const [ax, an] = path[i - 1]!;
+      const [bx, bn] = path[i]!;
+      for (let t = 0; t <= 1; t += 0.05)
+        expect(Math.hypot(ax + (bx - ax) * t, an + (bn - an) * t + 100)).toBeGreaterThan(
+          1 + NAV.rockClearM - NAV.cellM,
+        );
+    }
+    const ring = grid(
+      Array.from({ length: 40 }, (_, k) => ({
+        x: Math.cos((k / 40) * 2 * Math.PI) * 30,
+        north: -100 + Math.sin((k / 40) * 2 * Math.PI) * 30,
+        radiusM: 3,
+      })),
+    );
+    expect(ring.plan([-100, 100], [0, -100], 2)).toBeNull();
+  });
+
+  it('follows a path: turns in place when facing away, drives when aligned, stops at the goal', () => {
+    const path: Array<[number, number]> = [
+      [0, 0],
+      [0, 50],
+    ];
+    const goal = { x: 0, north: 50, radiusM: 8 };
+    const away = follow({ x: 0, north: 0, headingRad: Math.PI }, path, { index: 0 }, goal);
+    expect(away.throttle).toBe(0);
+    expect(Math.abs(away.steer)).toBe(1);
+    const ahead = follow({ x: 0, north: 0, headingRad: 0 }, path, { index: 0 }, goal);
+    expect(ahead.throttle).toBeGreaterThan(0.5);
+    expect(Math.abs(ahead.steer)).toBeLessThan(0.05);
+    expect(follow({ x: 0, north: 47, headingRad: 0 }, path, { index: 1 }, goal).done).toBe(true);
   });
 });
 

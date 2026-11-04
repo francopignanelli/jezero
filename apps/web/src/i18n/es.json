@@ -808,39 +808,19 @@
   },
   "game": {
     "title": "Carrera de muestras en Jezero",
-    "tagline": "Conduce Perseverance sobre el terreno real del cráter Jezero y recoge las muestras que tomó, en los lugares donde las tomó.",
+    "tagline": "Conduce Perseverance por el frente del delta del cráter Jezero, del sol 408 al depósito de muestras de Three Forks: el terreno real, los sitios de muestra reales, las panorámicas reales.",
     "back": "Volver a Copernico",
     "loading": "Aterrizando Perseverance en Jezero…",
     "loadingMission": "Yendo al punto de partida…",
     "failed": "El juego no pudo iniciarse: falta el terreno o el modelo del rover, o este dispositivo no puede mostrar WebGL 2.",
-    "chooseMission": "Elige una misión",
-    "missions": {
-      "floor": {
-        "name": "Fondo del cráter",
-        "desc": "Cinco sitios cerca del lugar de aterrizaje: las rocas volcánicas del fondo de Jezero."
-      },
-      "delta": {
-        "name": "Frente del delta",
-        "desc": "Cinco sitios al pie del antiguo delta del río; luego deja los tubos en el depósito de Three Forks."
-      },
-      "margin": {
-        "name": "Cima del delta",
-        "desc": "Cinco sitios en unos 2,5 km sobre el antiguo delta, hacia el oeste hasta la unidad del margen."
-      }
-    },
-    "sites_one": "{{count}} sitio",
-    "sites_other": "{{count}} sitios",
-    "tubes_one": "{{count}} tubo",
-    "tubes_other": "{{count}} tubos",
     "best": "Récord {{time}}",
-    "start": "Empezar",
     "howTitle": "Cómo se juega",
     "how": {
       "drive": "Conduce con W A S D o las flechas. Mantén Mayús para ir más rápido (gasta más batería).",
       "core": "Detente dentro de un anillo y pulsa Espacio (o E): el brazo baja y extrae la muestra.",
       "slope": "Las pendientes de más de 30° detienen el rover, como detendrían al real.",
       "power": "La batería se recarga despacio con la fuente de energía nuclear del rover (su MMRTG), más rápido si está parado.",
-      "keys": "C cámara · M mapa · F láser · P foto · Esc pausa · arrastra para mirar · rueda para el zoom.",
+      "keys": "C cámara · M mapa · N AutoNav · T tiempo · I inventario · F láser · P foto · Esc pausa · arrastra para mirar · rueda para acercar.",
       "laser": "Parado cerca de rocas, centra una en la vista y pulsa F: el láser de SuperCam dice de qué está hecha y suma puntos de ciencia.",
       "photo": "Pulsa P para el modo foto: elige una cámara del rover, encuadra y guárdala en tu galería.",
       "hazardsTitle": "Peligros reales",
@@ -849,18 +829,19 @@
         "rocks": "Rocas afiladas: pasar rápido sobre piedras grandes gasta las ruedas, como perforó las de Curiosity. Por debajo del 50 % el rover va más lento.",
         "tilt": "Pendientes: por encima de 30° el rover se detiene, de subida o de lado.",
         "storm": "Tormentas de polvo: la bruma se cierra durante medio minuto. Sigue la brújula y el mapa."
-      }
+      },
+      "pano": "En un punto de panorámica (? violeta), detente y pulsa Espacio: Mastcam-Z toma un mosaico de 360° y ves el real que Perseverance tomó allí.",
+      "autonav": "N, el botón AutoNav o un clic en el mapa: AutoNav traza un camino seguro evitando pendientes, arena blanda y rocas grandes, y lo recorre. Cualquier tecla de conducción retoma el control.",
+      "warp": "T: tiempo ×2 o ×4 mientras conduce AutoNav o mientras el rover espera (por ejemplo, recargando).",
+      "inventory": "I: el inventario, con el portatubos, tus muestras, los análisis de SuperCam, las panorámicas, los vuelos de Ingenuity y el diario."
     },
-    "realNote": "El terreno es el real, del modelo de elevación de 1 m de HiRISE, hasta el borde del cráter en el horizonte. Las texturas del suelo se recortan de los panoramas Mastcam-Z del propio Perseverance, y los sitios de muestreo son reales (NASA/JPL MMGIS). Las rocas, los cráteres pequeños, el polvo y las huellas son generados. Para que quepa en minutos, el juego va unas 140 veces más rápido que Perseverance (velocidad máxima 4,2 cm/s).",
+    "realNote": "El terreno es el real, del modelo de elevación HiRISE de 1 m, con la imagen HiRISE de 25 cm en el centro del mapa y hasta el borde del cráter en el horizonte. Las texturas del suelo salen de las panorámicas Mastcam-Z del propio Perseverance; los sitios de muestra, los puntos de las panorámicas, la ruta del rover y los aeródromos de Ingenuity son reales (NASA/JPL). Las rocas, los cráteres pequeños, el polvo y las huellas son generados. Para que quepa en una tarde, el juego conduce unas 140 veces más rápido que Perseverance (velocidad máxima 4,2 cm/s) y los vuelos de Ingenuity se acortan.",
     "hud": {
       "battery": "Batería",
       "speed": "Velocidad",
       "tilt": "Inclinación",
       "time": "Tiempo",
       "driven": "Recorrido",
-      "samples": "Muestras",
-      "next": "Siguiente",
-      "depot": "Depósito",
       "camera": "Cámara",
       "map": "Mapa",
       "pause": "Pausa",
@@ -876,16 +857,19 @@
       "laser": "Láser (F)",
       "photo": "Foto (P)",
       "storm": "Tormenta de polvo",
-      "stormSoon": "Se acerca una tormenta"
+      "stormSoon": "Se acerca una tormenta",
+      "objectives": "Objetivos",
+      "autonav": "AutoNav (N)",
+      "inventory": "Inventario (I)"
     },
     "prompt": {
       "stopToCore": "Detente para extraer la muestra de {{name}}",
       "holdToCore": "Pulsa Espacio para extraer {{name}}",
       "coring": "Extrayendo {{name}}…",
       "stopToDrop": "Detente para dejar los tubos",
-      "holdToDrop": "Pulsa Espacio para dejar los tubos en el depósito de Three Forks",
+      "holdToDrop": "Pulsa Espacio para dejar los tubos duplicados en Three Forks",
       "dropping": "Dejando los tubos…",
-      "toDepot": "Todas las muestras listas: llévalas al depósito de Three Forks",
+      "toDepot": "Lleva los tubos al depósito de Three Forks",
       "steep": "Demasiado empinado: Perseverance está diseñado para pendientes de hasta 30°",
       "boulder": "Una roca grande bloquea el paso: retrocede y rodéala",
       "edge": "Borde del modelo de terreno de 1 m: da la vuelta",
@@ -899,7 +883,13 @@
       "rocks": "Rocas afiladas: frena para cuidar las ruedas (queda un {{pct}}%)",
       "sand": "Arena blanda: las ruedas patinan un {{pct}}%. No pares ni aceleres aquí",
       "laserReady": "F: analiza esta roca con el láser de SuperCam",
-      "laserDone": "Esta roca ya está analizada: apunta a otra"
+      "laserDone": "Esta roca ya está analizada: apunta a otra",
+      "stopToPano": "Detente para tomar una panorámica de 360° de {{name}}",
+      "holdToPano": "Pulsa Espacio para tomar una panorámica de 360° de {{name}}",
+      "shooting": "Mastcam-Z: panorámica de {{name}}…",
+      "heli": "Ingenuity está a {{distance}} m: acércate a menos de 70 m para verlo volar",
+      "autonavHint": "Pulsa N: AutoNav conduce hasta el siguiente objetivo",
+      "heliFlying": "Ingenuity está volando: arrastra la vista para seguirlo"
     },
     "touch": {
       "forward": "Avanzar",
@@ -913,8 +903,9 @@
     "pause": {
       "title": "En pausa",
       "resume": "Continuar",
-      "restart": "Reiniciar misión",
-      "missions": "Misiones"
+      "inventory": "Inventario",
+      "menu": "Menú principal",
+      "saved": "Tu expedición queda guardada en este navegador."
     },
     "card": {
       "title": "Muestra recogida",
@@ -922,8 +913,7 @@
       "numbers": "Muestras {{number}}",
       "cored": "Perseverance la extrajo el sol {{sol}} ({{date}}).",
       "at": "Afloramiento {{outcrop}}, {{location}}",
-      "continue": "Seguir conduciendo",
-      "finish": "Terminar misión",
+      "continue": "Continuar",
       "why": {
         "atmospheric": "La roca se desmoronó al perforar, así que este tubo guarda una muestra del aire marciano.",
         "igneous": "Roca ígnea, cristalizada a partir de roca fundida. Fechada en un laboratorio en la Tierra, diría cuándo se formó el fondo de Jezero.",
@@ -931,22 +921,27 @@
         "mixed": "Granos de roca sedimentaria e ígnea, arrastrados por el río desde toda la región.",
         "regolith": "Regolito: roca suelta y polvo de la superficie. Muestra cómo afectaría el suelo marciano a los astronautas y a su equipo.",
         "carbonate": "Carbonato cementado con sílice: minerales que crecen en el agua y pueden atrapar huellas del entorno en que se formaron."
-      }
+      },
+      "inRack": "Sellada y guardada en el portatubos (I: inventario)."
     },
     "complete": {
-      "title": "Misión cumplida",
+      "title": "Expedición completada",
       "time": "Tiempo",
       "driven": "Recorrido",
       "energy": "Energía usada",
       "tubes": "Tubos llenados",
       "newBest": "¡Nuevo récord!",
       "best": "Récord: {{time}}",
-      "real": "Perseverance tomó estas muestras entre el sol {{first}} y el sol {{last}}: {{sols}} soles, unos {{months}} meses en la Tierra.",
-      "again": "Jugar otra vez",
-      "other": "Otras misiones",
+      "real": "Perseverance hizo todo esto entre el sol {{first}} y el sol {{last}}: {{sols}} soles, unos {{months}} meses en la Tierra.",
+      "again": "Nueva expedición",
       "science": "Ciencia",
       "rocks": "Rocas analizadas",
-      "wheels": "Ruedas"
+      "wheels": "Ruedas",
+      "depot": "Tubos en Three Forks",
+      "panoramas": "Panorámicas",
+      "flights": "Vuelos de Ingenuity",
+      "explore": "Seguir explorando",
+      "menu": "Menú principal"
     },
     "quality": {
       "title": "Gráficos",
@@ -960,12 +955,11 @@
     },
     "menu": {
       "label": "Menú del juego",
-      "missions": "Misiones",
       "collection": "Colección",
       "photos": "Fotos",
       "options": "Opciones",
       "how": "Cómo jugar",
-      "found": "{{got}}/{{total}} recogidos"
+      "expedition": "Expedición"
     },
     "collection": {
       "samples": "Muestras",
@@ -973,7 +967,7 @@
       "science": "Puntos de ciencia",
       "unknown": "Aún sin encontrar",
       "sol": "sol {{sol}}",
-      "locked": "Recógela en la misión {{mission}} para añadirla a tu colección.",
+      "locked": "Extráela durante la expedición para añadirla a tu colección.",
       "rocksTitle": "Rocas analizadas con SuperCam",
       "rocksIntro": "Para cerca de una roca, céntrala en la vista y pulsa F: el láser lee de qué está hecha.",
       "analysed_one": "{{count}} analizada",
@@ -1067,6 +1061,136 @@
       "hint": "Arrastra para girar la vista · rueda para acercarte.",
       "saved": "Guardada en tu galería.",
       "notKept": "Este navegador no puede guardarla: descárgala ahora."
+    },
+    "expedition": {
+      "intro": "Un mapa, el frente del delta, en cuatro capítulos que siguen la campaña real de Perseverance (abril de 2022 – febrero de 2023). Tu progreso se guarda en este navegador.",
+      "start": "Empezar la expedición",
+      "continue": "Continuar (capítulo {{chapter}})",
+      "new": "Nueva expedición",
+      "newConfirm": "Empezar de cero (se pierde la expedición guardada)",
+      "meta": "4 capítulos · 9 tubos por llenar · 3 panorámicas · Ingenuity · unos 3 km"
+    },
+    "chapter": {
+      "kicker": "Capítulo {{n}} · soles {{first}}–{{last}}",
+      "short": "Capítulo {{n}}",
+      "sols": "Soles {{first}}–{{last}}",
+      "begin": "Empezar a conducir",
+      "continue": "Continuar",
+      "tip": "N: AutoNav al siguiente objetivo · I: inventario · M: mapa · T: tiempo más rápido mientras conduce AutoNav"
+    },
+    "chapters": {
+      "arrival": {
+        "title": "Llegada al frente del delta",
+        "story": "Abril de 2022, sol 408. Tras un trayecto rápido por el fondo del cráter, Perseverance llega al pie del antiguo delta fluvial de Jezero: acantilados de roca en capas depositada por el agua hace unos 3500 millones de años. Conduce al oeste hasta Enchanted Lake, donde el frente se alza delante, y prueba el láser de SuperCam en las rocas del camino."
+      },
+      "hawksbill": {
+        "title": "Hawksbill Gap",
+        "story": "El equipo eligió Hawksbill Gap para subir el frente del delta. En Skinner Ridge el rover extrae una arenisca; en Wildcat Ridge, una roca de grano fino en la que SHERLOC encontró los indicios de moléculas orgánicas más ricos de la misión hasta entonces. Después, toma una panorámica de 360° desde la cresta."
+      },
+      "amalik": {
+        "title": "De vuelta al pie del frente",
+        "story": "Otra vez abajo, al pie del frente: el afloramiento Amalik, Hidden Harbor y, en Observation Mountain, dos tubos de regolito, el material suelto de la superficie que pisarían futuros astronautas. Ingenuity vuela desde aeródromos cercanos: acércate y obsérvalo."
+      },
+      "depot": {
+        "title": "El depósito de Three Forks",
+        "story": "Diciembre de 2022 – enero de 2023: el primer depósito de muestras en otro mundo. Perseverance deja tubos duplicados en el suelo de Three Forks, una reserva para traer muestras a la Tierra, y guarda sus gemelos a bordo. Deja los tubos en la zona del depósito y toma la panorámica del lugar."
+      }
+    },
+    "objectives": {
+      "reach-front": "Llega a Enchanted Lake",
+      "first-laser": "Analiza una roca con SuperCam (F)",
+      "three-lasers": "Analiza 3 rocas",
+      "skinner": "Extrae Swift Run + Skyland (Skinner Ridge)",
+      "wildcat": "Extrae Hazeltop + Bearwallow (Wildcat Ridge)",
+      "pano-wildcat": "Panorámica de 360° en Wildcat Ridge",
+      "amalik": "Extrae Shuyak + Mageik (Amalik)",
+      "hidden-harbor": "Extrae Kukaklek (Hidden Harbor)",
+      "observation": "Extrae regolito en Observation Mountain",
+      "pano-enchanted": "Panorámica de 360° en Enchanted Lake",
+      "flight-3": "Observa un vuelo de Ingenuity",
+      "depot": "Deja los tubos duplicados en Three Forks",
+      "pano-forks": "Panorámica de 360° en Three Forks",
+      "flight-4": "Observa 3 vuelos de Ingenuity",
+      "optional": "opcional"
+    },
+    "toast": {
+      "reached": "Llegaste a {{name}}",
+      "resumed": "Expedición reanudada: capítulo {{chapter}}",
+      "deposited": "{{count}} tubos en Three Forks: se quedan en Marte, sus gemelos van a bordo"
+    },
+    "autonav": {
+      "start": "AutoNav: ruta segura trazada, {{distance}} m",
+      "driving": "AutoNav → {{name}} · {{distance}}",
+      "recovering": "AutoNav: retrocede ante un obstáculo y vuelve a planificar…",
+      "point": "punto del mapa",
+      "stop": "Tomar el control",
+      "noGoal": "AutoNav: no hay objetivo al que ir",
+      "noPath": "AutoNav no encontró un camino seguro hasta ahí",
+      "gaveUp": "AutoNav no pudo pasar: conduce tú un rato",
+      "arrived": "AutoNav: llegó a {{name}}",
+      "arrivedPoint": "AutoNav: llegó"
+    },
+    "warp": {
+      "on": "Tiempo ×{{warp}}",
+      "only": "El tiempo solo se acelera mientras conduce AutoNav o con el rover parado"
+    },
+    "heli": {
+      "takeoff": "Ingenuity despega: vuelo {{flight}} ({{date}})",
+      "landed": "Ingenuity aterrizó: vuelo {{flight}}, sol {{sol}} ({{date}})"
+    },
+    "map": {
+      "label": "Mapa del frente del delta",
+      "hint": "Clic: AutoNav hasta ahí",
+      "larger": "Más grande",
+      "smaller": "Más pequeño"
+    },
+    "inventory": {
+      "title": "Inventario",
+      "close": "Cerrar (I)",
+      "tabs": {
+        "tubes": "Tubos",
+        "samples": "Muestras",
+        "science": "SuperCam",
+        "discoveries": "Descubrimientos",
+        "journal": "Diario"
+      },
+      "tubes": {
+        "intro": "Perseverance lleva 43 tubos: 38 para muestras y 5 tubos testigo, que registran cualquier contaminación que el rover trajera de la Tierra. {{filled}} de los {{total}} tubos de muestra están llenos.",
+        "earlier": "Extraídas en el fondo del cráter (antes de este mapa)",
+        "here": "Extraídas en el frente del delta",
+        "depot": "Dejado en Three Forks",
+        "empty": "Vacío",
+        "witness": "Tubo testigo"
+      },
+      "samples": {
+        "none": "Aún no hay muestras."
+      },
+      "science": {
+        "none": "Aún no analizaste rocas: detente cerca de una, céntrala en la vista y pulsa F.",
+        "total": "{{count}} rocas analizadas · {{types}} tipos de roca · {{points}} puntos de ciencia"
+      },
+      "discoveries": {
+        "panoramas": "Panorámicas Mastcam-Z",
+        "panoramaHint": "Un ? violeta en el mapa: detente allí y toma la panorámica.",
+        "view": "Ver en 360°",
+        "flights": "Vuelos de Ingenuity observados",
+        "flightsNone": "Ninguno aún: Ingenuity vuela cerca del frente del delta desde el capítulo 3.",
+        "flight": "Vuelo {{flight}} · sol {{sol}} · {{date}}"
+      }
+    },
+    "pano": {
+      "kicker": "Panorámica Mastcam-Z de 360°",
+      "view": "La panorámica real tomada en {{name}}",
+      "sols": "Soles {{first}}–{{last}} · {{date}}",
+      "hint": "Arrastra o usa las flechas para mirar · rueda o +/− para acercar · Esc para cerrar",
+      "loading": "Cargando la panorámica…",
+      "failed": "No se pudo cargar la panorámica.",
+      "close": "Continuar",
+      "about": {
+        "wildcat-ridge": "Desde Wildcat Ridge, subiendo por Hawksbill Gap: las rocas en capas del frente del delta alrededor del rover y, abajo, el fondo del cráter que recorrió.",
+        "enchanted-lake": "Al pie del frente del delta, donde el rover extrajo el afloramiento Amalik: detrás se alzan los acantilados del frente.",
+        "three-forks": "Three Forks, el primer depósito de muestras en otro mundo, visto desde el rover durante las semanas en que dejó los tubos."
+      }
     }
   }
 }

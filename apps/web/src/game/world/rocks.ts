@@ -258,6 +258,25 @@ export class RockField {
     return rocks;
   }
 
+  /**
+   * Boulders standing higher than `minTopM` within an extent around the origin (for AutoNav's
+   * map). Generated without the cache: the whole area at once would flush it.
+   */
+  boulders(minTopM: number, widthM: number, heightM: number): Rock[] {
+    const out: Rock[] = [];
+    for (const cls of CLASSES) {
+      if (cls.maxM * 0.6 < minTopM) continue;
+      for (let i = Math.floor(-widthM / 2 / cls.cellM); i <= Math.ceil(widthM / 2 / cls.cellM); i++)
+        for (
+          let j = Math.floor(-heightM / 2 / cls.cellM);
+          j <= Math.ceil(heightM / 2 / cls.cellM);
+          j++
+        )
+          for (const r of rocksInCell(i, j, cls, this.ground)) if (r.topM > minTopM) out.push(r);
+    }
+    return out;
+  }
+
   /** Rocks of all classes near a point (for the physics). */
   near(x: number, north: number, radiusM: number, out: Rock[] = []): Rock[] {
     out.length = 0;

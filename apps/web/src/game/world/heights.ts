@@ -37,6 +37,8 @@ export interface AreaMeta {
   detail: LayerMeta;
   mid: LayerMeta;
   far: LayerMeta;
+  /** Native 25 cm imagery over the core of the area (scripts/data/build-game-core.ts). */
+  core?: { albedo: ImageMeta & { cellM: number; widthM: number; heightM: number } };
 }
 export interface GroundTextureMeta {
   id: 'regolith' | 'gravel' | 'sand' | 'bedrock';
