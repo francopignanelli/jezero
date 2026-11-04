@@ -887,6 +887,7 @@
       "dropping": "Dejando los tubos…",
       "toDepot": "Todas las muestras listas: llévalas al depósito de Three Forks",
       "steep": "Demasiado empinado: Perseverance está diseñado para pendientes de hasta 30°",
+      "boulder": "Una roca grande bloquea el paso: retrocede y rodéala",
       "edge": "Borde del modelo de terreno de 1 m: da la vuelta",
       "power": "Batería agotada: recargando con el MMRTG…",
       "tilt": "Inclinación {{deg}}: cuidado",

@@ -887,6 +887,7 @@
       "dropping": "Leaving the tubes…",
       "toDepot": "All samples in: take them to the Three Forks depot",
       "steep": "Too steep: Perseverance is designed for slopes up to 30°",
+      "boulder": "A boulder is in the way: back up and drive around it",
       "edge": "Edge of the 1 m terrain model: turn back",
       "power": "Battery flat: recharging from the MMRTG…",
       "tilt": "Tilt {{deg}}: careful",

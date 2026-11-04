@@ -105,7 +105,7 @@ export interface Bounds {
   north: number;
 }
 
-export type Blocked = 'steep' | 'tilt' | 'edge' | 'power' | 'sand' | null;
+export type Blocked = 'steep' | 'rock' | 'tilt' | 'edge' | 'power' | 'sand' | null;
 
 export interface RoverState {
   lat: number;
@@ -290,7 +290,8 @@ export function stepRover(
   s.speed = approach(s.speed, target, rate * dt);
   if (factor === 0 && throttle !== 0) {
     s.speed = 0;
-    s.blocked = 'steep';
+    // A boulder ahead (rather than the slope itself).
+    s.blocked = (ground.rock?.(aheadPt.lat, aheadPt.lon) ?? 0) > 0.3 ? 'rock' : 'steep';
   }
   if (s.stuck && throttle > 0) s.speed = Math.min(s.speed, 0);
 

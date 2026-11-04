@@ -683,6 +683,9 @@ function Prompt() {
   } else if (hud.blocked === 'steep') {
     text = t('game.prompt.steep');
     tone = 'is-warn';
+  } else if (hud.blocked === 'rock') {
+    text = t('game.prompt.boulder');
+    tone = 'is-warn';
   } else if (hud.blocked === 'tilt') {
     text = t('game.prompt.tiltBlocked');
     tone = 'is-warn';
@@ -985,32 +988,30 @@ function TouchPad({ session }: { session: GameSession }) {
   const [coarse] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches,
   );
+  // Gone (a dialog, photo mode): nothing stays held.
+  useEffect(() => () => session.controls.clear(), [session]);
   if (!coarse) return null;
-  const touch = session.controls.touch;
-  const hold = (apply: (on: boolean) => void) => ({
-    onPointerDown: (e: ReactPointerEvent) => {
-      e.currentTarget.setPointerCapture(e.pointerId);
-      apply(true);
-    },
-    onPointerUp: () => apply(false),
-    onPointerCancel: () => apply(false),
-    onContextMenu: (e: { preventDefault(): void }) => e.preventDefault(),
-  });
+  type Pad = Parameters<GameSession['controls']['pad']>[1];
+  const hold = (button: NonNullable<Pad>) => {
+    const release = (e: ReactPointerEvent) => session.controls.pad(e.pointerId, null);
+    return {
+      onPointerDown: (e: ReactPointerEvent) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        session.controls.pad(e.pointerId, button);
+      },
+      onPointerUp: release,
+      onPointerCancel: release,
+      onLostPointerCapture: release,
+      onContextMenu: (e: { preventDefault(): void }) => e.preventDefault(),
+    };
+  };
   return (
     <div className="game-touch">
       <div className="game-touch-steer">
-        <button
-          type="button"
-          aria-label={t('game.touch.left')}
-          {...hold((on) => (touch.steer = on ? -1 : 0))}
-        >
+        <button type="button" aria-label={t('game.touch.left')} {...hold('left')}>
           ◀
         </button>
-        <button
-          type="button"
-          aria-label={t('game.touch.right')}
-          {...hold((on) => (touch.steer = on ? 1 : 0))}
-        >
+        <button type="button" aria-label={t('game.touch.right')} {...hold('right')}>
           ▶
         </button>
       </div>
@@ -1026,29 +1027,17 @@ function TouchPad({ session }: { session: GameSession }) {
           type="button"
           aria-label={t('game.touch.core')}
           className="is-action"
-          {...hold((on) => (touch.action = on))}
+          {...hold('core')}
         >
           ⦿
         </button>
-        <button
-          type="button"
-          aria-label={t('game.touch.boost')}
-          {...hold((on) => (touch.boost = on))}
-        >
+        <button type="button" aria-label={t('game.touch.boost')} {...hold('boost')}>
           »
         </button>
-        <button
-          type="button"
-          aria-label={t('game.touch.forward')}
-          {...hold((on) => (touch.throttle = on ? 1 : 0))}
-        >
+        <button type="button" aria-label={t('game.touch.forward')} {...hold('forward')}>
           ▲
         </button>
-        <button
-          type="button"
-          aria-label={t('game.touch.back')}
-          {...hold((on) => (touch.throttle = on ? -1 : 0))}
-        >
+        <button type="button" aria-label={t('game.touch.back')} {...hold('back')}>
           ▼
         </button>
       </div>

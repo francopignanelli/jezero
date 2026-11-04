@@ -95,6 +95,17 @@ describe('hazards', () => {
     expect(worn.speed).toBeLessThan(DRIVE.cruiseMps * 0.7);
   });
 
+  it('a boulder ahead blocks as a rock, a step of bare ground as a slope', () => {
+    // A 1.5 m step 4 m north of the start; with a rock on it, or bare.
+    const stepAt = LAT + 4 / M_PER_DEG;
+    const wall = (rock: number): GroundProbe => ({
+      height: (lat) => -2_500 + (lat > stepAt ? 1.5 : 0),
+      rock: (lat) => (lat > stepAt ? rock : 0),
+    });
+    expect(drive(initialRover(LAT, LON, 0), { throttle: 1 }, 4, wall(0.8)).blocked).toBe('rock');
+    expect(drive(initialRover(LAT, LON, 0), { throttle: 1 }, 4, wall(0)).blocked).toBe('steep');
+  });
+
   it('refuses to drive onto a side slope over 30°', () => {
     // A plane rising 40° towards the east; driving north traverses it sideways.
     const side: GroundProbe = {

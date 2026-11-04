@@ -54,12 +54,22 @@ export class CameraRig {
     canvas.style.touchAction = 'none';
     let last: { x: number; y: number } | null = null;
     canvas.addEventListener('pointerdown', (e) => {
+      // Only the primary button drags: right and middle clicks open menus or autoscroll, which
+      // can swallow their release and leave the view turning with every mouse move.
+      if (e.button !== 0) return;
       this.dragging = true;
       last = { x: e.clientX, y: e.clientY };
       canvas.setPointerCapture(e.pointerId);
     });
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('pointermove', (e) => {
       if (!this.dragging || !last) return;
+      if (e.pointerType === 'mouse' && e.buttons === 0) {
+        // The release was missed: stop dragging.
+        this.dragging = false;
+        last = null;
+        return;
+      }
       this.yawOffset += (e.clientX - last.x) * 0.006;
       this.elevOffset = Math.max(-12, Math.min(50, this.elevOffset + (e.clientY - last.y) * 0.15));
       last = { x: e.clientX, y: e.clientY };
@@ -70,6 +80,7 @@ export class CameraRig {
     };
     canvas.addEventListener('pointerup', end);
     canvas.addEventListener('pointercancel', end);
+    canvas.addEventListener('lostpointercapture', end);
     canvas.addEventListener(
       'wheel',
       (e) => {

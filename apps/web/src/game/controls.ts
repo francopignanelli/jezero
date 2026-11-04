@@ -1,6 +1,6 @@
 import type { DriveInput } from './roverSim';
 
-export type Command = 'camera' | 'pause' | 'map' | 'laser' | 'photo';
+export type Command = 'camera' | 'pause' | 'map' | 'laser' | 'photo' | 'inventory';
 
 export interface ControlState extends DriveInput {
   /** Core a sample / drop the tubes (held). */
@@ -19,6 +19,7 @@ const COMMANDS: Record<string, Command> = {
   KeyM: 'map',
   KeyF: 'laser',
   KeyP: 'photo',
+  KeyI: 'inventory',
 };
 /** Keys whose browser default (scrolling, focus moves) is suppressed while driving. */
 const CAPTURED = new Set([...FORWARD, ...BACK, ...LEFT, ...RIGHT, 'Space']);
@@ -38,6 +39,7 @@ export class Controls {
     window.addEventListener('keydown', this.down);
     window.addEventListener('keyup', this.up);
     window.addEventListener('blur', this.clear);
+    document.addEventListener('visibilitychange', this.clear);
   }
 
   private readonly down = (e: KeyboardEvent) => {
@@ -67,11 +69,30 @@ export class Controls {
   readonly clear = () => {
     this.keys.clear();
     this.actionTapped = false;
+    this.pads.clear();
     Object.assign(this.touch, { throttle: 0, steer: 0, boost: false, action: false });
   };
 
+  /**
+   * On-screen pad buttons held, by pointer. Opposite buttons can be held at once: letting go of
+   * one must not cancel the other.
+   */
+  private readonly pads = new Map<number, 'left' | 'right' | 'forward' | 'back' | 'boost' | 'core'>();
+
+  pad(pointerId: number, button: 'left' | 'right' | 'forward' | 'back' | 'boost' | 'core' | null): void {
+    if (button) this.pads.set(pointerId, button);
+    else this.pads.delete(pointerId);
+    const held = new Set(this.pads.values());
+    this.touch.steer = (held.has('right') ? 1 : 0) - (held.has('left') ? 1 : 0);
+    this.touch.throttle = (held.has('forward') ? 1 : 0) - (held.has('back') ? 1 : 0);
+    this.touch.boost = held.has('boost');
+    this.touch.action = held.has('core');
+  }
+
   read(): ControlState {
     if (!this.enabled) return { throttle: 0, steer: 0, boost: false, action: false };
+    // Focus gone elsewhere (devtools, another window) without a blur event: no key is still down.
+    if (this.keys.size && !document.hasFocus()) this.keys.clear();
     const any = (codes: string[]) => codes.some((c) => this.keys.has(c));
     const throttle = (any(FORWARD) ? 1 : 0) - (any(BACK) ? 1 : 0) || this.touch.throttle;
     const steer = (any(RIGHT) ? 1 : 0) - (any(LEFT) ? 1 : 0) || this.touch.steer;
@@ -84,5 +105,6 @@ export class Controls {
     window.removeEventListener('keydown', this.down);
     window.removeEventListener('keyup', this.up);
     window.removeEventListener('blur', this.clear);
+    document.removeEventListener('visibilitychange', this.clear);
   }
 }
