@@ -14,6 +14,7 @@ import {
   NormalBlending,
   Points,
   RepeatWrapping,
+  ShaderChunk,
   ShaderMaterial,
   SRGBColorSpace,
   Vector2,
@@ -351,6 +352,9 @@ export class Tracks {
       roughness: 1,
       transparent: true,
       depthWrite: false,
+      // Driving in reverse lays the strip with the opposite winding: both faces are drawn, and
+      // both are lit with the ground's (upward) normal.
+      side: DoubleSide,
       polygonOffset: true,
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
@@ -367,6 +371,13 @@ export class Tracks {
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvStrength = aStrength;');
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', '#include <common>\nvarying float vStrength;')
+        .replace(
+          '#include <normal_fragment_begin>',
+          ShaderChunk.normal_fragment_begin.replace(
+            'float faceDirection = gl_FrontFacing ? 1.0 : - 1.0;',
+            'float faceDirection = 1.0;',
+          ),
+        )
         .replace(
           '#include <map_fragment>',
           `vec4 tread = texture2D(map, vMapUv);
