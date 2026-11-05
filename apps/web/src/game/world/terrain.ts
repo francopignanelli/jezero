@@ -19,6 +19,7 @@ import {
   Vector3,
   Vector4,
   type PerspectiveCamera,
+  type Texture,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
 import { GLSL_MICRO } from './features';
@@ -250,6 +251,24 @@ const FRAGMENT_PARS = /* glsl */ `
   uniform int uClearCount;
   /** The rover over the ground: x, north, heading (rad), on; and its six wheel contacts. */
   uniform vec4 uRoverAO;
+  /** Wheel tracks (effects.ts Tracks): the map, its centre (x, north), size (m), on; fade (m). */
+  uniform sampler2D tTracks;
+  uniform vec4 uTrackInfo;
+  uniform vec2 uTrackFade;
+  /** A Perseverance rut across its width (u 0–1): berms of pushed-aside soil at the sides, the
+   *  compacted groove between them, crossed by the grousers' imprints (along: metres). In metres. */
+  float rutH(float u, float along, float across2, float grousers) {
+    if (u < 0.14 || u > 0.86) {
+      float b = u < 0.14 ? u / 0.14 : (1.0 - u) / 0.14;
+      return 0.009 * pow(sin(b * 3.14159), 0.8);
+    }
+    float edge = min(1.0, (0.36 - abs(u - 0.5)) / 0.08);
+    // 48 curved grousers round a 0.525 m wheel: one imprint every 3.4 cm.
+    float k = along / 0.034 + 0.35 * across2;
+    float d = abs(k - floor(k + 0.5));
+    float imprint = max(0.0, 1.0 - d / 0.18);
+    return -edge * (0.011 + 0.006 * imprint * imprint * grousers);
+  }
   uniform vec2 uWheelAO[6];
   varying vec2 vP;
   varying float vSpacing;
@@ -501,6 +520,38 @@ const FRAGMENT_COLOR = /* glsl */ `
   }
   gDetailNormal = normalize(gDetailNormal + vec3(fxN.xy, 0.0));
 #endif
+  // Wheel tracks, printed in the ground (the track map: effects.ts). Relief through the normal,
+  // compacted soil a little darker and smoother; faint on bedrock (the map's strength), fading out
+  // with distance from the rover.
+  if (uTrackInfo.w > 0.5) {
+    vec2 tuv = (vP - uTrackInfo.xy) / uTrackInfo.z + 0.5;
+    float tw = 1.0 - smoothstep(uTrackFade.x, uTrackFade.y, length(vP - uRoverAO.xy));
+    if (tw > 0.0 && tuv.x > 0.0 && tuv.y > 0.0 && tuv.x < 1.0 && tuv.y < 1.0) {
+      vec4 t = texture(tTracks, tuv);
+      float tk = t.g * tw;
+      if (tk > 0.004) {
+        float u = t.r;
+        vec2 dir = normalize(t.ba * 2.0 - 1.0 + vec2(1e-4, 0.0));
+        vec2 acr = vec2(-dir.y, dir.x);
+        // Which way u grows across the rut (the map stores u, not its sign).
+        float texel = uTrackInfo.z / float(textureSize(tTracks, 0).x);
+        vec4 tp = texture(tTracks, tuv + acr * texel * 1.5 / uTrackInfo.z);
+        float sgn = tp.g > 0.002 && tp.r < u ? -1.0 : 1.0;
+        float along = dot(vP, dir);
+        float across2 = pow((u - 0.5) / 0.36, 2.0);
+        float gr = 1.0 - smoothstep(0.008, 0.02, pxM);
+        float h0 = rutH(u, along, across2, gr);
+        float dhu = (rutH(min(u + 0.01, 1.0), along, across2, gr) - rutH(max(u - 0.01, 0.0), along, across2, gr)) / 0.02;
+        float dha = (rutH(u, along + 0.004, across2, gr) - rutH(u, along - 0.004, across2, gr)) / 0.008;
+        // World gradient of the rut's surface (m/m), east and north; u spans the 0.46 m ribbon.
+        vec2 grad = (dhu * sgn / 0.46) * acr + dha * dir;
+        gDetailNormal = normalize(mix(gDetailNormal, vec3(0.0, 0.0, 1.0), 0.55 * tk * step(0.14, u) * step(u, 0.86))
+                                  + vec3(-grad * tk * 1.2, 0.0));
+        // Compacted, freshly turned soil in the groove is darker; the berms barely change.
+        groundCol *= 1.0 + tk * clamp(h0 * 14.0, -0.2, 0.05);
+      }
+    }
+  }
   // Far away, where the ground photos have faded to their mean colour, the orbital image sets
   // the tones, with a hint of colour: dark sand greyer, bright dust and bedrock warmer.
   float farK = 1.0 - fade;
@@ -629,6 +680,9 @@ export class TerrainMesh {
       uWB: { value: new Vector3(...GROUND_WB) },
       uRoverAO: { value: new Vector4() },
       uWheelAO: { value: Array.from({ length: 6 }, () => new Vector2(1e6, 1e6)) },
+      tTracks: { value: null },
+      uTrackInfo: { value: new Vector4() },
+      uTrackFade: { value: new Vector2(50, 70) },
     };
     for (const t of [
       macro.detail,
@@ -711,6 +765,13 @@ export class TerrainMesh {
     u.set(at[0], at[1], at[2], 1);
     const list = this.uniforms.uWheelAO!.value as Vector2[];
     for (let i = 0; i < 6; i++) list[i]!.set(...(wheels[i] ?? [1e6, 1e6]));
+  }
+
+  /** The wheel tracks' map (effects.ts Tracks): texture, centre and size, and their fade (m). */
+  setTracks(texture: Texture, info: Vector4, fade: [number, number]): void {
+    this.uniforms.tTracks!.value = texture;
+    this.uniforms.uTrackInfo!.value = info;
+    (this.uniforms.uTrackFade!.value as Vector2).set(fade[0], fade[1]);
   }
 
   /** Points kept free of sand drifts (local x, north). */

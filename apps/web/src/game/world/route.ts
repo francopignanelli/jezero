@@ -63,7 +63,7 @@ export class RouteLine {
           float near = smoothstep(uDone + 2.0, uDone + 7.0, vAlong);
           float far = 1.0 - smoothstep(140.0, 260.0, vDist);
           float end = 1.0 - smoothstep(uLength - 4.0, uLength, vAlong);
-          float a = chevron * edge * near * far * (0.35 + 0.65 * end) * 0.8;
+          float a = chevron * edge * near * far * (0.35 + 0.65 * end) * 0.45;
           gl_FragColor = vec4(uColor * a, a);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
@@ -99,7 +99,8 @@ export class RouteLine {
       }
       along += d;
     }
-    const half = 0.55;
+    // A narrow guide (a wide band read as a ribbon laid over the terrain).
+    const half = 0.25;
     const pos = new Float32Array(samples.length * 2 * 3);
     const al = new Float32Array(samples.length * 2);
     const side = new Float32Array(samples.length * 2);

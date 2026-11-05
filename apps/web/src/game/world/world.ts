@@ -27,7 +27,14 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { installHeightHaze } from './atmosphere';
 import { CameraRig, type CameraMode } from './cameraRig';
-import { CoreMarks, DustDevil, DustParticles, Tracks, type TrackGround } from './effects';
+import {
+  CoreMarks,
+  DustDevil,
+  DustParticles,
+  Tracks,
+  type TrackGround,
+  type TrackMapConfig,
+} from './effects';
 import { Chips, Ledges, type DebrisGround } from './debris';
 import { CraterField, bakeCraters, generateCraters, toneCraters } from './features';
 import { LocalFrame, Terrain, loadHeights, type AreaMeta, type WorldManifest } from './heights';
@@ -52,11 +59,37 @@ const QUALITY: Record<
     bloom: boolean;
     msaa: number;
     devils: number;
+    /** Wheel-track map: texels, metres covered, fade-out distances from the rover (m). */
+    tracks: TrackMapConfig;
   }
 > = {
-  high: { pixelRatio: 2, shadow: 4096, rocks: [45, 260], bloom: true, msaa: 4, devils: 3 },
-  medium: { pixelRatio: 1.25, shadow: 2048, rocks: [30, 170], bloom: true, msaa: 4, devils: 2 },
-  low: { pixelRatio: 1, shadow: 1024, rocks: [18, 90], bloom: false, msaa: 0, devils: 1 },
+  high: {
+    pixelRatio: 2,
+    shadow: 4096,
+    rocks: [45, 260],
+    bloom: true,
+    msaa: 4,
+    devils: 3,
+    tracks: { res: 4096, sizeM: 160, fade: [55, 76] },
+  },
+  medium: {
+    pixelRatio: 1.25,
+    shadow: 2048,
+    rocks: [30, 170],
+    bloom: true,
+    msaa: 4,
+    devils: 2,
+    tracks: { res: 2048, sizeM: 128, fade: [42, 60] },
+  },
+  low: {
+    pixelRatio: 1,
+    shadow: 1024,
+    rocks: [18, 90],
+    bloom: false,
+    msaa: 0,
+    devils: 1,
+    tracks: { res: 1024, sizeM: 96, fade: [30, 44] },
+  },
 };
 
 /**
@@ -321,7 +354,7 @@ export class World {
   rocks: RockField | null = null;
   rover: Rover3D | null = null;
   readonly dust = new DustParticles();
-  readonly tracks = new Tracks();
+  readonly tracks: Tracks;
   readonly coreMarks = new CoreMarks();
   private craters: CraterField | null = null;
   /** Sample sites, starts and the depot (local x, north): firm ground, no craters. */
@@ -360,6 +393,7 @@ export class World {
     readonly quality: Quality,
   ) {
     this.cfg = QUALITY[quality];
+    this.tracks = new Tracks(this.cfg.tracks);
     this.renderer = new WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.cfg.pixelRatio));
     this.renderer.outputColorSpace = SRGBColorSpace;
@@ -386,7 +420,6 @@ export class World {
     sh.normalBias = 0.03;
     sh.radius = 3;
     this.scene.add(this.dust.points);
-    for (const m of this.tracks.meshes) this.scene.add(m);
     this.scene.add(
       this.coreMarks.group,
       this.ingenuity.root,
@@ -564,7 +597,7 @@ export class World {
       this.quality !== 'low',
     );
     this.terrainMesh.setClear(clear);
-    this.tracks.setColour(ground.mean[0]!);
+    this.terrainMesh.setTracks(this.tracks.target.texture, this.tracks.info, this.cfg.tracks.fade);
     this.scene.add(this.terrainMesh.mesh);
     const terrain = this.terrain;
     this.rocks = new RockField(
@@ -866,16 +899,13 @@ export class World {
 
   /** The ground as the tracks see it. */
   private readonly trackGround: TrackGround = {
-    height: (x, z) => this.groundY(x, z),
-    normal: (x, z, target) => {
-      const n = this.terrain ? this.terrain.normalAt(x, -z, 0.5) : [0, 1, 0];
-      return target.set(n[0]!, n[1]!, n[2]!);
-    },
     softness: (x, z) => {
       if ((this.rocks?.rockLift(x, -z) ?? 0) > 0.02) return 0;
-      // Bright ground is mostly bedrock, where wheels barely print.
+      // Bright ground is mostly bedrock, where the wheels barely mark it; sand takes them deepest.
       const b = this.brightness(x, -z);
-      return 1 - 0.55 * Math.min(1, Math.max(0, (b - 0.52) / 0.2));
+      const rock = Math.min(1, Math.max(0, (b - 0.5) / 0.2));
+      const sand = this.sandAt(x, -z);
+      return Math.min(1, (1 - 0.85 * rock) * (0.75 + 0.25 * sand) + 0.25 * sand);
     },
   };
 
@@ -1184,6 +1214,7 @@ export class World {
       const cz = Math.round(p.z / texel) * texel;
       this.sun.target.position.set(cx, p.y, cz);
       this.sun.position.set(cx, p.y, cz).addScaledVector(this.sunDir, 300);
+      this.tracks.render(this.renderer, p.x, -p.z);
     }
     (this.grade.uniforms.uTime as { value: number }).value = this.time % 100;
     (this.photoPass.uniforms.uTime as { value: number }).value = this.time % 100;
