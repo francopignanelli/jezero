@@ -3,6 +3,7 @@ import {
   Box3,
   BufferAttribute,
   BufferGeometry,
+  Color,
   Euler,
   Group,
   Matrix3,
@@ -12,6 +13,7 @@ import {
   SphereGeometry,
   Vector3,
   type InterleavedBufferAttribute,
+  type MeshStandardMaterial,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
@@ -62,6 +64,9 @@ const HEAD = { minY: 1.91, x: [-0.95, -0.15], z: [0.4, 1.0], pivot: new Vector3(
 const TILT_ABOVE_PIVOT_M = 0.11;
 /** Perseverance's wheels are 52.5 cm across. */
 const TYRE_RADIUS_M = 0.2625;
+/** Dust on the paint and on bare metal (multiplies the model's colours). */
+const ROVER_DUST = new Color(0.6, 0.53, 0.45);
+const ROVER_DUST_METAL = new Color(0.82, 0.76, 0.68);
 const WHEEL_HOLDER = 'wheel-holder';
 /** Wheel travel shown by the suspension (m). */
 const MAX_LIFT_M = 0.18;
@@ -180,15 +185,24 @@ export class Rover3D {
   }
 
   private build(model: Object3D): void {
+    const dusted = new Set<unknown>();
     model.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
-      // A rover on Mars is dusty: no mirror-like surfaces (they also glint far beyond the HDR range).
+      // A rover on Mars is dusty: no mirror-like surfaces (they also glint far beyond the HDR
+      // range), and after hundreds of sols its white paint is a dusty tan (Mastcam-Z and WATSON
+      // selfies). The model's paint textures are near pure white (albedo ~0.9), which no real
+      // surface out there is: the body came out blown out and glowing.
       for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-        const std = m as { roughness?: number };
-        if (typeof std.roughness === 'number') std.roughness = Math.max(std.roughness, 0.32);
+        if (dusted.has(m)) continue;
+        dusted.add(m);
+        const std = m as MeshStandardMaterial;
+        if (typeof std.roughness !== 'number' || !std.color) continue;
+        const metal = (std.metalness ?? 0) > 0.5;
+        std.roughness = Math.max(std.roughness, metal ? 0.45 : 0.62);
+        std.color.multiply(metal ? ROVER_DUST_METAL : ROVER_DUST);
       }
     });
     this.body.add(model);

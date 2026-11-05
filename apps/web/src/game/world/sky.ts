@@ -80,7 +80,7 @@ export class SkyDome {
           float clear = 1.0 - uStorm;
           float wide = 0.15 * pow(max(c, 0.0), 3.0) + 0.25 * broad;
           // Brightest low over the horizon on the Sun's side, where the light crosses most dust.
-          float sunSide = pow(0.5 + 0.5 * dot(normalize(d.xz + vec2(1e-5)), normalize(uSun.xz)), 3.0);
+          float sunSide = pow(clamp(0.5 + 0.5 * dot(normalize(d.xz + vec2(1e-5)), normalize(uSun.xz + vec2(1e-5))), 0.0, 1.0), 3.0);
           float low = exp(-max(h, 0.0) * 4.0);
           sky += (vec3(0.42, 0.52, 0.70) * near * 1.6 + vec3(1.0, 0.86, 0.64) * wide
                   + vec3(1.0, 0.92, 0.72) * 0.42 * sunSide * low) * clear;
@@ -111,7 +111,16 @@ export class SkyDome {
     // No solar disc in the environment: it would make specular highlights double the sun light.
     (dome.material as ShaderMaterial).fragmentShader = (
       dome.material as ShaderMaterial
-    ).fragmentShader.replace('sky += vec3(1.0, 0.97, 0.92) * disc * 40.0 * clear * clear;', '');
+    )
+      .fragmentShader.replace('sky += vec3(1.0, 0.97, 0.92) * disc * 40.0 * clear * clear;', '')
+      // Below the horizon the environment sees the ground, not sky: sunlit regolith is about a
+      // sixth as bright as the horizon sky and redder (measured on the Wildcat Ridge panorama).
+      // Without this, everything facing down (the rover's sides and belly, the rocks' flanks)
+      // was lit from below as brightly as from the sky: flat, glowing, ungrounded.
+      .replace(
+        'sky = h < 0.0 ? uHorizon * (1.0 + 0.3 * h) : sky;',
+        'sky = mix(uHorizon * vec3(0.16, 0.12, 0.10), sky, smoothstep(-0.06, 0.0, h));',
+      );
     scene.add(dome);
     const pmrem = new PMREMGenerator(renderer);
     const target = pmrem.fromScene(scene, 0, 0.1, 100);

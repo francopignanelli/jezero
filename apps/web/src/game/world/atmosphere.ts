@@ -71,7 +71,7 @@ export function installHeightHaze(sun?: Vector3): void {
     float hazeMu = dot(hazeRay / max(length(hazeRay), 1e-3), ${sunGlsl});
     float hazeLum = dot(fogColor, vec3(0.3333)) / 0.45;
     vec3 hazeSun = ${sunGlsl};
-    float hazeSide = pow(0.5 + 0.5 * dot(normalize(hazeRay.xz + vec2(1e-5)), normalize(hazeSun.xz + vec2(1e-5))), 3.0);
+    float hazeSide = pow(clamp(0.5 + 0.5 * dot(normalize(hazeRay.xz + vec2(1e-5)), normalize(hazeSun.xz + vec2(1e-5))), 0.0, 1.0), 3.0);
     vec3 hazeCol = fogColor * (1.01 + 0.11 * hazeMu)
                  + vec3(1.0, 0.86, 0.64) * hazeLum
                    * (0.15 * pow(max(hazeMu, 0.0), 3.0) + 0.25 * pow(max(hazeMu, 0.0), 7.0))

@@ -146,11 +146,11 @@ function ledge(seed: number): BufferGeometry {
     front += -0.025 - 0.02 * rand() + (hard ? 0.05 : 0);
     const len = 0.5 * (0.75 + 0.3 * rand()) * (1 - k / (layers * 2.2));
     const depth = 0.17 + 0.06 * rand();
-    const shade = (hard ? 0.9 : 0.66) * (0.9 + 0.2 * rand());
+    const shade = (hard ? 0.95 : 0.76) * (0.9 + 0.2 * rand());
     const g = plate(rand, 9, t / depth, len / depth, {
       top: shade,
-      side: shade * 0.7,
-      bottom: shade * 0.22,
+      side: shade * 0.82,
+      bottom: shade * 0.3,
     });
     g.scale(depth, depth, depth);
     g.translate((rand() - 0.5) * 0.06, y, front);
@@ -195,9 +195,11 @@ function debrisMaterial(texture: DataArrayTexture, key: string): MeshStandardMat
            vec3 ty = texture(tGround, vec3(vDebP.xy * 2.2 + 0.3, 3.0)).rgb;
            vec3 tex = mix(tx, ty, 0.5) * uWB;
            float lum = dot(tex, vec3(0.3, 0.59, 0.11));
+           // The rock photo's grain as brightness only (its hue would make the debris oranger
+           // than the ground).
            // Thin laminations across the layers' faces.
            float lam = sin(vDebP.y * 6.2832 / 0.03 + 4.0 * sin(dot(vDebP.xz, vec2(0.9, 0.4))));
-           diffuseColor.rgb *= mix(vec3(1.0), tex / max(lum, 1e-3) * 0.9 + 0.1, 0.35) * (1.0 - 0.1 * smoothstep(0.5, 1.0, lam));
+           diffuseColor.rgb *= mix(1.0, clamp(lum / 0.12, 0.45, 1.7), 0.5) * (1.0 - 0.1 * smoothstep(0.5, 1.0, lam));
          }`,
       );
   };
@@ -243,14 +245,16 @@ export class Chips {
   constructor(
     private readonly ground: DebrisGround,
     texture: DataArrayTexture,
-    bedrockMean: Color,
+    soilMean: Color,
     private readonly radius: number,
   ) {
     this.material = debrisMaterial(texture, 'chips');
-    this.light = bedrockMean
+    // The ground's own hue (the regolith as the terrain draws it), a quarter lighter: the plates
+    // are the same rock as the pavement under the dust, not a different, oranger material.
+    this.light = soilMean
       .clone()
       .multiply(new Color(...GROUND_WB))
-      .multiply(new Color(1.15, 1.45, 1.55));
+      .multiply(new Color(1.25, 1.28, 1.32));
     for (let v = 0; v < CHIP_VARIANTS; v++) {
       const rand = mulberry32(v * 131 + 7);
       const g = plate(rand, 5 + (v % 3), 0.3, 1 + 0.3 * rand());
@@ -378,16 +382,17 @@ export class Ledges {
   constructor(
     ground: DebrisGround,
     texture: DataArrayTexture,
-    bedrockMean: Color,
+    soilMean: Color,
     widthM: number,
     heightM: number,
   ) {
     this.material = debrisMaterial(texture, 'ledges');
-    // Weathered faces are darker and browner than the dust (as at Wildcat Ridge).
-    const tint = bedrockMean
+    // Weathered faces a little darker and greyer than the dust on the slope around them (as at
+    // Wildcat Ridge), in the same hue: brighter, oranger ledges read as props set on the hill.
+    const tint = soilMean
       .clone()
       .multiply(new Color(...GROUND_WB))
-      .multiply(new Color(0.62, 0.6, 0.62));
+      .multiply(new Color(0.9, 0.93, 0.97));
     const placed: Array<Ledge & { variant: number; y: number; tone: number }> = [];
     for (let x = -widthM / 2; x < widthM / 2; x += LEDGE_GRID_M)
       for (let n = -heightM / 2; n < heightM / 2; n += LEDGE_GRID_M) {
@@ -400,7 +405,12 @@ export class Ledges {
         const b = ground.brightness(px, pn);
         if (b < 0.4 || ground.sand(px, pn) > 0.15) continue;
         if (ground.clearance(px, pn) < 7) continue;
-        const odds = 0.55 * Math.min(1, (slope - 0.025) / 0.08) * Math.min(1, (b - 0.4) / 0.15);
+        // Outcrops follow particular layers: the harder beds crop out in bands at the same
+        // elevation along the slope (strata), not as ledges dotted evenly over it.
+        const h = ground.height(px, pn);
+        const bed = 0.5 + 0.5 * Math.sin((h / 5.5) * Math.PI * 2 + 2.5 * Math.sin(px * 0.013 + pn * 0.009));
+        if (bed < 0.55) continue;
+        const odds = 0.75 * Math.min(1, (slope - 0.025) / 0.08) * Math.min(1, (b - 0.4) / 0.15);
         if (rand() > odds) continue;
         // Facing downslope: +z of the ledge along the ground's downhill direction (x east, north).
         const yawDown = Math.atan2(-nz, nx);
@@ -412,9 +422,9 @@ export class Ledges {
           const lengthM = 2.2 + 4.5 * rand();
           const qx = px + Math.cos(yaw) * along;
           const qn = pn + Math.sin(yaw) * along;
-          along += lengthM * 0.85 + rand();
+          along += lengthM * 0.8 + 0.5 * rand();
           if (ground.clearance(qx, qn) < 7) continue;
-          const heightM = (0.6 + 1.2 * rand()) * Math.min(1.4, 0.7 + slope * 4);
+          const heightM = (0.45 + 0.9 * rand()) * Math.min(1.4, 0.7 + slope * 4);
           placed.push({
             x: qx,
             north: qn,
@@ -423,7 +433,8 @@ export class Ledges {
             depthM: lengthM * 0.38,
             heightM,
             variant: Math.floor(rand() * LEDGE_VARIANTS),
-            y: ground.height(qx, qn) - heightM * 0.12,
+            // Half buried in its own talus: it crops out of the slope, not stands on it.
+            y: ground.height(qx, qn) - heightM * 0.3,
             tone: rand(),
           });
         }
@@ -444,7 +455,7 @@ export class Ledges {
             depthM: lengthM * 0.38,
             heightM,
             variant: Math.floor(rand() * LEDGE_VARIANTS),
-            y: ground.height(qx, qn) - heightM * 0.2,
+            y: ground.height(qx, qn) - heightM * 0.3,
             tone: rand(),
           });
         }

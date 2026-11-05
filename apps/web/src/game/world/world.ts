@@ -119,10 +119,18 @@ const GradeShader = {
     }
     void main() {
       vec4 c = texture2D(tDiffuse, vUv);
-      // Light unsharp mask: crisper edges and fine relief.
+      // A very light unsharp mask (stronger, it made the fine ground texture crunch into
+      // pixel-sized speckle and outlined every edge).
       vec3 blur = (texture2D(tDiffuse, vUv + vec2(uTexel.x, 0.0)).rgb + texture2D(tDiffuse, vUv - vec2(uTexel.x, 0.0)).rgb
                  + texture2D(tDiffuse, vUv + vec2(0.0, uTexel.y)).rgb + texture2D(tDiffuse, vUv - vec2(0.0, uTexel.y)).rgb) * 0.25;
-      c.rgb = max(c.rgb + (c.rgb - blur) * 0.45, 0.0);
+      c.rgb = max(c.rgb + (c.rgb - blur) * 0.15, 0.0);
+      // Only the most saturated oranges are pulled back a little (the "orange wash"): the
+      // ground's muted browns and the rocks' greys keep their colour.
+      float lumC = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+      // (Saturation measured on a display-like curve: the ground itself, ~0.6 there, is untouched.)
+      vec3 g = sqrt(max(c.rgb, 0.0));
+      float satC = (max(g.r, max(g.g, g.b)) - min(g.r, min(g.g, g.b))) / max(max(g.r, max(g.g, g.b)), 1e-4);
+      c.rgb = max(vec3(lumC) + (c.rgb - vec3(lumC)) * mix(1.0, 0.82, smoothstep(0.66, 0.86, satC)), 0.0);
       vec2 d = vUv - 0.5;
       float v = 1.0 - dot(d, d) * 0.55;
       c.rgb *= v;
@@ -568,6 +576,7 @@ export class World {
       },
       ground.albedo,
       this.cfg.rocks,
+      ground.mean[0],
     );
     for (const m of this.rocks.group) this.scene.add(m);
     this.keepRoute = keepRoute.map(([lat, lon]) => frame.toLocal(lat, lon));
@@ -581,14 +590,14 @@ export class World {
     this.ledges = new Ledges(
       debrisGround,
       ground.albedo,
-      ground.mean[3]!,
+      ground.mean[0]!,
       detail.widthM - 80,
       detail.heightM - 80,
     );
     this.chips = new Chips(
       debrisGround,
       ground.albedo,
-      ground.mean[3]!,
+      ground.mean[0]!,
       this.quality === 'high' ? 22 : this.quality === 'medium' ? 16 : 10,
     );
     for (const m of [...this.ledges.meshes, ...this.chips.meshes]) this.scene.add(m);
@@ -849,6 +858,8 @@ export class World {
   private readonly across = new Vector3();
   private readonly drill = new Vector3();
   private lastPose: ScenePose | null = null;
+  /** Wheel contacts (local x, north) for the ground's ambient occlusion. */
+  private readonly wheelAO: Array<[number, number]> = [];
   private markPlaced = false;
   /** Mast head: current angles and the idle panorama's state. */
   private readonly head = { pan: 0, tilt: 0.12, idleS: 0, shotS: 0, aim: 0, dir: 1 };
@@ -917,7 +928,9 @@ export class World {
           );
         }
         this.tracks.add(i, this.tmp, this.across, this.trackGround);
+        this.wheelAO[i] = [this.tmp.x, -this.tmp.z];
       }
+      this.terrainMesh?.setRover([pose.x, -pose.z, pose.headingRad], this.wheelAO);
     }
     this.lastPose = pose;
     // Dust devils: keep a few crossing the plain at a distance.

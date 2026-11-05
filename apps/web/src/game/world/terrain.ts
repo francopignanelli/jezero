@@ -17,6 +17,7 @@ import {
   Sphere,
   Vector2,
   Vector3,
+  Vector4,
   type PerspectiveCamera,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
@@ -46,7 +47,13 @@ import { GLSL_SUN_VIS, type SunShadows } from './sunShadow';
 const N = 32; // quads per patch side
 const LEAF_M = 8; // finest patch: 0.25 m spacing
 const LEVELS = 14; // root 8·2^13 = 65 536 m covers the far layer
-const RANGE = 2.2; // a level is drawn up to RANGE × its patch size
+// A level is drawn up to RANGE × its patch size. RANGE must exceed 2√2 (≈2.83): below that, a
+// patch can border one two levels coarser, a T-junction the morph cannot close, and the sky shows
+// through hairline cracks along the patch edges (dotted bright lines across the ground). Low
+// quality keeps the cheaper 2.2 (about 40 % fewer patches, no second morph): software and weak GPUs
+// are vertex-bound here, and accept the odd crack.
+const RANGE = 3.0;
+const RANGE_LOW = 2.2;
 const MAX_PATCHES = 1200;
 /** Firm aprons (no sand drifts) around the sample sites, mission starts and the depot. */
 export const MAX_CLEAR = 32;
@@ -188,11 +195,28 @@ const VERTEX_MAIN = /* glsl */ `
   vec2 local = grid / ${N.toFixed(1)};
   vec2 p = node.xy + local * node.z;
   // Morph towards the next coarser grid as the vertex nears the end of this level's range.
-  float range = node.z * ${RANGE.toFixed(2)};
+  float range = node.z * TERRAIN_RANGE;
   float h0 = terrainH(p);
   float dist = length(vec3(p - uCam.xy, h0 - uCam.z));
   float k = clamp((dist - range * 0.55) / (range * 0.4), 0.0, 1.0);
   p -= fract(grid * 0.5) * 2.0 / ${N.toFixed(1)} * node.z * k;
+  // Where this patch is fully morphed it sits on the next level's grid, and borders patches of that
+  // level, which may themselves be morphing on towards the level after. Follow their morph too
+  // (same rule, same distance), or the shared edge opens into hairline cracks there.
+#if TERRAIN_SEAMLESS
+  if (k >= 1.0) {
+    float range2 = range * 2.0;
+    if (length(vec3(p - uCam.xy, h0 - uCam.z)) > range2 * 0.5) {
+      float h1 = terrainH(p);
+      float k2 = clamp((length(vec3(p - uCam.xy, h1 - uCam.z)) - range2 * 0.55) / (range2 * 0.4), 0.0, 1.0);
+      if (k2 > 0.0) {
+        float g2 = node.z * 2.0 / ${N.toFixed(1)};
+        vec2 idx = floor((p + ${(LEAF_M * 2 ** (LEVELS - 2)).toFixed(1)}) / g2 + 0.5);
+        p -= mod(idx, 2.0) * g2 * k2;
+      }
+    }
+  }
+#endif
   float h = terrainH(p);
   float e = max(node.z / ${N.toFixed(1)}, 0.25);
   float hx = terrainH(p + vec2(e, 0.0)) - terrainH(p - vec2(e, 0.0));
@@ -224,6 +248,9 @@ const FRAGMENT_PARS = /* glsl */ `
   /** Firm ground around the sample sites, starts and depot (no sand drifts): x, north. */
   uniform vec2 uClear[${MAX_CLEAR}];
   uniform int uClearCount;
+  /** The rover over the ground: x, north, heading (rad), on; and its six wheel contacts. */
+  uniform vec4 uRoverAO;
+  uniform vec2 uWheelAO[6];
   varying vec2 vP;
   varying float vSpacing;
   varying vec3 vWorldN;
@@ -426,15 +453,17 @@ const FRAGMENT_COLOR = /* glsl */ `
     // Plate surface: the bedrock photo at a per-plate offset; each plate its own tone.
     float sc = uGroundScale[3];
     vec3 bed = textureGrad(tGround, vec3(gUv * sc + vec2(id * 7.1, id * 3.7), 3.0), gDx * sc, gDy * sc).rgb;
-    float tone = 0.86 + 0.34 * fract(id * 17.3);
-    vec3 slabCol = mix(bed, groundCol, 0.3) * vec3(1.2, 1.07, 0.96) * tone;
+    // Muted: the plates differ from the ground around them by a few tens of percent in brightness,
+    // not in hue (a stronger contrast read as a tiled floor).
+    float tone = 0.9 + 0.22 * fract(id * 17.3);
+    vec3 slabCol = mix(bed, groundCol, 0.5) * vec3(1.1, 1.04, 0.98) * tone;
     // The rock is laminated: lighter, worn rims at the plates' edges.
     float rim = 1.0 - smoothstep(gap, gap + 0.025, edgeM);
-    slabCol *= 1.0 + 0.16 * rim;
+    slabCol *= 1.0 + 0.07 * rim;
     // Between them: darker sand, darker still deep in the cracks (shadowed).
     // (Only next to a plate: where one is missing, no crack outline is drawn.)
-    vec3 sandCol = uGroundMean[2] * (0.7 + 0.25 * n3) * mix(1.0 - 0.38 * present, 1.0, smoothstep(0.0, gap, edgeM));
-    groundCol = mix(groundCol, mix(sandCol, slabCol, slab), wPave * mix(0.3, 1.0, present));
+    vec3 sandCol = uGroundMean[2] * (0.7 + 0.25 * n3) * mix(1.0 - 0.2 * present, 1.0, smoothstep(0.0, gap, edgeM));
+    groundCol = mix(groundCol, mix(sandCol, slabCol, slab), wPave * mix(0.2, 0.8, present));
     // Normals: each plate bevelled at its edges and a little tilted.
     float bevel = 1.0 - smoothstep(gap, gap + 0.035, edgeM);
     vec2 tilt = (vec2(fract(id * 13.7), fract(id * 91.3)) - 0.5) * 0.18;
@@ -483,6 +512,30 @@ const FRAGMENT_COLOR = /* glsl */ `
   diffuseColor.rgb = groundCol * orb * uWB;
 `;
 
+/**
+ * Ambient occlusion under the rover: its body hides most of the sky from the ground beneath it,
+ * and each wheel sits in a small dark contact. The shadow map only handles the Sun; without this
+ * the ground under the rover was as bright as the open plain in the sky's light, and the rover
+ * seemed to float.
+ */
+const ROVER_AO = /* glsl */ `
+  if (uRoverAO.w > 0.5) {
+    vec2 d = vP - uRoverAO.xy;
+    float c = cos(uRoverAO.z), s = sin(uRoverAO.z);
+    vec2 l = vec2(d.x * c - d.y * s, d.x * s + d.y * c); // across, along
+    vec2 q = abs(l) - vec2(0.8, 1.2);
+    float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+    float occ = 1.0 - 0.62 * (1.0 - smoothstep(-0.5, 1.3, sd));
+    float contact = 1.0;
+    for (int i = 0; i < 6; i++) {
+      vec2 e = vP - uWheelAO[i];
+      contact *= 1.0 - 0.55 * exp(-dot(e, e) / 0.05);
+    }
+    reflectedLight.indirectDiffuse *= occ * contact;
+    reflectedLight.directDiffuse *= mix(1.0, contact, 0.5);
+  }
+`;
+
 /** Perturbs the (view-space) normal with the ground textures' detail normals. */
 const FRAGMENT_NORMAL = /* glsl */ `
   {
@@ -507,6 +560,8 @@ export class TerrainMesh {
   private readonly minH: number;
   private readonly maxH: number;
   private count = 0;
+  /** Each level is drawn up to this × its patch size. */
+  private readonly range: number;
 
   constructor(
     terrain: Terrain,
@@ -572,6 +627,8 @@ export class TerrainMesh {
       },
       uCoreOn: { value: macro.core ? 1 : 0 },
       uWB: { value: new Vector3(...GROUND_WB) },
+      uRoverAO: { value: new Vector4() },
+      uWheelAO: { value: Array.from({ length: 6 }, () => new Vector2(1e6, 1e6)) },
     };
     for (const t of [
       macro.detail,
@@ -584,7 +641,12 @@ export class TerrainMesh {
     }
 
     const material = new MeshStandardMaterial({ roughness: 0.96, metalness: 0 });
-    material.defines = { TERRAIN_FX: fx ? 1 : 0 };
+    this.range = fx ? RANGE : RANGE_LOW;
+    material.defines = {
+      TERRAIN_FX: fx ? 1 : 0,
+      TERRAIN_SEAMLESS: fx ? 1 : 0,
+      TERRAIN_RANGE: this.range.toFixed(2),
+    };
     material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
       Object.assign(shader.uniforms, this.uniforms, shadows.uniforms);
       shader.vertexShader = shader.vertexShader
@@ -599,7 +661,8 @@ export class TerrainMesh {
           '#include <lights_fragment_end>',
           `#include <lights_fragment_end>
            reflectedLight.directDiffuse *= gSunVis;
-           reflectedLight.directSpecular *= gSunVis;`,
+           reflectedLight.directSpecular *= gSunVis;
+           ${ROVER_AO}`,
         );
     };
     material.customProgramCacheKey = () => `copernico-terrain-${fx ? 1 : 0}`;
@@ -635,6 +698,21 @@ export class TerrainMesh {
     this.nodeAttr.needsUpdate = true;
   }
 
+  /**
+   * The rover's footprint for its ambient occlusion on the ground: origin (local x, north),
+   * heading (clockwise from north) and the six wheels' contact points; null when it is not there.
+   */
+  setRover(at: [number, number, number] | null, wheels: Array<[number, number]> = []): void {
+    const u = this.uniforms.uRoverAO!.value as Vector4;
+    if (!at) {
+      u.w = 0;
+      return;
+    }
+    u.set(at[0], at[1], at[2], 1);
+    const list = this.uniforms.uWheelAO!.value as Vector2[];
+    for (let i = 0; i < 6; i++) list[i]!.set(...(wheels[i] ?? [1e6, 1e6]));
+  }
+
   /** Points kept free of sand drifts (local x, north). */
   setClear(points: Array<[number, number]>): void {
     const list = this.uniforms.uClear!.value as Vector2[];
@@ -659,7 +737,7 @@ export class TerrainMesh {
     this.box.min.set(x, this.minH, -(n + size));
     this.box.max.set(x + size, this.maxH, -n);
     if (!this.frustum.intersectsBox(this.box)) return;
-    const finerRange = (size / 2) * RANGE;
+    const finerRange = (size / 2) * this.range;
     if (level === 0 || this.distance(x, n, size, cam) > finerRange) {
       if (this.count >= MAX_PATCHES) return;
       this.nodes.set([x, n, size, level], this.count * 4);

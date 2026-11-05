@@ -220,7 +220,8 @@ export class SiteMarker {
           float glow = exp(-x * x * 5.0) * 0.45;
           // Energy flowing up the column.
           float flow = 0.7 + 0.3 * sin(vUv.y * 40.0 - uTime * 3.0);
-          float v = pow(1.0 - vUv.y, 1.3);
+          // pow() of a negative is NaN (interpolation can overshoot 1; NaN pixels end up black).
+          float v = pow(clamp(1.0 - vUv.y, 0.0, 1.0), 1.3);
           // Gone when the camera is close (it would be a wall of light), back from ~45 m.
           float near = smoothstep(16.0, 45.0, vDist);
           float a = (core * 1.4 + glow) * v * flow * uStrength * near;
@@ -254,11 +255,13 @@ export class SiteMarker {
           float speed = 2.0 + 3.0 * s.y + 3.0 * uActive;
           float life = fract(uTime * speed / 14.0 + s.x);
           float ang = s.z * 6.2832 + uTime * (0.4 + s.y);
-          float r = mix(0.6, uRadius * 0.85, s.y) * (1.0 - 0.6 * life);
-          vec3 p = uBase + vec3(cos(ang) * r, life * 14.0, sin(ang) * r);
-          vA = sin(life * 3.14159);
+          // A few motes close round the column's foot (spread over the whole ring and seen from
+          // inside it, they were specks floating across the view).
+          float r = mix(0.3, min(2.5, uRadius * 0.2), s.y) * (1.0 - 0.6 * life);
+          vec3 p = uBase + vec3(cos(ang) * r, life * 4.0, sin(ang) * r);
           vec4 mv = viewMatrix * vec4(p, 1.0);
-          gl_PointSize = clamp(260.0 / -mv.z, 1.5, 10.0);
+          vA = sin(life * 3.14159) * smoothstep(12.0, 25.0, -mv.z) * (1.0 - smoothstep(60.0, 120.0, -mv.z)) * 0.6;
+          gl_PointSize = clamp(160.0 / -mv.z, 1.0, 5.0);
           gl_Position = projectionMatrix * mv;
         }`,
       fragmentShader: /* glsl */ `
@@ -349,10 +352,11 @@ export class SiteMarker {
           float icon = 0.0;
           if (all(greaterThan(iuv, vec2(0.0))) && all(lessThan(iuv, vec2(1.0)))) icon = texture2D(tIcon, iuv).a;
           float fill = step(r, 1.0) * (0.05 + 0.1 * uActive);
-          float aa = (rim * 1.2 + inner + tick * 0.9 + wave + fill + icon * 0.8) * uStrength;
+          float aa = (rim * 0.8 + inner * 0.7 + tick * 0.7 + wave * 0.8 + fill + icon * 0.8) * uStrength;
           // Read from far away: brighter rim at a distance.
           aa *= 1.0 + smoothstep(60.0, 300.0, vDist) * 0.8;
-          vec3 c = mix(uColor, vec3(1.0), 0.25 * uActive + 0.3 * icon);
+          // Warmer than the beam, so the ring on the ground reads as part of the scene's light.
+          vec3 c = mix(mix(uColor, vec3(1.0, 0.93, 0.8), 0.35), vec3(1.0), 0.25 * uActive + 0.3 * icon);
           gl_FragColor = vec4(c * aa, 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
@@ -385,7 +389,7 @@ export class SiteMarker {
       depthWrite: false,
       blending: AdditiveBlending,
       side: DoubleSide,
-      uniforms: { ...common, uWallH: { value: 1.6 } },
+      uniforms: { ...common, uWallH: { value: 1.1 } },
       vertexShader: /* glsl */ `
         uniform float uWallH, uActive;
         varying vec2 vUv;
@@ -405,17 +409,20 @@ export class SiteMarker {
         varying vec2 vUv;
         varying float vDist;
         void main() {
-          float h = vUv.y;
+          // Clamped: MSAA samples interpolate a little past the top edge, and pow() of a negative
+          // is NaN (drawn as black dashes along the ring's far side).
+          float h = clamp(vUv.y, 0.0, 1.0);
           float fadeUp = pow(1.0 - h, 2.2);
-          float scan = 0.75 + 0.25 * sin(h * 30.0 - uTime * (3.0 + 4.0 * uActive));
-          float seams = 0.85 + 0.15 * step(0.5, fract(vUv.x * 48.0));
-          float lip = 1.0 - smoothstep(0.0, 0.08, h);
-          float a = (fadeUp * 0.5 * scan * seams + lip * 0.6) * uStrength;
-          // Quieter close by (the rover drives through it) and very far away (the beam does it).
-          a *= mix(0.12, 1.0, smoothstep(5.0, 28.0, vDist)) * (1.0 - smoothstep(500.0, 900.0, vDist));
+          float scan = 0.85 + 0.15 * sin(h * 30.0 - uTime * (3.0 + 4.0 * uActive));
+          float lip = 1.0 - smoothstep(0.0, 0.1, h);
+          float a = (fadeUp * 0.24 * scan + lip * 0.12) * uStrength;
+          // A faint veil, not a wall of light: quieter close by (the rover drives through it) and
+          // gone beyond a couple of hundred metres (the beam and badge do it there).
+          a *= mix(0.15, 1.0, smoothstep(5.0, 28.0, vDist)) * (1.0 - smoothstep(120.0, 320.0, vDist));
           // Once the rover is in the ring, the wall steps back and the pad says it is ready.
           a *= 1.0 - 0.55 * uActive;
-          gl_FragColor = vec4(mix(uColor, vec3(1.0), 0.15 + 0.25 * uActive) * a, 1.0);
+          vec3 c = mix(uColor, vec3(1.0, 0.94, 0.84), 0.35 + 0.2 * uActive);
+          gl_FragColor = vec4(c * a, 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,

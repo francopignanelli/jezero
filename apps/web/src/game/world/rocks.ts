@@ -188,21 +188,26 @@ export class RockField {
     private readonly ground: GroundInfo,
     texture: DataArrayTexture,
     private readonly radii: [number, number] = [45, 260],
+    /** The regolith's mean colour (linear, as the terrain uses it): the dust on and around rocks. */
+    dust: Color = new Color(0.3, 0.17, 0.09),
   ) {
     const material = new MeshStandardMaterial({ roughness: 0.88, metalness: 0 });
     material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
       shader.uniforms.tGround = { value: texture };
       shader.uniforms.uWB = { value: new Vector3(...GROUND_WB) };
+      shader.uniforms.uDust = { value: new Vector3(dust.r, dust.g, dust.b) };
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
-          '#include <common>\nvarying vec3 vRockP;\nvarying vec3 vRockN;',
+          '#include <common>\nvarying vec3 vRockP;\nvarying vec3 vRockN;\nvarying float vRockY;',
         )
         .replace(
           '#include <begin_vertex>',
           `#include <begin_vertex>
            vRockP = (modelMatrix * instanceMatrix * vec4(position, 1.0)).xyz;
-           vRockN = normalize(mat3(modelMatrix * instanceMatrix) * normal);`,
+           vRockN = normalize(mat3(modelMatrix * instanceMatrix) * normal);
+           // Height in the rock's own frame: -0.35 is its buried base, about 1 its top.
+           vRockY = position.y;`,
         );
       shader.fragmentShader = shader.fragmentShader
         .replace(
@@ -211,8 +216,41 @@ export class RockField {
            precision highp sampler2DArray;
            uniform sampler2DArray tGround;
            uniform vec3 uWB;
+           uniform vec3 uDust;
            varying vec3 vRockP;
-           varying vec3 vRockN;`,
+           varying vec3 vRockN;
+           varying float vRockY;
+           float rH(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+           float rN(vec3 p) {
+             vec3 i = floor(p), f = fract(p);
+             f = f * f * (3.0 - 2.0 * f);
+             return mix(mix(mix(rH(i), rH(i + vec3(1, 0, 0)), f.x), mix(rH(i + vec3(0, 1, 0)), rH(i + vec3(1, 1, 0)), f.x), f.y),
+                        mix(mix(rH(i + vec3(0, 0, 1)), rH(i + vec3(1, 0, 1)), f.x), mix(rH(i + vec3(0, 1, 1)), rH(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+           }
+           // Bump from a height field in metres (screen-space derivatives, after Mikkelsen 2010).
+           vec3 rockBump(vec3 pos, vec3 n, float h) {
+             vec3 sx = dFdx(pos), sy = dFdy(pos);
+             vec3 r1 = cross(sy, n), r2 = cross(n, sx);
+             float det = dot(sx, r1);
+             vec3 g = sign(det) * (dFdx(h) * r1 + dFdy(h) * r2);
+             return normalize(abs(det) * n - g);
+           }
+           float gRockAO = 1.0;`,
+        )
+        .replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+           {
+             // Fine relief: pits and grain, millimetres to a centimetre deep.
+             float h = 0.012 * rN(vRockP * 7.0) + 0.005 * rN(vRockP * 23.0) + 0.0018 * rN(vRockP * 70.0);
+             normal = rockBump(-vViewPosition, normal, h);
+           }`,
+        )
+        .replace(
+          '#include <lights_fragment_end>',
+          `#include <lights_fragment_end>
+           reflectedLight.indirectDiffuse *= gRockAO;
+           reflectedLight.directDiffuse *= mix(0.7, 1.0, gRockAO);`,
         )
         .replace(
           '#include <map_fragment>',
@@ -226,10 +264,15 @@ export class RockField {
              vec3 tz = texture(tGround, vec3(vRockP.xy * sc, 3.0)).rgb;
              vec3 tex = (tx * bw.x + ty * bw.y + tz * bw.z) * uWB;
              float lum = dot(tex, vec3(0.3, 0.59, 0.11));
-             vec3 rock = mix(vec3(lum) * vec3(0.95, 0.82, 0.72), tex, 0.45) * diffuseColor.rgb;
-             vec3 dust = vec3(0.42, 0.24, 0.13);
-             float top = smoothstep(0.35, 0.9, vRockN.y);
-             diffuseColor.rgb = mix(rock, dust * uWB * (0.8 + 0.4 * lum), top * 0.75);
+             vec3 rock = mix(vec3(lum) * vec3(0.95, 0.84, 0.74), tex, 0.5) * diffuseColor.rgb;
+             // Dust: the same regolith as the ground around (the terrain's own colour), settled
+             // on the upper faces and piled against the base, so the rock sits in the soil.
+             vec3 dust = uDust * uWB * (0.85 + 0.3 * rN(vRockP * 9.0));
+             float top = smoothstep(0.3, 0.92, vRockN.y) * (0.55 + 0.35 * rN(vRockP * 3.0));
+             float base = 1.0 - smoothstep(-0.36, -0.12, vRockY);
+             diffuseColor.rgb = mix(rock, dust, max(top, base * 0.85));
+             // The base, close to the ground, sees less of the sky (the crevice under it none).
+             gRockAO = mix(0.42, 1.0, smoothstep(-0.36, 0.25, vRockY));
              // Thin layers across the sides (the delta's rocks are laminated).
              float lam = sin(vRockP.y * 6.2832 / 0.035 + 3.0 * sin(dot(vRockP.xz, vec2(1.3, 0.7))));
              diffuseColor.rgb *= 1.0 - 0.14 * smoothstep(0.55, 1.0, lam) * (1.0 - abs(vRockN.y));
