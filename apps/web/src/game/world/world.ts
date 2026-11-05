@@ -905,7 +905,8 @@ export class World {
       const b = this.brightness(x, -z);
       const rock = Math.min(1, Math.max(0, (b - 0.5) / 0.2));
       const sand = this.sandAt(x, -z);
-      return Math.min(1, (1 - 0.85 * rock) * (0.75 + 0.25 * sand) + 0.25 * sand);
+      // (Even firm, dusty bedrock keeps a visible print of the dust layer over it.)
+      return Math.min(1, (1 - 0.5 * rock) * (0.8 + 0.2 * sand) + 0.25 * sand);
     },
   };
 

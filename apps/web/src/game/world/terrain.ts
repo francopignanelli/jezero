@@ -260,14 +260,14 @@ const FRAGMENT_PARS = /* glsl */ `
   float rutH(float u, float along, float across2, float grousers) {
     if (u < 0.14 || u > 0.86) {
       float b = u < 0.14 ? u / 0.14 : (1.0 - u) / 0.14;
-      return 0.009 * pow(sin(b * 3.14159), 0.8);
+      return 0.013 * pow(sin(b * 3.14159), 0.8);
     }
     float edge = min(1.0, (0.36 - abs(u - 0.5)) / 0.08);
     // 48 curved grousers round a 0.525 m wheel: one imprint every 3.4 cm.
     float k = along / 0.034 + 0.35 * across2;
     float d = abs(k - floor(k + 0.5));
     float imprint = max(0.0, 1.0 - d / 0.18);
-    return -edge * (0.011 + 0.006 * imprint * imprint * grousers);
+    return -edge * (0.016 + 0.009 * imprint * imprint * grousers);
   }
   uniform vec2 uWheelAO[6];
   varying vec2 vP;
@@ -320,6 +320,8 @@ const FRAGMENT_PARS = /* glsl */ `
   }
   vec3 gDetailNormal = vec3(0.0, 0.0, 1.0);
   float gSunVis = 1.0;
+  /** Compacted soil in a wheel's groove (0–1): a little smoother. */
+  float gTrackSmooth = 0.0;
   ${GLSL_SUN_VIS}
 
   vec2 hash22(vec2 p) {
@@ -545,10 +547,22 @@ const FRAGMENT_COLOR = /* glsl */ `
         float dha = (rutH(u, along + 0.004, across2, gr) - rutH(u, along - 0.004, across2, gr)) / 0.008;
         // World gradient of the rut's surface (m/m), east and north; u spans the 0.46 m ribbon.
         vec2 grad = (dhu * sgn / 0.46) * acr + dha * dir;
-        gDetailNormal = normalize(mix(gDetailNormal, vec3(0.0, 0.0, 1.0), 0.55 * tk * step(0.14, u) * step(u, 0.86))
-                                  + vec3(-grad * tk * 1.2, 0.0));
-        // Compacted, freshly turned soil in the groove is darker; the berms barely change.
-        groundCol *= 1.0 + tk * clamp(h0 * 14.0, -0.2, 0.05);
+        float groove = smoothstep(0.12, 0.2, u) * smoothstep(0.88, 0.8, u);
+        float berm = 1.0 - smoothstep(0.0, 0.14, abs(u - 0.07)) * step(u, 0.14)
+                   + (1.0 - smoothstep(0.0, 0.14, abs(u - 0.93))) * step(0.86, u);
+        float kk = along / 0.034 + 0.35 * across2;
+        float imprint = max(0.0, 1.0 - abs(kk - floor(kk + 0.5)) / 0.32) * groove;
+        // Even a light print reads clearly (a heavy rover: 1 025 kg, 6 wheels).
+        float tkc = smoothstep(0.0, 0.45, tk);
+        // The groove's floor is pressed flat (the grain of the ground photos is gone there).
+        gDetailNormal = normalize(mix(gDetailNormal, vec3(0.0, 0.0, 1.0), 0.8 * tkc * groove)
+                                  // (eased off where a berm is only a pixel or two wide: no glitter)
+                                  + vec3(-grad * tkc * 2.2 * (1.0 - 0.7 * smoothstep(0.015, 0.05, pxM)), 0.0));
+        // Compacted, freshly turned soil is darker in the groove, darker still in the grousers'
+        // imprints (at a distance, where they blur, the groove's tone carries the track); the soil
+        // pushed up into the berms is fresher and a little lighter.
+        groundCol *= 1.0 - tkc * (0.4 * groove + 0.22 * imprint * gr) + tkc * 0.1 * clamp(berm, 0.0, 1.0);
+        gTrackSmooth = tkc * groove;
       }
     }
   }
@@ -711,6 +725,11 @@ export class TerrainMesh {
         .replace('#include <common>', `#include <common>\n${FRAGMENT_PARS}`)
         .replace('#include <map_fragment>', FRAGMENT_COLOR)
         .replace('#include <normal_fragment_maps>', FRAGMENT_NORMAL)
+        .replace(
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
+           roughnessFactor = mix(roughnessFactor, 0.72, 0.6 * gTrackSmooth);`,
+        )
         .replace(
           '#include <lights_fragment_end>',
           `#include <lights_fragment_end>
