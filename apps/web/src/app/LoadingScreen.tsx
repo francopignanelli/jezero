@@ -18,7 +18,7 @@ function stepStatus(key: keyof LoadingState, loading: LoadingState): Status {
 }
 
 /**
- * Drives the loading screen that index.html paints before the app bundle arrives (#boot). It is
+ * Drives the loading screen that planner.html paints before the app bundle arrives (#boot). It is
  * animated only with CSS transforms and opacity, which run on the browser's compositor thread, so
  * the planet, the orbit and the progress bar stay smooth while loading keeps the main thread busy.
  * Progress moves by CSS transitions: each finished step sends the bar most of the way toward the

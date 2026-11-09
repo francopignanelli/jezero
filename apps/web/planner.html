@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Copernico: plan a scientifically grounded Marswalk in Jezero Crater using data from NASA Mars missions."
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Copernico · Mars Marswalk planner</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23c8653a'/%3E%3Ccircle cx='11' cy='12' r='3' fill='%238e3f20'/%3E%3Ccircle cx='20' cy='19' r='2' fill='%238e3f20'/%3E%3C/svg%3E"
+    />
+    <!--
+      Loading screen, painted with the first HTML (before the app bundle loads) and animated only
+      with CSS transforms and opacity, which the browser runs on its compositor thread: it stays
+      smooth while the app keeps the main thread busy loading Cesium, terrain and the sky.
+      src/app/LoadingScreen.tsx drives it (step states, progress, exit).
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #020306;
+      }
+      .loading-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        color: #eceae6;
+        font-family:
+          'IBM Plex Sans',
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        background: radial-gradient(ellipse at 50% 50%, #07080d, #020306 70%);
+        transition: opacity 0.9s ease;
+      }
+      .loading-screen.is-leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .boot-bg,
+      .boot-vignette,
+      .boot-stars {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      /* Real Milky Way (from the scene's own sky map), baked by run.sh loading-bg. */
+      .boot-bg {
+        background: var(--boot-bg) center / cover no-repeat;
+        opacity: 0;
+        transform: scale(1.04);
+        transition:
+          opacity 1.4s ease,
+          transform 2.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .boot-bg.is-loaded {
+        opacity: 0.36;
+        transform: scale(1);
+      }
+      .boot-vignette {
+        background: radial-gradient(
+          ellipse 46% 58% at 50% 50%,
+          rgb(2 3 6 / 0.82) 0%,
+          rgb(2 3 6 / 0.55) 45%,
+          rgb(2 3 6 / 0) 100%
+        );
+      }
+      .boot-stars {
+        animation: boot-twinkle 5s ease-in-out infinite alternate;
+      }
+      @keyframes boot-twinkle {
+        from {
+          opacity: 0.7;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .boot-card {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        width: min(560px, calc(100vw - 32px));
+        text-align: center;
+        transition:
+          transform 0.9s ease,
+          opacity 0.7s ease;
+      }
+      .is-leaving .boot-card {
+        transform: scale(1.04);
+        opacity: 0;
+      }
+      .boot-rise {
+        animation: boot-rise 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      }
+      @keyframes boot-rise {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+      }
+
+      /* ---- Planet and orbit: one CSS 3D scene, so the orbit's far half passes behind Mars ---- */
+      .boot-scene {
+        position: relative;
+        width: 440px;
+        height: 330px;
+        max-width: 100%;
+        perspective: 1100px;
+        margin-bottom: 4px;
+      }
+      .boot-system {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+        transform: rotateZ(-14deg);
+      }
+      .boot-planet {
+        position: absolute;
+        left: calc(50% - 132px);
+        top: calc(50% - 132px);
+        width: 264px;
+        height: 264px;
+        border-radius: 50%;
+        overflow: hidden;
+        transform: translateZ(0);
+        background: #8a3f22;
+        box-shadow:
+          0 0 46px rgb(232 120 60 / 0.3),
+          -10px -10px 34px rgb(255 160 100 / 0.16);
+      }
+      /* Two copies of the equirectangular map side by side, slid by one copy: the planet turns. */
+      .boot-map {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 400%;
+        height: 100%;
+        /* latitudes beyond ~±70° (the flat-looking polar caps) stay outside the disc */
+        background: var(--boot-map) 0 50% / 50% 128% repeat-x;
+        animation: boot-spin 120s linear infinite;
+        will-change: transform;
+      }
+      @keyframes boot-spin {
+        from {
+          transform: translateX(-50%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+      /* Sphere shading: light from the upper left, night side, limb darkening and a dusty rim. */
+      .boot-shade {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 30% 27%, rgb(255 222 186 / 0.3) 0%, rgb(255 222 186 / 0) 36%),
+          radial-gradient(
+            circle at 36% 32%,
+            rgb(0 0 0 / 0) 26%,
+            rgb(10 4 2 / 0.38) 52%,
+            rgb(6 2 1 / 0.86) 74%,
+            rgb(3 1 0 / 0.97) 92%
+          );
+        box-shadow:
+          inset 7px 8px 16px rgb(255 168 110 / 0.35),
+          inset -2px -2px 6px rgb(0 0 0 / 0.6);
+      }
+      .boot-orbit {
+        position: absolute;
+        left: calc(50% - 206px);
+        top: calc(50% - 206px);
+        width: 412px;
+        height: 412px;
+        transform-style: preserve-3d;
+        transform: rotateX(76deg);
+      }
+      .boot-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 1px solid rgb(255 236 214 / 0.22);
+        transform-style: preserve-3d;
+        animation: boot-orbit 6s linear infinite;
+      }
+      /* Fading trail behind the satellite (the satellite sits at the top of the ring). */
+      .boot-ring::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: 50%;
+        background: conic-gradient(
+          rgb(255 236 214 / 0) 0deg 230deg,
+          rgb(255 236 214 / 0.9) 358deg,
+          rgb(255 236 214 / 0) 360deg
+        );
+        -webkit-mask: radial-gradient(
+          farthest-side,
+          transparent calc(100% - 2.4px),
+          #000 calc(100% - 2px)
+        );
+        mask: radial-gradient(farthest-side, transparent calc(100% - 2.4px), #000 calc(100% - 2px));
+      }
+      @keyframes boot-orbit {
+        to {
+          transform: rotateZ(360deg);
+        }
+      }
+      .boot-sat {
+        position: absolute;
+        top: -8px;
+        left: calc(50% - 8px);
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          #fff 0%,
+          rgb(255 240 222 / 0.85) 28%,
+          rgb(255 220 190 / 0) 70%
+        );
+        /* Counter-rotates the ring and the orbit tilt, so it always faces the viewer. */
+        animation: boot-sat 6s linear infinite;
+      }
+      @keyframes boot-sat {
+        from {
+          transform: rotateZ(0deg) rotateX(-76deg);
+        }
+        to {
+          transform: rotateZ(-360deg) rotateX(-76deg);
+        }
+      }
+
+      .boot-title {
+        margin: 0 -0.42em 10px 0;
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+        font-weight: 400;
+        letter-spacing: 0.42em;
+        text-transform: uppercase;
+        color: #f1ece6;
+      }
+      .boot-subtitle {
+        margin: 0;
+        color: #a4adba;
+        font-size: 1.02rem;
+      }
+      .boot-bar {
+        position: relative;
+        width: min(460px, 100%);
+        height: 6px;
+        margin: 26px 0 18px;
+        border-radius: 999px;
+        background: rgb(255 255 255 / 0.08);
+      }
+      .boot-bar > span {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        transform-origin: left center;
+        transform: scaleX(0);
+        background: linear-gradient(90deg, #e2643a, #f28b4f 55%, #ffc07e);
+        box-shadow: 0 0 14px rgb(242 139 79 / 0.55);
+        overflow: hidden;
+        will-change: transform;
+        /* Creeps forward from the first paint, before the app takes over. */
+        animation: boot-creep 18s cubic-bezier(0.08, 0.62, 0.3, 1) forwards;
+      }
+      @keyframes boot-creep {
+        to {
+          transform: scaleX(0.3);
+        }
+      }
+      .boot-bar > span::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.45), transparent);
+        transform: translateX(-100%);
+        animation: boot-sheen 1.8s ease-in-out infinite;
+      }
+      @keyframes boot-sheen {
+        to {
+          transform: translateX(100%);
+        }
+      }
+      .boot-steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        width: min(380px, 100%);
+        text-align: left;
+        font-size: 0.98rem;
+      }
+      .boot-steps li {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 9px 0;
+        border-bottom: 1px solid rgb(255 255 255 / 0.07);
+        color: #a4adba;
+        transition: color 0.5s ease;
+      }
+      .boot-steps li:last-child {
+        border-bottom: 0;
+      }
+      .boot-steps li[data-status='done'],
+      .boot-steps li[data-status='active'] {
+        color: #eceae6;
+      }
+      .boot-icon {
+        position: relative;
+        width: 22px;
+        height: 22px;
+        flex: none;
+      }
+      .boot-icon > * {
+        position: absolute;
+        inset: 0;
+        box-sizing: border-box;
+        border-radius: 50%;
+      }
+      .boot-ring-i {
+        border: 1.6px solid rgb(255 255 255 / 0.22);
+        transition:
+          border-color 0.4s ease,
+          opacity 0.4s ease;
+      }
+      .boot-spin {
+        border: 2px solid transparent;
+        border-top-color: #ffb06a;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+      [data-status='active'] .boot-ring-i {
+        border-color: rgb(242 139 79 / 0.55);
+      }
+      [data-status='active'] .boot-spin {
+        opacity: 1;
+        animation: boot-rotate 1s linear infinite;
+      }
+      @keyframes boot-rotate {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .boot-fill {
+        inset: -1px !important;
+        background: #3fae6a;
+        transform: scale(0);
+        opacity: 0;
+        transition:
+          transform 0.5s cubic-bezier(0.3, 1.6, 0.5, 1),
+          opacity 0.3s ease;
+      }
+      .boot-check {
+        width: 22px;
+        height: 22px;
+        fill: none;
+        stroke: #fff;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 16;
+        stroke-dashoffset: 16;
+        transition: stroke-dashoffset 0.4s ease 0.15s;
+        border-radius: 0 !important;
+      }
+      [data-status='done'] .boot-fill {
+        transform: scale(1);
+        opacity: 1;
+      }
+      [data-status='done'] .boot-check {
+        stroke-dashoffset: 0;
+      }
+      [data-status='done'] .boot-ring-i,
+      [data-status='done'] .boot-spin,
+      [data-status='failed'] .boot-ring-i {
+        opacity: 0;
+      }
+      [data-status='failed'] .boot-fill {
+        background: #f2c14e;
+        transform: scale(1);
+        opacity: 1;
+      }
+      .boot-sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      .boot-continue {
+        margin-top: 16px;
+        padding: 8px 14px;
+        border: 1px solid #3a4556;
+        border-radius: 6px;
+        background: #181d26;
+        color: #eceae6;
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      @media (max-height: 760px) {
+        .boot-scene {
+          transform: scale(0.82);
+          margin: -30px 0 -26px;
+        }
+        .boot-bar {
+          margin: 16px 0 10px;
+        }
+        .boot-steps li {
+          padding: 6px 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .loading-screen *,
+        .loading-screen *::before,
+        .loading-screen *::after {
+          animation: none !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>Copernico needs JavaScript and WebGL 2 to display the Mars globe.</noscript>
+    <div id="boot" class="loading-screen" role="status" aria-live="polite" aria-busy="true">
+      <div class="boot-bg"></div>
+      <div class="boot-vignette"></div>
+      <canvas class="boot-stars" aria-hidden="true"></canvas>
+      <div class="boot-card">
+        <div class="boot-scene boot-rise" aria-hidden="true">
+          <div class="boot-system">
+            <div class="boot-orbit">
+              <div class="boot-ring"><span class="boot-sat"></span></div>
+            </div>
+            <div class="boot-planet">
+              <div class="boot-map"></div>
+              <div class="boot-shade"></div>
+            </div>
+          </div>
+        </div>
+        <h1 class="boot-title boot-rise" style="animation-delay: 80ms">Copernico</h1>
+        <p class="boot-subtitle boot-rise" style="animation-delay: 140ms" data-i18n="subtitle">
+          Preparing Mars: orbital data, terrain and the sky as seen from Jezero
+        </p>
+        <div class="boot-bar boot-rise" style="animation-delay: 200ms"><span></span></div>
+        <ul class="boot-steps">
+          <li data-step="stars" data-status="active"></li>
+          <li data-step="sky" data-status="active"></li>
+          <li data-step="terrain" data-status="active"></li>
+          <li data-step="imagery" data-status="active"></li>
+          <li data-step="tiles" data-status="pending"></li>
+          <li data-step="surface" data-status="active"></li>
+        </ul>
+        <button type="button" class="boot-continue" hidden data-i18n="continue">
+          Continue with what has loaded
+        </button>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var base = '%VITE_DATA_BASE_URL%'; // replaced by Vite (default ./data, vite.config.ts)
+        if (base.charAt(0) === '%') base = './data';
+        base = base.replace(/\/$/, '');
+        var boot = document.getElementById('boot');
+        boot.style.setProperty('--boot-map', 'url(' + base + '/sky/mars_globe_2k.webp)');
+        boot.style.setProperty('--boot-bg', 'url(' + base + '/sky/loading_bg.webp)');
+        var bg = new Image();
+        bg.src = base + '/sky/loading_bg.webp';
+        bg.decode().then(
+          function () {
+            boot.querySelector('.boot-bg').classList.add('is-loaded');
+          },
+          function () {},
+        );
+        var lang = 'en';
+        try {
+          lang = localStorage.getItem('copernico.lang') || '';
+        } catch (e) {}
+        if (lang !== 'en' && lang !== 'es')
+          lang = navigator.language.toLowerCase().indexOf('es') === 0 ? 'es' : 'en';
+        document.documentElement.lang = lang;
+        var T = {
+          en: {
+            subtitle: 'Preparing Mars: orbital data, terrain and the sky as seen from Jezero',
+            continue: 'Continue with what has loaded',
+            stars: 'Star catalog (8,404 stars)',
+            sky: 'Milky Way background',
+            terrain: 'Mars terrain model',
+            imagery: 'Orbital imagery',
+            tiles: 'Rendering the first view',
+            surface: 'Perseverance and science data',
+          },
+          es: {
+            subtitle: 'Preparando Marte: datos orbitales, terreno y el cielo visto desde Jezero',
+            continue: 'Continuar con lo que ya cargó',
+            stars: 'Catálogo estelar (8.404 estrellas)',
+            sky: 'Fondo de la Vía Láctea',
+            terrain: 'Modelo de terreno de Marte',
+            imagery: 'Imágenes orbitales',
+            tiles: 'Renderizando la primera vista',
+            surface: 'Datos de Perseverance y ciencia',
+          },
+        }[lang];
+        boot.querySelectorAll('[data-i18n]').forEach(function (el) {
+          el.textContent = T[el.getAttribute('data-i18n')];
+        });
+        boot.querySelectorAll('.boot-steps li').forEach(function (li, i) {
+          li.className = 'boot-rise';
+          li.style.animationDelay = 260 + i * 70 + 'ms';
+          li.innerHTML =
+            '<span class="boot-icon" aria-hidden="true"><i class="boot-ring-i"></i><i class="boot-spin"></i>' +
+            '<i class="boot-fill"></i><svg class="boot-check" viewBox="0 0 24 24"><path d="M6.6 12.4l3.4 3.3 7.2-7.4"/></svg></span>' +
+            '<span class="boot-label"></span><span class="boot-sr"></span>';
+          li.querySelector('.boot-label').textContent = T[li.getAttribute('data-step')];
+        });
+        // Star field: deterministic, a few hundred stars and a dozen with soft halos.
+        var c = boot.querySelector('.boot-stars');
+        function stars() {
+          var dpr = Math.min(window.devicePixelRatio || 1, 2);
+          var w = c.clientWidth,
+            h = c.clientHeight;
+          c.width = w * dpr;
+          c.height = h * dpr;
+          var ctx = c.getContext('2d');
+          ctx.scale(dpr, dpr);
+          var seed = 7;
+          function rnd() {
+            seed = (seed * 16807) % 2147483647;
+            return seed / 2147483647;
+          }
+          var tints = ['255,255,255', '214,226,255', '255,236,214', '255,214,170', '196,214,255'];
+          var n = Math.round((w * h) / 1900);
+          for (var i = 0; i < n; i++) {
+            var x = rnd() * w,
+              y = rnd() * h,
+              m = Math.pow(rnd(), 5),
+              tint = tints[Math.floor(rnd() * tints.length)];
+            ctx.fillStyle = 'rgba(' + tint + ',' + (0.25 + 0.75 * m) + ')';
+            ctx.beginPath();
+            ctx.arc(x, y, 0.3 + 1.2 * m, 0, 6.2832);
+            ctx.fill();
+            if (m > 0.72) {
+              var r = 3 + 6 * m,
+                g = ctx.createRadialGradient(x, y, 0, x, y, r);
+              g.addColorStop(0, 'rgba(' + tint + ',' + 0.45 * m + ')');
+              g.addColorStop(1, 'rgba(' + tint + ',0)');
+              ctx.fillStyle = g;
+              ctx.beginPath();
+              ctx.arc(x, y, r, 0, 6.2832);
+              ctx.fill();
+            }
+          }
+        }
+        stars();
+        window.addEventListener('resize', stars);
+        window.__bootStars = stars;
+      })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

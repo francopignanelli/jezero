@@ -17,7 +17,7 @@ export function trackExternalRequests(page: Page): string[] {
 }
 
 /** Opens the app and waits until the loading screen has revealed the scene. */
-export async function openApp(page: Page, path = '/', { fresh = false } = {}): Promise<void> {
+export async function openApp(page: Page, path = '/planner.html', { fresh = false } = {}): Promise<void> {
   // Returning visitor by default: the first-run welcome would cover the screen in every test.
   if (!fresh) {
     await page.addInitScript(() => {

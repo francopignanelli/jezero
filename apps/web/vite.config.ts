@@ -97,7 +97,7 @@ function copyCesium(): Plugin {
   };
 }
 
-// index.html's first-paint loader reads %VITE_DATA_BASE_URL%; default it so the placeholder is
+// planner.html's first-paint loader reads %VITE_DATA_BASE_URL%; default it so the placeholder is
 // always defined (same default as src/config.ts).
 process.env.VITE_DATA_BASE_URL ??= './data';
 
@@ -118,11 +118,12 @@ export default defineConfig({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 6000,
-    // Two pages: the planner and the rover game. Shared code (Cesium, the scene, data loaders) lands
+    // Three pages: the home page, the planner and the rover game. Shared code (Cesium, the scene, data loaders) lands
     // in shared chunks, so each page downloads only its own code and the browser caches the rest once.
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
+        planner: resolve(import.meta.dirname, 'planner.html'),
         play: resolve(import.meta.dirname, 'play.html'),
       },
     },

@@ -4,7 +4,7 @@ import { openApp } from './helpers';
 
 test('first visit: welcome, then the guided tour drives the app to the end', async ({ page }) => {
   test.setTimeout(240_000);
-  await openApp(page, '/', { fresh: true });
+  await openApp(page, '/planner.html', { fresh: true });
   const welcome = page.getByRole('dialog', { name: 'Plan a walk on Mars' });
   await expect(welcome).toBeVisible();
   const a11y = await new AxeBuilder({ page })
