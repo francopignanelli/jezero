@@ -1,0 +1,146 @@
+{
+  "description": "Pictures of the rover game’s mission cards (640 × 360 WebP, cropped to 16:9). NASA images are generally not copyrighted; credit NASA/JPL-Caltech.",
+  "cards": [
+    {
+      "key": "landing",
+      "file": "game/cards/landing.webp",
+      "title": "Frame of “Perseverance Rover’s Descent and Touchdown on Mars” (the parachute opening)",
+      "source": "data/build/game/media/landing.mp4 at 18 s, crop 40 140 560 315",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 17470,
+      "sha256": "4b7dc075da72622fa1343c3fa083097b29a33d6decc488b1de495bd474a037e3"
+    },
+    {
+      "key": "ingenuity",
+      "file": "game/cards/ingenuity.webp",
+      "nasaId": "PIA24542",
+      "title": "Perseverance’s Selfie with Ingenuity",
+      "page": "https://images.nasa.gov/details/PIA24542",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA24542/PIA24542~medium.jpg",
+      "sourceSha256": "66b2959b77823ae28e4247fb4819e7886a7d66af465e15dcd850caf71d2f099d",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 42038,
+      "sha256": "c3862ba597345a0bdc907058479a95d766f7bddf19399ceb86c5382b33a958bd"
+    },
+    {
+      "key": "moxie",
+      "file": "game/cards/moxie.webp",
+      "nasaId": "PIA24203",
+      "title": "MOXIE All Tucked In",
+      "page": "https://images.nasa.gov/details/PIA24203",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA24203/PIA24203~medium.jpg",
+      "sourceSha256": "dc4d399c1148eaee02d83a08ae6f350b53e31040fe085dd3f6b239feeba2f750",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 58682,
+      "sha256": "4bcddd537fd7949c56d9b2fad014e8f16263591725618c0727a884bae4ae9db0"
+    },
+    {
+      "key": "firstSample",
+      "file": "game/cards/firstSample.webp",
+      "nasaId": "PIA24832",
+      "title": "Confirmation of Montdenier Sample in Perseverance’s Drill",
+      "page": "https://images.nasa.gov/details/PIA24832",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA24832/PIA24832~medium.jpg",
+      "sourceSha256": "87fc0abbc7f60eb13a4636b69cca0cfa01bd881936ca56b0da11c79c16308730",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 18214,
+      "sha256": "5c05f76cc9c1284df586650c007d36011c0def3a8cfb4794298fce8371014230"
+    },
+    {
+      "key": "chute",
+      "file": "game/cards/chute.webp",
+      "nasaId": "PIA25219",
+      "title": "Rover’s Backshell Seen From the Air",
+      "page": "https://images.nasa.gov/details/PIA25219",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA25219/PIA25219~medium.jpg",
+      "sourceSha256": "fca93197b93fca2a009b320a9d67ea414fad5d1c59e0ab06eb2d828c9a16d71b",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 17824,
+      "sha256": "18ebaa6445fa090a6205b009ec6e8fe6769017dd7288b3493ed86c001f0db514"
+    },
+    {
+      "key": "delta",
+      "file": "game/cards/delta.webp",
+      "nasaId": "PIA24928",
+      "title": "Sample Collection and Rock Analysis at Wildcat Ridge",
+      "page": "https://images.nasa.gov/details/PIA24928",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA24928/PIA24928~medium.jpg",
+      "sourceSha256": "7fecfffc2b16183d94793f572a13a48bb8f7b9bb31e0e6a109cdb754b90eb995",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 52198,
+      "sha256": "1afbdbc5da047a84b794c353bed5ae7dbeef77afa2c9c77e15f51aa1131dedc9"
+    },
+    {
+      "key": "lastFlight",
+      "file": "game/cards/lastFlight.webp",
+      "nasaId": "PIA26243",
+      "title": "Ingenuity Spots the Shadow of Its Damaged Rotor Blade",
+      "page": "https://images.nasa.gov/details/PIA26243",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA26243/PIA26243~medium.jpg",
+      "sourceSha256": "2513fa3c931f3b35c37c3b9c393c7205befb403e892562d3e9213983fa2c80f4",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 45228,
+      "sha256": "372c47d8120e804b9ae79ad6780aa12d01a6731baa3164682464e0aff8901c7b"
+    },
+    {
+      "key": "leopard",
+      "file": "game/cards/leopard.webp",
+      "nasaId": "PIA26344",
+      "title": "Perseverance’s Selfie With ‘Cheyava Falls’",
+      "page": "https://images.nasa.gov/details/PIA26344",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA26344/PIA26344~medium.jpg",
+      "sourceSha256": "84af16a2222e9a0d925891d9e543a8d9252380807ec530c21b28eea638a894ba",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 57964,
+      "sha256": "2e9515493af56191ae1e5a10de18e5ffea16cb8becb84a0f088d1a77990cdb14"
+    },
+    {
+      "key": "rim",
+      "file": "game/cards/rim.webp",
+      "nasaId": "PIA26573",
+      "title": "Perseverance Rover Says Goodbye to ‘Witch Hazel Hill’",
+      "page": "https://images.nasa.gov/details/PIA26573",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA26573/PIA26573~medium.jpg",
+      "sourceSha256": "956f8156ae47b3394e475c8a4020b4e642bf9f70a1658209a7ae13da1b40cc84",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 24178,
+      "sha256": "7e72ddeaac422f5fb775d329231c5b210ef330a834d3e28ac87cfced83df1920"
+    },
+    {
+      "key": "sparks",
+      "file": "game/cards/sparks.webp",
+      "nasaId": "PIA25290",
+      "title": "Perseverance Views Dust Devils Swirling Across Jezero Crater",
+      "page": "https://images.nasa.gov/details/PIA25290",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA25290/PIA25290~medium.jpg",
+      "sourceSha256": "965b775134be339f33f77d3f6952c859286515faeb1a3d55f65248c663fd2068",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 21548,
+      "sha256": "ef398136ada320518625b36002b5a4c27ebe309acf1ec0e366332cb6d3c584c9"
+    },
+    {
+      "key": "aiDrive",
+      "file": "game/cards/aiDrive.webp",
+      "nasaId": "PIA26073",
+      "title": "Perseverance AutoNav Avoids a Boulder",
+      "page": "https://images.nasa.gov/details/PIA26073",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA26073/PIA26073~medium.jpg",
+      "sourceSha256": "efce4f09f48bb15050c3598f038d87a334ee33c9dfc4b6c6fbb41196c212f8c7",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 38142,
+      "sha256": "448c22d3e65093b51c572f34239df21833b3635aebfe129e58e5598c3ea3d516"
+    },
+    {
+      "key": "record",
+      "file": "game/cards/record.webp",
+      "nasaId": "PIA26071",
+      "title": "Perseverance’s AutoNav Leads the Way",
+      "page": "https://images.nasa.gov/details/PIA26071",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA26071/PIA26071~medium.jpg",
+      "sourceSha256": "8baa9426f5929d9192f655c5af27b94ea22e2716a8798a7a324eb1dfe8a4d9c5",
+      "credit": "NASA/JPL-Caltech",
+      "bytes": 37472,
+      "sha256": "154049213407ae13e16872ccef8cd329b0caa1bcd2e96691b9406e7743839bee"
+    }
+  ]
+}

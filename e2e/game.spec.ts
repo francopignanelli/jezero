@@ -32,7 +32,7 @@ test('the planner links to the rover game from the Mars tab and the Perseverance
 test('rover game: the delta-front expedition, a core, the inventory, AutoNav, saving', async ({
   page,
 }) => {
-  test.slow(); // software WebGL in headless Chrome renders the 3D world at a few frames per second
+  test.setTimeout(600_000); // software WebGL in headless Chrome renders the 3D world at a few frames per second
   const external = trackExternalRequests(page);
   // Low graphics: the same world, cheaper to draw in software.
   await page.addInitScript(() => localStorage.setItem('copernico.game.quality', 'low'));
@@ -45,7 +45,7 @@ test('rover game: the delta-front expedition, a core, the inventory, AutoNav, sa
   await expect(page.locator('.game-boot')).toHaveCount(0);
 
   // A new expedition opens on chapter 1's page.
-  await page.getByRole('button', { name: 'Start the expedition' }).click();
+  await page.getByRole('button', { name: 'Start: The delta front' }).click();
   const chapter = page.getByRole('dialog', { name: 'Arrival at the delta front' });
   await expect(chapter).toBeVisible({ timeout: 60_000 });
   await chapter.getByRole('button', { name: 'Start driving' }).click();
@@ -72,7 +72,8 @@ test('rover game: the delta-front expedition, a core, the inventory, AutoNav, sa
   await page.keyboard.press('Space');
   await expect(page.locator('.game-prompt')).toContainText('Coring', { timeout: 30_000 });
   const card = page.getByRole('dialog', { name: 'Swift Run + Skyland' });
-  await expect(card).toBeVisible({ timeout: 120_000 });
+  // Coring is 6 s of mission time; software WebGL runs the arm close-up at about 1 frame a second.
+  await expect(card).toBeVisible({ timeout: 240_000 });
   await expect(card).toContainText('Samples 10 & 11');
   await expect(card).toContainText('Sedimentary rock');
   await expect(card.locator('img')).toHaveJSProperty('complete', true);
@@ -116,11 +117,12 @@ test('rover game: the delta-front expedition, a core, the inventory, AutoNav, sa
     .getByRole('dialog', { name: 'Paused' })
     .getByRole('button', { name: 'Main menu' })
     .click();
-  await expect(page.getByRole('button', { name: 'Continue (chapter 2)' })).toBeVisible({
+  await expect(page.getByRole('button', { name: 'Continue · chapter 2: The delta front' })).toBeVisible({
     timeout: 60_000,
   });
-  await page.getByRole('tab', { name: 'Collection' }).click();
-  await expect(page.getByRole('tabpanel')).toContainText('Swift Run + Skyland');
+  await expect(page.locator('.game-mc').filter({ hasText: 'The delta front' })).toContainText(
+    'Chapter 2 of 4',
+  );
 
   expect(errors).toEqual([]);
   expect(external).toEqual([]);

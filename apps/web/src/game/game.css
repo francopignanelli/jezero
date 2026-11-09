@@ -1397,59 +1397,6 @@
   opacity: 0.78;
 }
 
-/* ---------- missions: menu tab ---------- */
-.game-missions > p:first-child {
-  margin-top: 0;
-}
-.game-mission-list {
-  margin: 12px 0 18px;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 10px;
-}
-.game-mission {
-  display: grid;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-.game-mission p {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.92rem;
-}
-.game-mission-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.game-mission-head > div {
-  display: grid;
-  min-width: 0;
-}
-.game-mission-later {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 6px 14px;
-}
-.game-mission-later li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-.game-chapter-n.is-later {
-  background: rgb(255 255 255 / 0.06);
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
 /* ---------- map: grows in place, with a short transition ---------- */
 .game-map canvas,
 .game-map svg {
@@ -1730,4 +1677,220 @@
   .game-video-veil {
     animation: none;
   }
+}
+
+/* ---------- home: the missions as cards of one size ---------- */
+.game-home {
+  place-items: start center;
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px));
+}
+.game-home-panel {
+  width: min(1180px, 100%);
+  display: grid;
+  gap: 8px;
+  padding: 18px 24px 16px;
+  background: rgb(14 17 23 / 0.86);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+.game-home-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.game-home-panel h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.1;
+}
+.game-home-panel .lede {
+  margin: 0 0 10px;
+  max-width: 80ch;
+  color: var(--text-muted);
+}
+.game-missions-grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 14px;
+}
+.game-mc {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 12px;
+  background: rgb(22 26 34 / 0.92);
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.game-mc:not(.is-soon):hover {
+  border-color: rgb(224 120 74 / 0.6);
+  transform: translateY(-2px);
+}
+.game-mc-img {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  background: #0b0d11;
+}
+.game-mc-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.game-mc.is-soon .game-mc-img img {
+  filter: grayscale(0.6) brightness(0.55);
+}
+.game-mc-n {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.62);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.game-mc-badge {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.62);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.game-mc-badge.is-progress {
+  background: var(--rover);
+  color: #1b1405;
+}
+.game-mc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px 14px;
+}
+.game-mc-when {
+  color: var(--mars);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.game-mc h2 {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.game-mc p {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  /* Three lines on every card, so they are all the same height. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(3 * 1.45em);
+}
+.game-mc .btn {
+  margin-top: auto;
+  width: 100%;
+  justify-content: center;
+}
+.game-mc .btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.game-home-credit {
+  margin: 6px 0 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+/* ---------- language: flags ---------- */
+.game-lang {
+  gap: 6px;
+}
+.game-flag {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 28px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.6;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease;
+}
+.game-flag svg {
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  display: block;
+}
+.game-flag:hover {
+  opacity: 0.9;
+}
+.game-flag.is-on {
+  opacity: 1;
+  border-color: var(--mars);
+}
+.game-flag:focus-visible {
+  outline: 2px solid var(--rover);
+  outline-offset: 1px;
+}
+
+/* ---------- pause: options and photos in the same dialog ---------- */
+.game-pause-sub {
+  width: min(640px, 100%);
+  display: grid;
+  gap: 6px;
+}
+.game-pause-sub h2 {
+  margin: 4px 0 8px;
+}
+
+/* ---------- tips, on the prompt line ---------- */
+.game-prompt.is-tip > span {
+  border-color: rgb(242 184 75 / 0.35);
+}
+.game-tip-label {
+  margin-right: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--rover);
+  color: #1b1405;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }

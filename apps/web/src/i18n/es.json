@@ -808,7 +808,7 @@
   },
   "game": {
     "title": "Carrera de muestras en Jezero",
-    "tagline": "Conduce Perseverance por el frente del delta del cráter Jezero, del sol 408 al depósito de muestras de Three Forks: el terreno real, los sitios de muestra reales, las panorámicas reales.",
+    "tagline": "La misión de Perseverance en Marte, episodio a episodio: el terreno real visto desde la órbita, los lugares reales y las imágenes de la propia NASA.",
     "back": "Volver a Copernico",
     "loading": "Aterrizando Perseverance en Jezero…",
     "loadingMission": "Yendo al punto de partida…",
@@ -876,12 +876,11 @@
       "power": "Batería agotada: recargando con el MMRTG…",
       "tilt": "Inclinación {{deg}}: cuidado",
       "lasering": "SuperCam: análisis con láser…",
-      "stuck": "¡Atascado en arena blanda! Da marcha atrás despacio (S), como Opportunity escapó de la duna Purgatorio en 2005",
       "tiltBlocked": "Pendiente lateral de más de 30°: el rover volcaría. Gira y busca otro camino",
       "stormSoon": "Se acerca una tormenta de polvo: la visibilidad va a caer",
       "storm": "Tormenta de polvo: AutoNav va más despacio mientras no ve lejos",
       "rocks": "Rocas afiladas: frena para cuidar las ruedas (queda un {{pct}}%)",
-      "sand": "Arena blanda: las ruedas patinan un {{pct}}%. No pares ni aceleres aquí",
+      "sand": "Arena blanda: las ruedas patinan un {{pct}}%. Por terreno firme irás más rápido",
       "laserReady": "F: analiza esta roca con el láser de SuperCam",
       "laserDone": "Esta roca ya está analizada: apunta a otra",
       "stopToPano": "Detente para tomar una panorámica de 360° de {{name}}",
@@ -905,7 +904,12 @@
       "resume": "Continuar",
       "inventory": "Inventario",
       "menu": "Menú principal",
-      "saved": "Tu expedición queda guardada en este navegador."
+      "saved": "Tu expedición queda guardada en este navegador.",
+      "restart": "Reiniciar la misión",
+      "restartConfirm": "Reiniciar (se pierde el progreso de esta misión)",
+      "options": "Opciones",
+      "photos": "Fotos",
+      "backToPause": "← Volver"
     },
     "card": {
       "title": "Muestra recogida",
@@ -933,7 +937,7 @@
       "newBest": "¡Nuevo récord!",
       "best": "Récord: {{time}}",
       "real": "Perseverance hizo todo esto entre el sol {{first}} y el sol {{last}}: {{sols}} soles, unos {{months}} meses en la Tierra.",
-      "again": "Nueva expedición",
+      "again": "Jugar de nuevo",
       "science": "Ciencia",
       "rocks": "Rocas analizadas",
       "wheels": "Ruedas",
@@ -1212,48 +1216,75 @@
       "next": "Próximamente",
       "landing": {
         "title": "Siete minutos",
-        "desc": "El vídeo del aterrizaje de la NASA y, después, Octavia E. Butler Landing el 18 de febrero de 2021: las marcas del chorro bajo el rover, y la etapa de descenso, el paracaídas con el escudo trasero y el escudo térmico donde los vio la órbita al día siguiente.",
+        "desc": "El vídeo del aterrizaje de la NASA y, después, Octavia E. Butler Landing: encuentra la etapa de descenso, el paracaídas y el escudo térmico donde cayeron.",
         "start": "Empezar el aterrizaje",
         "complete": "Lugar de aterrizaje explorado",
-        "real": "Los restos están donde los fotografió HiRISE el 19 de febrero de 2021. Perseverance nunca fue hasta ellos: Ingenuity sobrevoló el paracaídas y el escudo trasero el 19 de abril de 2022, hacia el sol 414."
+        "real": "Los restos están donde los fotografió HiRISE el 19 de febrero de 2021. Perseverance nunca fue hasta ellos: Ingenuity sobrevoló el paracaídas y el escudo trasero el 19 de abril de 2022, hacia el sol 414.",
+        "when": "18 feb 2021"
       },
       "delta": {
         "title": "El frente del delta",
-        "desc": "Abril de 2022 – febrero de 2023: Hawksbill Gap, Wildcat Ridge, Amalik y el primer depósito de muestras en otro mundo, en Three Forks.",
+        "desc": "Hawksbill Gap, Wildcat Ridge y Amalik, y el primer depósito de muestras en otro mundo, en Three Forks.",
         "start": "Empezar la expedición",
         "complete": "Expedición completada",
-        "real": "Perseverance hizo todo esto entre el sol {{first}} y el sol {{last}}: {{sols}} soles, unos {{months}} meses en la Tierra."
+        "real": "Perseverance hizo todo esto entre el sol {{first}} y el sol {{last}}: {{sols}} soles, unos {{months}} meses en la Tierra.",
+        "when": "2022–2023"
       },
       "ingenuity": {
-        "title": "Momento hermanos Wright"
+        "title": "Momento hermanos Wright",
+        "when": "abr 2021",
+        "desc": "Deja a Ingenuity en su aeródromo, aléjate y presencia el primer vuelo propulsado en otro mundo."
       },
       "moxie": {
-        "title": "Aire fabricado"
+        "title": "Aire fabricado",
+        "when": "2021–2023",
+        "desc": "Pon en marcha MOXIE: una hora a 300 W para sacar oxígeno del aire de CO₂, dentro del presupuesto de energía del sol."
       },
       "firstSample": {
-        "title": "El tubo vacío"
+        "title": "El tubo vacío",
+        "when": "ago–sep 2021",
+        "desc": "La primera extracción sale vacía: la roca se deshizo. Encuentra una lo bastante dura y llena el tubo 266."
       },
       "chute": {
-        "title": "De vuelta al paracaídas"
+        "title": "De vuelta al paracaídas",
+        "when": "abr 2022",
+        "desc": "Vuela el vuelo 26 de Ingenuity sobre el escudo trasero y el paracaídas de 21,5 m, a 8 m del suelo."
       },
       "lastFlight": {
-        "title": "El último vuelo de Ingenuity"
+        "title": "El último vuelo de Ingenuity",
+        "when": "ene 2024",
+        "desc": "Un salto corto acaba con una pala del rotor rota. Encuentra el helicóptero y fotografía dónde quedó."
       },
       "leopard": {
-        "title": "Manchas de leopardo"
+        "title": "Manchas de leopardo",
+        "when": "jul 2024",
+        "desc": "Cheyava Falls y sus manchas de leopardo: cartografía la roca y extrae Sapphire Canyon, la mejor candidata a señal de vida antigua."
       },
       "rim": {
-        "title": "El borde del cráter"
+        "title": "El borde del cráter",
+        "when": "2024–2025",
+        "desc": "Sube Witch Hazel Hill hasta el borde del cráter y la meseta de Krokodillen, con algunas de las rocas más antiguas de Marte."
       },
       "sparks": {
-        "title": "Minirrayos"
+        "title": "Minirrayos",
+        "when": "2025",
+        "desc": "Acecha un remolino de polvo con el micrófono encendido: graba el chasquido de las descargas eléctricas."
       },
       "aiDrive": {
-        "title": "Planifica la ruta"
+        "title": "Planifica la ruta",
+        "when": "dic 2025",
+        "desc": "Planifica puntos de paso entre rocas, como en las primeras rutas planificadas por IA, y compáralos con AutoNav."
       },
       "record": {
-        "title": "Récord de distancia"
-      }
+        "title": "Récord de distancia",
+        "when": "oct 2026",
+        "desc": "Lleva el cuentakilómetros más allá de 45 km, el récord fuera de la Tierra de Opportunity, sin arriesgar el rover."
+      },
+      "start": "Empezar",
+      "continue": "Continuar · capítulo {{chapter}}",
+      "soon": "Próximamente",
+      "progress": "Capítulo {{chapter}} de {{count}}",
+      "credit": "Imágenes: NASA/JPL-Caltech (NASA Image and Video Library)."
     },
     "places": {
       "reach-descent-stage": "Etapa de descenso",
@@ -1279,6 +1310,23 @@
         "date": "18 de febrero de 2021 · Cráter Jezero",
         "context": "Imágenes reales de las cámaras del escudo trasero, la etapa de descenso y el rover: el paracaídas de 21,5 m abriéndose a unos 11 km de altura, el escudo térmico que se suelta, la etapa de descenso bajando el rover con cables y el polvo del contacto. Las voces son del control de la misión en el JPL."
       }
+    },
+    "tips": {
+      "label": "Consejo",
+      "drive": "W A S D o las flechas para conducir · Mayúsculas para ir más rápido",
+      "look": "Arrastra sobre la vista para mirar alrededor · C cambia la cámara",
+      "map": "Haz clic en un punto del mapa y AutoNav conduce hasta allí · M oculta el mapa",
+      "inventory": "I abre el inventario: tubos, muestras, hallazgos y el diario",
+      "photo": "P: modo foto, con los filtros de las cámaras del propio rover",
+      "warp": "T acelera el tiempo mientras conduce AutoNav",
+      "pause": "Esc pausa: opciones, fotos y el vídeo de la misión"
     }
+  },
+  "modes": {
+    "label": "Modos de Copernico",
+    "planner": "Planificador",
+    "plannerHint": "Planifica una caminata en el cráter Jezero",
+    "game": "Juego del rover",
+    "gameHint": "Conduce a Perseverance por sus misiones reales"
   }
 }

@@ -4,6 +4,7 @@ import { JEZERO } from '../config';
 import { HelpMenu } from '../features/guide/HelpMenu';
 import { LANGUAGES } from '../i18n';
 import { formatHours } from '../lib/format';
+import { ModeSwitch } from '../ui/ModeSwitch';
 import { useApp } from './store';
 
 export function TopBar() {
@@ -23,6 +24,7 @@ export function TopBar() {
         <span className="brand-mark" aria-hidden="true" />
         <span className="brand-name">{t('app.name')}</span>
       </div>
+      <ModeSwitch current="planner" />
       <nav aria-label="Breadcrumb">
         <ol className="breadcrumb">
           {mode === 'orbit' ? (

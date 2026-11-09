@@ -1,6 +1,7 @@
 import {
   memo,
   useEffect,
+  useId,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -12,7 +13,7 @@ import { POIS, samplePhotos } from '../data/catalog';
 import { LANGUAGES } from '../i18n';
 import { formatClock, formatDegrees, formatDistance } from '../lib/format';
 import { M_PER_DEG } from '../lib/math';
-import { readBest, readCareer, resetProgress, type Career } from './career';
+import { resetProgress } from './career';
 import {
   MISSIONS,
   isDone,
@@ -26,10 +27,12 @@ import { Inventory, whyKey } from './Inventory';
 import { PanoramaView } from './PanoramaView';
 import { deletePhoto, downloadBlob, listPhotos, photoFileName, type Photo } from './photos';
 import { DRIVE } from './roverSim';
-import { mainElements, POINTS, ROCK_TYPES } from './science';
+import { mainElements, POINTS } from './science';
 import { GameSession, readQuality, writeQuality } from './session';
 import { Spectrum } from './Spectrum';
 import { useGame } from './store';
+import { useTip } from './tips';
+import { ModeSwitch } from '../ui/ModeSwitch';
 import { PHOTO_FILTERS, type Quality } from './world/world';
 
 const HOME = './';
@@ -104,19 +107,52 @@ export function GameApp() {
 
 // ---------- main menu ----------
 
+/** The UK and Spanish flags (drawn: Windows shows flag emoji as letters). */
+function Flag({ lang }: { lang: string }) {
+  const id = useId();
+  if (lang === 'es')
+    return (
+      <svg viewBox="0 0 750 500" aria-hidden="true">
+        <rect width="750" height="500" fill="#c60b1e" />
+        <rect y="125" width="750" height="250" fill="#ffc400" />
+      </svg>
+    );
+  return (
+    <svg viewBox="0 0 60 30" aria-hidden="true">
+      <clipPath id={`${id}s`}>
+        <path d="M0 0v30h60V0z" />
+      </clipPath>
+      <clipPath id={`${id}t`}>
+        <path d="M30 15h30v15zv15H0zH0V0zV0h30z" />
+      </clipPath>
+      <g clipPath={`url(#${id}s)`}>
+        <path d="M0 0v30h60V0z" fill="#012169" />
+        <path d="M0 0l60 30m0-30L0 30" stroke="#fff" strokeWidth="6" />
+        <path d="M0 0l60 30m0-30L0 30" clipPath={`url(#${id}t)`} stroke="#c8102e" strokeWidth="4" />
+        <path d="M30 0v30M0 15h60" stroke="#fff" strokeWidth="10" />
+        <path d="M30 0v30M0 15h60" stroke="#c8102e" strokeWidth="6" />
+      </g>
+    </svg>
+  );
+}
+
+const LANGUAGE_NAMES: Record<string, string> = { en: 'English', es: 'Español' };
+
 function LanguageSwitch() {
   const { i18n } = useTranslation();
   return (
-    <div className="game-lang" role="group" aria-label="Language">
+    <div className="game-lang" role="group" aria-label="Language / Idioma">
       {LANGUAGES.map((l) => (
         <button
           key={l}
           type="button"
-          className={`btn btn-icon ${i18n.language === l ? 'is-on' : ''}`}
+          className={`game-flag ${i18n.language === l ? 'is-on' : ''}`}
           aria-pressed={i18n.language === l}
+          aria-label={LANGUAGE_NAMES[l] ?? l}
+          title={LANGUAGE_NAMES[l] ?? l}
           onClick={() => void i18n.changeLanguage(l)}
         >
-          {l.toUpperCase()}
+          <Flag lang={l} />
         </button>
       ))}
     </div>
@@ -163,255 +199,98 @@ function SoundToggle({ session }: { session: GameSession }) {
   );
 }
 
-const TABS = ['missions', 'collection', 'photos', 'options', 'how'] as const;
-type Tab = (typeof TABS)[number];
+/**
+ * The mission slate, in the order Perseverance lived them (the research brief's twelve episodes).
+ * Playable ones have a mission; the others are shown as coming soon. Each has a real NASA picture
+ * (scripts/data/fetch-mission-cards.ts).
+ */
+const SLATE: Array<{ n: number; key: string; mission?: MissionId }> = [
+  { n: 1, key: 'landing', mission: 'landing' },
+  { n: 2, key: 'ingenuity' },
+  { n: 3, key: 'moxie' },
+  { n: 4, key: 'firstSample' },
+  { n: 5, key: 'chute' },
+  { n: 6, key: 'delta', mission: 'delta' },
+  { n: 7, key: 'lastFlight' },
+  { n: 8, key: 'leopard' },
+  { n: 9, key: 'rim' },
+  { n: 10, key: 'sparks' },
+  { n: 11, key: 'aiDrive' },
+  { n: 12, key: 'record' },
+];
 
+/**
+ * The game's home: the two modes of Copernico, the language, and the missions as cards of one
+ * size, each with a single button (start, or continue where it was left). Options, photos,
+ * restarting and the mission's video are in the pause menu; how to play is taught while playing.
+ */
 function MainMenu({ session }: { session: GameSession }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>('missions');
-  const [career, setCareer] = useState<Career>(readCareer);
+  const saves = useGame((s) => s.saves);
   return (
-    <div className="game-screen">
-      <section className="game-dialog game-briefing" aria-labelledby="game-title">
-        <header className="game-briefing-head">
-          <a className="btn btn-ghost" href={HOME}>
-            ← {t('game.back')}
-          </a>
-          <div className="game-briefing-tools">
-            <button type="button" className="btn btn-icon" onClick={() => session.enterPhoto()}>
-              {t('game.photo.open')}
-            </button>
-            <LanguageSwitch />
-          </div>
+    <div className="game-screen game-home">
+      <section className="game-home-panel" aria-labelledby="game-title">
+        <header className="game-home-head">
+          <ModeSwitch current="game" />
+          <LanguageSwitch />
         </header>
         <h1 id="game-title">{t('game.title')}</h1>
         <p className="lede">{t('game.tagline')}</p>
-        <div className="game-tabs" role="tablist" aria-label={t('game.menu.label')}>
-          {TABS.map((k) => (
-            <button
-              key={k}
-              type="button"
-              role="tab"
-              id={`game-tab-${k}`}
-              aria-selected={tab === k}
-              aria-controls={`game-panel-${k}`}
-              className={tab === k ? 'is-on' : ''}
-              onClick={() => setTab(k)}
-            >
-              {t(`game.menu.${k}`)}
-            </button>
-          ))}
-        </div>
-        <div
-          className="game-tabpanel"
-          role="tabpanel"
-          id={`game-panel-${tab}`}
-          aria-labelledby={`game-tab-${tab}`}
-        >
-          {tab === 'missions' && <MissionsTab session={session} />}
-          {tab === 'collection' && <Collection session={session} career={career} />}
-          {tab === 'photos' && <Gallery />}
-          {tab === 'options' && (
-            <Options session={session} onReset={() => setCareer(readCareer())} />
-          )}
-          {tab === 'how' && <HowToPlay />}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-/**
- * The mission slate, in the order Perseverance lived them (the research brief's twelve episodes).
- * Playable ones have a mission; the others are shown as coming next.
- */
-const SLATE: Array<{ n: number; key: string; date: string; mission?: MissionId }> = [
-  { n: 1, key: 'landing', date: '2021-02-18', mission: 'landing' },
-  { n: 2, key: 'ingenuity', date: '2021-04' },
-  { n: 3, key: 'moxie', date: '2021–2023' },
-  { n: 4, key: 'firstSample', date: '2021-08' },
-  { n: 5, key: 'chute', date: '2022-04-19' },
-  { n: 6, key: 'delta', date: '2022–2023', mission: 'delta' },
-  { n: 7, key: 'lastFlight', date: '2024-01-18' },
-  { n: 8, key: 'leopard', date: '2024-07' },
-  { n: 9, key: 'rim', date: '2024–2025' },
-  { n: 10, key: 'sparks', date: '2025' },
-  { n: 11, key: 'aiDrive', date: '2025-12' },
-  { n: 12, key: 'record', date: '2026-10' },
-];
-
-/** The missions: continue or start each playable one; the rest, coming next. */
-function MissionsTab({ session }: { session: GameSession }) {
-  const { t } = useTranslation();
-  const saves = useGame((s) => s.saves);
-  const [confirm, setConfirm] = useState<MissionId | null>(null);
-  const playable = SLATE.filter((m) => m.mission);
-  const later = SLATE.filter((m) => !m.mission);
-  return (
-    <div className="game-missions">
-      <p>{t('game.missions.intro')}</p>
-      <ol className="game-mission-list">
-        {playable.map((m) => {
-          const id = m.mission!;
-          const def = MISSIONS[id];
-          const saved = saves[id];
-          const best = readBest(id);
-          const start = t(`game.missions.${m.key}.start`);
-          return (
-            <li key={m.key} className="game-mission">
-              <div className="game-mission-head">
-                <span className="game-chapter-n">{m.n}</span>
-                <div>
-                  <strong>{t(`game.missions.${m.key}.title`)}</strong>
-                  <span className="meta">
-                    {m.date} · {t('game.missions.chapters', { count: def.chapters.length })}
-                    {best !== null && <> · {t('game.best', { time: formatClock(best) })}</>}
-                  </span>
-                </div>
-              </div>
-              <p>{t(`game.missions.${m.key}.desc`)}</p>
-              <div className="btn-row">
-                {saved !== undefined && (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => void session.continueExpedition(id)}
-                  >
-                    {t('game.expedition.continue', { chapter: saved + 1 })}
-                  </button>
-                )}
-                {saved !== undefined && confirm !== id ? (
-                  <button type="button" className="btn" onClick={() => setConfirm(id)}>
-                    {t('game.expedition.new')}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={saved !== undefined ? 'btn' : 'btn btn-primary'}
-                    onClick={() => void session.newExpedition(id)}
-                  >
-                    {saved !== undefined ? t('game.expedition.newConfirm') : start}
-                  </button>
-                )}
-                {def.intro && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => useGame.getState().set({ video: def.intro! })}
-                  >
-                    ▶ {t('game.video.watch')}
-                  </button>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-      <h3 className="game-panel-title">{t('game.missions.next')}</h3>
-      <ul className="game-mission-later">
-        {later.map((m) => (
-          <li key={m.key}>
-            <span className="game-chapter-n is-later">{m.n}</span>
-            <span>
-              <strong>{t(`game.missions.${m.key}.title`)}</strong>
-              <span className="meta"> · {m.date}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** Samples ever cored on this map, and the rock types found with the laser. */
-function Collection({ session, career }: { session: GameSession; career: Career }) {
-  const { t, i18n } = useTranslation();
-  const lang = i18n.language === 'es' ? 'es' : 'en';
-  const all = session.places.filter((x) => x.kind === 'sample');
-  const got = all.filter((x) => career.samples.includes(x.id)).length;
-  const types = ROCK_TYPES.filter((r) => career.rocks[r]).length;
-  return (
-    <div className="game-collection">
-      <dl className="game-stats game-stats-3">
-        <div>
-          <dt>{t('game.collection.samples')}</dt>
-          <dd>
-            {got}/{all.length}
-          </dd>
-        </div>
-        <div>
-          <dt>{t('game.collection.rockTypes')}</dt>
-          <dd>
-            {types}/{ROCK_TYPES.length}
-          </dd>
-        </div>
-        <div>
-          <dt>{t('game.collection.science')}</dt>
-          <dd>{career.science}</dd>
-        </div>
-      </dl>
-      <ul className="game-samples">
-        {all.map((x) => {
-          const site = x.site!;
-          const have = career.samples.includes(x.id);
-          const photo = have ? samplePhotos(site.sampleNumber)[0] : undefined;
-          const numbers: string[] = site.sampleNumber.match(/\d+/g) ?? [];
-          const poi = POIS.find((p) => p.sampleNumbers.some((n) => numbers.includes(n)));
-          return (
-            <li key={x.id} className={have ? 'is-have' : 'is-locked'}>
-              <details>
-                <summary>
-                  <span className="game-sample-thumb" aria-hidden="true">
-                    {photo ? (
-                      <img src={dataUrl(`${photo.thumb ?? photo.file}?v=${DATA_VERSION}`)} alt="" />
-                    ) : (
-                      <span>{have ? '✓' : '?'}</span>
-                    )}
-                  </span>
-                  <span>
-                    <strong>{have ? site.name : t('game.collection.unknown')}</strong>
-                    <span className="meta">
-                      {t(numbers.length > 1 ? 'game.card.numbers' : 'game.card.number', {
-                        number: site.sampleNumber,
-                      })}
-                      {have && <> · {t('game.collection.sol', { sol: site.sol })}</>}
+        <ol className="game-missions-grid">
+          {SLATE.map((m) => {
+            const id = m.mission;
+            const saved = id ? saves[id] : undefined;
+            const chapters = id ? MISSIONS[id].chapters.length : 0;
+            const title = t(`game.missions.${m.key}.title`);
+            return (
+              <li key={m.key} className={`game-mc ${id ? '' : 'is-soon'}`}>
+                <div className="game-mc-img">
+                  <img
+                    src={dataUrl(`game/cards/${m.key}.webp?v=${DATA_VERSION}`)}
+                    alt=""
+                    loading="lazy"
+                    width={640}
+                    height={360}
+                  />
+                  <span className="game-mc-n">{m.n}</span>
+                  {!id && <span className="game-mc-badge">{t('game.missions.soon')}</span>}
+                  {saved !== undefined && (
+                    <span className="game-mc-badge is-progress">
+                      {t('game.missions.progress', { chapter: saved + 1, count: chapters })}
                     </span>
-                  </span>
-                </summary>
-                {have ? (
-                  <div className="game-sample-more">
-                    <p className="meta">
-                      {t('game.card.at', { outcrop: site.outcrop, location: site.location })}
-                    </p>
-                    <p>{t(`game.card.why.${whyKey(site)}`)}</p>
-                    {poi && <p>{poi.why[lang]}</p>}
-                  </div>
-                ) : (
-                  <p className="meta game-sample-more">{t('game.collection.locked')}</p>
-                )}
-              </details>
-            </li>
-          );
-        })}
-      </ul>
-      <h2>{t('game.collection.rocksTitle')}</h2>
-      <p className="meta">{t('game.collection.rocksIntro')}</p>
-      <ul className="game-rocks">
-        {ROCK_TYPES.map((r) => {
-          const n = career.rocks[r] ?? 0;
-          return (
-            <li key={r} className={n ? 'is-have' : 'is-locked'}>
-              <strong>{n ? t(`game.rocks.${r}.name`) : t('game.collection.unknown')}</strong>
-              <span className="meta">
-                {n
-                  ? `${t('game.collection.analysed', { count: n })} · ${mainElements(r).join(' ')}`
-                  : t(`game.rocks.${r}.hint`)}
-              </span>
-              {n > 0 && <p>{t(`game.rocks.${r}.desc`)}</p>}
-            </li>
-          );
-        })}
-      </ul>
+                  )}
+                </div>
+                <div className="game-mc-body">
+                  <span className="game-mc-when">{t(`game.missions.${m.key}.when`)}</span>
+                  <h2>{title}</h2>
+                  <p>{t(`game.missions.${m.key}.desc`)}</p>
+                  {id ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      aria-label={`${saved !== undefined ? t('game.missions.continue', { chapter: saved + 1 }) : t('game.missions.start')}: ${title}`}
+                      onClick={() =>
+                        void (saved !== undefined
+                          ? session.continueExpedition(id)
+                          : session.newExpedition(id))
+                      }
+                    >
+                      {saved !== undefined
+                        ? t('game.missions.continue', { chapter: saved + 1 })
+                        : t('game.missions.start')}
+                    </button>
+                  ) : (
+                    <button type="button" className="btn" disabled>
+                      {t('game.missions.soon')}
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="meta game-home-credit">{t('game.missions.credit')}</p>
+      </section>
     </div>
   );
 }
@@ -480,7 +359,7 @@ function Gallery() {
   );
 }
 
-function Options({ session, onReset }: { session: GameSession; onReset: () => void }) {
+function Options({ session }: { session: GameSession }) {
   const { t } = useTranslation();
   const [o, setO] = useState(session.options);
   const [confirm, setConfirm] = useState(false);
@@ -537,8 +416,7 @@ function Options({ session, onReset }: { session: GameSession; onReset: () => vo
             onClick={() => {
               resetProgress();
               setConfirm(false);
-              useGame.getState().set({ hasSave: false });
-              onReset();
+              useGame.getState().set({ hasSave: false, saves: {} });
             }}
           >
             {t('game.options.resetConfirm')}
@@ -550,40 +428,6 @@ function Options({ session, onReset }: { session: GameSession; onReset: () => vo
         )}
       </div>
     </div>
-  );
-}
-
-function HowToPlay() {
-  const { t } = useTranslation();
-  return (
-    <>
-      <ul className="game-how">
-        {(
-          [
-            'drive',
-            'core',
-            'pano',
-            'laser',
-            'autonav',
-            'warp',
-            'inventory',
-            'photo',
-            'slope',
-            'power',
-            'keys',
-          ] as const
-        ).map((k) => (
-          <li key={k}>{t(`game.how.${k}`)}</li>
-        ))}
-      </ul>
-      <h2>{t('game.how.hazardsTitle')}</h2>
-      <ul className="game-how">
-        {(['sand', 'rocks', 'tilt', 'storm'] as const).map((k) => (
-          <li key={k}>{t(`game.how.hazards.${k}`)}</li>
-        ))}
-      </ul>
-      <p className="meta">{t('game.realNote')}</p>
-    </>
   );
 }
 
@@ -843,6 +687,7 @@ function Prompt() {
   const hud = useGame((s) => s.hud);
   let text: string | null = null;
   let tone = '';
+  let hint = false;
   const { here, action } = hud;
   const fraction = action?.fraction ?? hud.laser?.fraction ?? null;
   if (action && here) {
@@ -854,9 +699,6 @@ function Prompt() {
           : t('game.prompt.dropping');
   } else if (hud.laser) {
     text = t('game.prompt.lasering');
-  } else if (hud.stuck) {
-    text = t('game.prompt.stuck');
-    tone = 'is-warn';
   } else if (hud.blocked === 'power' || hud.recharging) {
     text = t('game.prompt.power');
     tone = 'is-warn';
@@ -902,10 +744,22 @@ function Prompt() {
     text = t('game.prompt.toDepot');
   } else if (hud.next && !hud.autonav && hud.next.distanceM > 60) {
     text = t('game.prompt.autonavHint');
+    hint = true;
+  }
+  // How to play, a tip at a time, where the line is free (a tip outranks the AutoNav hint).
+  const tip = useTip(hud, !text || hint);
+  if (tip) {
+    text = t(`game.tips.${tip}`);
+    tone = 'is-tip';
   }
   return (
     <div className={`game-prompt ${tone}`} role="status" aria-live="polite">
-      {text && <span>{text}</span>}
+      {text && (
+        <span>
+          {tone === 'is-tip' && <b className="game-tip-label">{t('game.tips.label')}</b>}
+          {text}
+        </span>
+      )}
       {fraction !== null && (action || hud.laser) && (
         <div className="game-bar game-action-bar" aria-hidden="true">
           <div style={{ width: `${fraction * 100}%` }} />
@@ -1359,8 +1213,31 @@ function TouchPad({ session }: { session: GameSession }) {
 
 // ---------- dialogs ----------
 
+/**
+ * Paused: back to driving, the inventory, the mission's video, options, photos, restarting the
+ * mission, and the main menu. Options and photos open in the same dialog, with a way back.
+ */
 function PauseMenu({ session }: { session: GameSession }) {
   const { t } = useTranslation();
+  const [view, setView] = useState<'main' | 'options' | 'photos'>('main');
+  const [confirmRestart, setConfirmRestart] = useState(false);
+  if (view !== 'main')
+    return (
+      <div className="game-screen">
+        <div
+          className="game-dialog game-pause-sub"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="game-pause-sub"
+        >
+          <button type="button" className="game-video-back" autoFocus onClick={() => setView('main')}>
+            {t('game.pause.backToPause')}
+          </button>
+          <h2 id="game-pause-sub">{t(`game.pause.${view}`)}</h2>
+          {view === 'options' ? <Options session={session} /> : <Gallery />}
+        </div>
+      </div>
+    );
   return (
     <div className="game-screen">
       <div
@@ -1398,12 +1275,24 @@ function PauseMenu({ session }: { session: GameSession }) {
               ▶ {t('game.video.watch')}
             </button>
           )}
+          <button type="button" className="btn" onClick={() => setView('options')}>
+            {t('game.pause.options')}
+          </button>
+          <button type="button" className="btn" onClick={() => setView('photos')}>
+            {t('game.pause.photos')}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              confirmRestart ? void session.newExpedition() : setConfirmRestart(true)
+            }
+          >
+            {confirmRestart ? t('game.pause.restartConfirm') : t('game.pause.restart')}
+          </button>
           <button type="button" className="btn" onClick={() => session.quit()}>
             {t('game.pause.menu')}
           </button>
-          <a className="btn btn-ghost" href={HOME}>
-            {t('game.back')}
-          </a>
         </div>
         <p className="meta">{t('game.pause.saved')}</p>
       </div>

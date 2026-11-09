@@ -3421,3 +3421,59 @@ details.samples > summary {
   right: 18px;
   background: rgb(10 12 16 / 0.7);
 }
+
+/* ---------- Copernico's two modes: the planner and the rover game ---------- */
+.mode-switch {
+  display: inline-flex;
+  flex: none;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.03);
+}
+.mode-switch-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 13px 5px 10px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.mode-switch-item svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+a.mode-switch-item:hover {
+  background: rgb(255 255 255 / 0.06);
+  color: var(--text);
+}
+a.mode-switch-item:focus-visible {
+  outline: 2px solid var(--rover);
+  outline-offset: 1px;
+}
+.mode-switch-item.is-on {
+  background: var(--mars);
+  color: #170d07;
+}
+@media (max-width: 720px) {
+  .mode-switch-item {
+    padding: 5px 9px;
+  }
+  .mode-switch-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
