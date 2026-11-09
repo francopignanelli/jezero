@@ -6,6 +6,7 @@ import {
   type ActionKind,
   type ExpeditionState,
   type Find,
+  type MissionId,
   type Target,
   type TargetKind,
 } from './expedition';
@@ -14,6 +15,8 @@ import type { Blocked } from './roverSim';
 export type Phase =
   | 'loading'
   | 'briefing'
+  /** NASA's landing video, before the landing mission's first chapter. */
+  | 'intro'
   | 'chapter'
   | 'playing'
   | 'paused'
@@ -83,8 +86,14 @@ export interface Toast {
 interface GameUi {
   phase: Phase;
   expedition: ExpeditionState;
-  /** A saved expedition can be continued. */
+  /** The delta expedition has saved progress. */
   hasSave: boolean;
+  /** Each mission's saved chapter (index), for the menu. */
+  saves: Partial<Record<MissionId, number>>;
+  /** The mission being played (or shown behind the menu). */
+  mission: MissionId;
+  /** A NASA video being watched again (over the menu or the pause menu). */
+  video: 'landing' | null;
   /** Targets open now (current chapter, panorama spots). */
   targets: Target[];
   camera: CameraMode;
@@ -139,6 +148,9 @@ export const useGame = create<GameUi>((set) => ({
   phase: 'loading',
   expedition: newExpedition(),
   hasSave: false,
+  saves: {},
+  mission: 'delta',
+  video: null,
   targets: [],
   camera: 'chase',
   mapOpen: true,

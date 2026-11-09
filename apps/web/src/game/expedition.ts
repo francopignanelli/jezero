@@ -3,22 +3,21 @@ import { groundDistanceM, type RoverState } from './roverSim';
 import type { RockType } from './science';
 
 /**
- * The game's one map: the delta front of Jezero, driven as Perseverance did between sols 408 and
- * 693 (April 2022 – February 2023). Four chapters follow the real campaign: arrival at the front,
- * the climb up Hawksbill Gap, back down to Amalik, Hidden Harbor and Observation Mountain, and the
- * Three Forks sample depot. Every place is real: sample sites (MMGIS), the rover's waypoints, the
- * Mastcam-Z panorama spots and Ingenuity's airfields.
+ * The game's missions. Each is one real episode of Perseverance's mission on its own map, played in
+ * chapters of objectives that follow what the rover really did there; every place is real.
+ * - landing: Octavia E. Butler Landing, 18 Feb 2021, and the landing hardware where HiRISE saw it
+ *   the next day (data/catalog/landing-hardware.json). Opens with NASA's landing video.
+ * - delta: the delta front of Jezero, driven as Perseverance did between sols 408 and 693 (April
+ *   2022 – February 2023): arrival at the front, the climb up Hawksbill Gap, back down to Amalik,
+ *   Hidden Harbor and Observation Mountain, and the Three Forks sample depot. Sample sites
+ *   (MMGIS), the rover's waypoints, the Mastcam-Z panorama spots and Ingenuity's airfields.
  *
+ * A progress state names its mission; the rules read the chapters, places and flights from it.
  * Pure: the session feeds it the rover and the player's actions; tested in game.test.ts.
  */
 
-export const AREA_ID = 'delta';
+export type MissionId = 'landing' | 'delta';
 
-/** Where Perseverance entered the area on sol 408, driving west from the crater floor. */
-export const START = { lat: 18.453833, lon: 77.414136, headingDeg: 272 };
-
-/** Three Forks depot: centroid of its MMGIS polygon; the drop zone covers the ~70 m footprint. */
-export const DEPOT = { lat: 18.45296, lon: 77.40821, radiusM: 40 };
 export const SAMPLE_RADIUS_M = 14;
 export const PANORAMA_RADIUS_M = 12;
 export const REACH_RADIUS_M = 25;
@@ -36,8 +35,6 @@ export const CORE_COST_PCT = 4;
 /** Perseverance carries 43 tubes: 38 for samples and 5 witness tubes. */
 export const SAMPLE_TUBES = 38;
 export const WITNESS_TUBES = 5;
-/** Samples cored on the crater floor before the rover reached the delta (already in the rack). */
-export const EARLIER_SAMPLES = ['1', '2 & 3', '4 & 5', '6 & 7', '8 & 9'];
 
 export type TargetKind = 'sample' | 'depot' | 'panorama' | 'reach';
 
@@ -57,23 +54,70 @@ export interface Target {
 
 export const tubesIn = (sampleNumber: string): number => (sampleNumber.match(/\d+/g) ?? []).length;
 
-/** Real Mastcam-Z 360° panoramas of the area: where they were taken (panoramas.json). */
-export const PANORAMA_SPOTS = [
-  { id: 'wildcat-ridge', name: 'Wildcat Ridge', lat: 18.458647, lon: 77.405925 },
-  { id: 'enchanted-lake', name: 'Enchanted Lake', lat: 18.450726, lon: 77.40144 },
-  { id: 'three-forks', name: 'Three Forks', lat: 18.452813, lon: 77.408244 },
-] as const;
+export interface Spot {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  /** Zone radius (m), when not the kind's default. */
+  radiusM?: number;
+}
 
-/** Places to reach: the delta front at Enchanted Lake (rover waypoint, sol 422). */
-export const REACH_SPOTS = [
-  { id: 'enchanted-lake', name: 'Enchanted Lake', lat: 18.4506, lon: 77.4014 },
-] as const;
+export interface Flight {
+  flight: number;
+  sol: number;
+  date: string;
+  lat: number;
+  lon: number;
+}
 
-/**
- * Ingenuity's flights over the area (ingenuity.json): each lands at the next airfield. The
- * helicopter flies the next one when the rover comes close, in the chapter it belongs to.
- */
-export const FLIGHTS = [
+export type Objective =
+  | { id: string; kind: 'reach'; target: string; optional?: boolean }
+  | { id: string; kind: 'sample'; sample: string; optional?: boolean }
+  | { id: string; kind: 'panorama'; panorama: string; optional?: boolean }
+  | { id: string; kind: 'depot'; optional?: boolean }
+  | { id: string; kind: 'laser'; count: number; optional?: boolean }
+  | { id: string; kind: 'flight'; count: number; optional?: boolean };
+
+export interface Chapter {
+  id: string;
+  /** Sols of the real mission the chapter follows. */
+  sols: [number, number];
+  objectives: Objective[];
+}
+
+/** Landing hardware lying on the map (drawn by world/landing.ts). */
+export interface Hardware {
+  id: 'parachute' | 'backshell' | 'descent-stage' | 'heat-shield';
+  lat: number;
+  lon: number;
+}
+
+export interface MissionDef {
+  id: MissionId;
+  /** Terrain area (data/build/game/areas.json). */
+  areaId: string;
+  start: { lat: number; lon: number; headingDeg: number };
+  chapters: Chapter[];
+  reach: Spot[];
+  panoramas: Spot[];
+  depot: { lat: number; lon: number; radiusM: number } | null;
+  flights: Flight[];
+  /** Samples already in the rack when the mission starts. */
+  earlierSamples: string[];
+  /** Sols of Perseverance's real route shown on the map (and kept free of generated ledges). */
+  routeSols: [number, number] | null;
+  /** NASA video played before the first chapter. */
+  intro?: 'landing';
+  hardware?: Hardware[];
+  /** The rover's landing blast: the descent stage's engines scoured the ground under it. */
+  blast?: { lat: number; lon: number };
+}
+
+// ---------- the delta front ----------
+
+/** Ingenuity's flights over the delta (ingenuity.json): each lands at the next airfield. */
+export const FLIGHTS: Flight[] = [
   { flight: 30, sol: 533, date: '2022-08-20', lat: 18.455974, lon: 77.417643 },
   { flight: 31, sol: 550, date: '2022-09-06', lat: 18.455825, lon: 77.415908 },
   { flight: 32, sol: 561, date: '2022-09-17', lat: 18.455925, lon: 77.414231 },
@@ -86,74 +130,146 @@ export const FLIGHTS = [
   { flight: 39, sol: 673, date: '2023-01-11', lat: 18.457264, lon: 77.409884 },
   { flight: 40, sol: 681, date: '2023-01-19', lat: 18.458712, lon: 77.407133 },
   { flight: 41, sol: 689, date: '2023-01-27', lat: 18.459032, lon: 77.407096 },
-] as const;
+];
 /** The rover must come this close for Ingenuity to fly its next flight. */
 export const FLIGHT_TRIGGER_M = 70;
 
-export type Objective =
-  | { id: string; kind: 'reach'; target: string; optional?: boolean }
-  | { id: string; kind: 'sample'; sample: string; optional?: boolean }
-  | { id: string; kind: 'panorama'; panorama: string; optional?: boolean }
-  | { id: string; kind: 'depot'; optional?: boolean }
-  | { id: string; kind: 'laser'; count: number; optional?: boolean }
-  | { id: string; kind: 'flight'; count: number; optional?: boolean };
+export const DELTA: MissionDef = {
+  id: 'delta',
+  areaId: 'delta',
+  /** Where Perseverance entered the area on sol 408, driving west from the crater floor. */
+  start: { lat: 18.453833, lon: 77.414136, headingDeg: 272 },
+  chapters: [
+    {
+      // Sols 408–436: from the crater floor to the foot of the delta front.
+      id: 'arrival',
+      sols: [408, 436],
+      objectives: [
+        { id: 'reach-front', kind: 'reach', target: 'enchanted-lake' },
+        { id: 'first-laser', kind: 'laser', count: 1 },
+        { id: 'three-lasers', kind: 'laser', count: 3, optional: true },
+      ],
+    },
+    {
+      // Sols 436–534: up Hawksbill Gap to Skinner Ridge and Wildcat Ridge (organic molecules).
+      id: 'hawksbill',
+      sols: [436, 534],
+      objectives: [
+        { id: 'skinner', kind: 'sample', sample: '10 & 11' },
+        { id: 'wildcat', kind: 'sample', sample: '12 & 13' },
+        { id: 'pano-wildcat', kind: 'panorama', panorama: 'wildcat-ridge' },
+      ],
+    },
+    {
+      // Sols 535–639: back down the front to Amalik, Hidden Harbor and Observation Mountain.
+      id: 'amalik',
+      sols: [535, 639],
+      objectives: [
+        { id: 'amalik', kind: 'sample', sample: '14 & 15' },
+        { id: 'hidden-harbor', kind: 'sample', sample: '16' },
+        { id: 'observation', kind: 'sample', sample: '17 & 18' },
+        { id: 'pano-enchanted', kind: 'panorama', panorama: 'enchanted-lake', optional: true },
+        { id: 'flight-3', kind: 'flight', count: 1, optional: true },
+      ],
+    },
+    {
+      // Sols 648–693: the first sample depot on another planet, at Three Forks.
+      id: 'depot',
+      sols: [648, 693],
+      objectives: [
+        { id: 'depot', kind: 'depot' },
+        { id: 'pano-forks', kind: 'panorama', panorama: 'three-forks' },
+        { id: 'flight-4', kind: 'flight', count: 3, optional: true },
+      ],
+    },
+  ],
+  /** The delta front at Enchanted Lake (rover waypoint, sol 422). */
+  reach: [{ id: 'enchanted-lake', name: 'Enchanted Lake', lat: 18.4506, lon: 77.4014 }],
+  /** Real Mastcam-Z 360° panoramas of the area: where they were taken (panoramas.json). */
+  panoramas: [
+    { id: 'wildcat-ridge', name: 'Wildcat Ridge', lat: 18.458647, lon: 77.405925 },
+    { id: 'enchanted-lake', name: 'Enchanted Lake', lat: 18.450726, lon: 77.40144 },
+    { id: 'three-forks', name: 'Three Forks', lat: 18.452813, lon: 77.408244 },
+  ],
+  /** Three Forks depot: centroid of its MMGIS polygon; the drop zone covers the ~70 m footprint. */
+  depot: { lat: 18.45296, lon: 77.40821, radiusM: 40 },
+  flights: FLIGHTS,
+  /** Samples cored on the crater floor before the rover reached the delta. */
+  earlierSamples: ['1', '2 & 3', '4 & 5', '6 & 7', '8 & 9'],
+  routeSols: [404, 700],
+};
 
-export type ChapterId = 'arrival' | 'hawksbill' | 'amalik' | 'depot';
+// ---------- the landing ----------
 
-export interface Chapter {
-  id: ChapterId;
-  /** Sols of the real campaign the chapter follows. */
-  sols: [number, number];
-  objectives: Objective[];
-}
-
-export const CHAPTERS: Chapter[] = [
-  {
-    // Sols 408–436: from the crater floor to the foot of the delta front.
-    id: 'arrival',
-    sols: [408, 436],
-    objectives: [
-      { id: 'reach-front', kind: 'reach', target: 'enchanted-lake' },
-      { id: 'first-laser', kind: 'laser', count: 1 },
-      { id: 'three-lasers', kind: 'laser', count: 3, optional: true },
-    ],
-  },
-  {
-    // Sols 436–534: up Hawksbill Gap to Skinner Ridge and Wildcat Ridge (organic molecules).
-    id: 'hawksbill',
-    sols: [436, 534],
-    objectives: [
-      { id: 'skinner', kind: 'sample', sample: '10 & 11' },
-      { id: 'wildcat', kind: 'sample', sample: '12 & 13' },
-      { id: 'pano-wildcat', kind: 'panorama', panorama: 'wildcat-ridge' },
-    ],
-  },
-  {
-    // Sols 535–639: back down the front to Amalik, Hidden Harbor and Observation Mountain.
-    id: 'amalik',
-    sols: [535, 639],
-    objectives: [
-      { id: 'amalik', kind: 'sample', sample: '14 & 15' },
-      { id: 'hidden-harbor', kind: 'sample', sample: '16' },
-      { id: 'observation', kind: 'sample', sample: '17 & 18' },
-      { id: 'pano-enchanted', kind: 'panorama', panorama: 'enchanted-lake', optional: true },
-      { id: 'flight-3', kind: 'flight', count: 1, optional: true },
-    ],
-  },
-  {
-    // Sols 648–693: the first sample depot on another planet, at Three Forks.
-    id: 'depot',
-    sols: [648, 693],
-    objectives: [
-      { id: 'depot', kind: 'depot' },
-      { id: 'pano-forks', kind: 'panorama', panorama: 'three-forks' },
-      { id: 'flight-4', kind: 'flight', count: 3, optional: true },
-    ],
-  },
+/** Landing hardware where HiRISE saw it on 19 Feb 2021 (data/catalog/landing-hardware.json). */
+export const LANDING_HARDWARE: Hardware[] = [
+  { id: 'parachute', lat: 18.452209, lon: 77.432098 },
+  { id: 'backshell', lat: 18.451776, lon: 77.431713 },
+  { id: 'descent-stage', lat: 18.45224, lon: 77.441434 },
+  { id: 'heat-shield', lat: 18.455335, lon: 77.474436 },
 ];
 
-/** The player's progress through the expedition (saved in the browser). */
+export const LANDING: MissionDef = {
+  id: 'landing',
+  areaId: 'landing',
+  /**
+   * Octavia E. Butler Landing: the rover's first logged position (MMGIS, sol 13, before its first
+   * drive), facing the way it set off.
+   */
+  start: { lat: 18.444627, lon: 77.450886, headingDeg: 300 },
+  chapters: [
+    {
+      // Sols 0–14: touchdown, the first look round, SuperCam's first shots, the first drive.
+      id: 'touchdown',
+      sols: [0, 14],
+      objectives: [
+        { id: 'landing-laser', kind: 'laser', count: 1 },
+        { id: 'descent-stage', kind: 'reach', target: 'descent-stage' },
+      ],
+    },
+    {
+      // The hardware that brought the rover down: Ingenuity photographed it on 19 Apr 2022.
+      id: 'hardware',
+      sols: [15, 420],
+      objectives: [
+        { id: 'parachute', kind: 'reach', target: 'parachute' },
+        { id: 'heat-shield', kind: 'reach', target: 'heat-shield', optional: true },
+      ],
+    },
+  ],
+  reach: [
+    { id: 'descent-stage', name: 'Descent stage', lat: 18.45224, lon: 77.441434, radiusM: 30 },
+    { id: 'parachute', name: 'Parachute and backshell', lat: 18.45199, lon: 77.431905, radiusM: 35 },
+    { id: 'heat-shield', name: 'Heat shield', lat: 18.455335, lon: 77.474436, radiusM: 25 },
+  ],
+  panoramas: [],
+  depot: null,
+  flights: [],
+  earlierSamples: [],
+  routeSols: [13, 120],
+  intro: 'landing',
+  hardware: LANDING_HARDWARE,
+  blast: { lat: 18.444627, lon: 77.450886 },
+};
+
+export const MISSIONS: Record<MissionId, MissionDef> = { landing: LANDING, delta: DELTA };
+export const missionOf = (s: { mission?: MissionId }): MissionDef => MISSIONS[s.mission ?? 'delta'];
+
+/** The delta's definitions under their earlier names (the delta was the game's only map). */
+export const AREA_ID = DELTA.areaId;
+export const START = DELTA.start;
+export const DEPOT = DELTA.depot!;
+export const CHAPTERS = DELTA.chapters;
+export const PANORAMA_SPOTS = DELTA.panoramas;
+export const REACH_SPOTS = DELTA.reach;
+export const EARLIER_SAMPLES = DELTA.earlierSamples;
+
+// ---------- progress ----------
+
+/** The player's progress through a mission (saved in the browser). */
 export interface ExpeditionState {
+  /** Missing in saves from before there were several missions: the delta. */
+  mission?: MissionId;
   chapter: number;
   /** Sample sites cored (by sample number entry, e.g. "10 & 11"). */
   samples: string[];
@@ -162,7 +278,7 @@ export interface ExpeditionState {
   deposited: boolean;
   /** Ingenuity flights watched (flight numbers); the helicopter is at the last one's airfield. */
   flights: number[];
-  /** Rocks analysed with SuperCam during this expedition, and the science points earned. */
+  /** Rocks analysed with SuperCam during this mission, and the science points earned. */
   finds: Find[];
   science: number;
 }
@@ -175,7 +291,8 @@ export interface Find {
   first: boolean;
 }
 
-export const newExpedition = (): ExpeditionState => ({
+export const newExpedition = (mission: MissionId = 'delta'): ExpeditionState => ({
+  mission,
   chapter: 0,
   samples: [],
   panoramas: [],
@@ -189,7 +306,7 @@ export const newExpedition = (): ExpeditionState => ({
 /** Flights watched within a chapter's sols (flight objectives count only the chapter's own). */
 const flightsIn = (s: ExpeditionState, c: Chapter) =>
   s.flights.filter((n) => {
-    const f = FLIGHTS.find((x) => x.flight === n);
+    const f = missionOf(s).flights.find((x) => x.flight === n);
     return !!f && f.sol >= c.sols[0] && f.sol <= c.sols[1];
   }).length;
 
@@ -222,27 +339,29 @@ export function objectiveCount(
 }
 
 export const chapterDone = (s: ExpeditionState, i = s.chapter): boolean => {
-  const c = CHAPTERS[i];
+  const c = missionOf(s).chapters[i];
   return !!c && c.objectives.every((o) => o.optional || objectiveDone(s, o, c));
 };
 
-export const expeditionDone = (s: ExpeditionState): boolean =>
-  s.chapter >= CHAPTERS.length - 1 && chapterDone(s, CHAPTERS.length - 1);
+export const expeditionDone = (s: ExpeditionState): boolean => {
+  const n = missionOf(s).chapters.length;
+  return s.chapter >= n - 1 && chapterDone(s, n - 1);
+};
 
-/** Every place of the map as a target (samples from the catalogue). */
-export function allTargets(samples: SampleSite[]): Target[] {
+/** Every place of a mission's map as a target (samples from the catalogue). */
+export function allTargets(samples: SampleSite[], m: MissionDef = DELTA): Target[] {
   const out: Target[] = [];
-  for (const r of REACH_SPOTS)
+  for (const r of m.reach)
     out.push({
       id: `reach-${r.id}`,
       kind: 'reach',
       name: r.name,
       lat: r.lat,
       lon: r.lon,
-      radiusM: REACH_RADIUS_M,
+      radiusM: r.radiusM ?? REACH_RADIUS_M,
       tubes: 0,
     });
-  for (const c of CHAPTERS)
+  for (const c of m.chapters)
     for (const o of c.objectives) {
       if (o.kind !== 'sample') continue;
       const site = samples.find((x) => x.sampleNumber === o.sample);
@@ -258,18 +377,18 @@ export function allTargets(samples: SampleSite[]): Target[] {
         site,
       });
     }
-  for (const p of PANORAMA_SPOTS)
+  for (const p of m.panoramas)
     out.push({
       id: `pano-${p.id}`,
       kind: 'panorama',
       name: p.name,
       lat: p.lat,
       lon: p.lon,
-      radiusM: PANORAMA_RADIUS_M,
+      radiusM: p.radiusM ?? PANORAMA_RADIUS_M,
       tubes: 0,
       panoramaId: p.id,
     });
-  out.push({ id: 'depot', kind: 'depot', name: 'Three Forks', ...DEPOT, tubes: 0 });
+  if (m.depot) out.push({ id: 'depot', kind: 'depot', name: 'Three Forks', ...m.depot, tubes: 0 });
   return out;
 }
 
@@ -301,7 +420,7 @@ export function isDone(s: ExpeditionState, t: Target): boolean {
  * photographed (a discovery off the main path). Later chapters stay hidden.
  */
 export function openTargets(s: ExpeditionState, targets: Target[]): Target[] {
-  const c = CHAPTERS[s.chapter];
+  const c = missionOf(s).chapters[s.chapter];
   if (!c) return [];
   const ids = new Set(c.objectives.map(targetFor).filter((x): x is string => !!x));
   return targets.filter((t) => !isDone(s, t) && (ids.has(t.id) || t.kind === 'panorama'));
@@ -313,7 +432,7 @@ export function nextTarget(
   targets: Target[],
   rover?: RoverState,
 ): Target | null {
-  const c = CHAPTERS[s.chapter];
+  const c = missionOf(s).chapters[s.chapter];
   if (!c) return null;
   const todo = c.objectives.filter((o) => !objectiveDone(s, o, c));
   const pick = (list: Objective[]) => {
@@ -421,7 +540,7 @@ export function stepExpedition(
 
 /**
  * After a change of progress (from `before` to `s`): opens the next chapter when the current
- * one's main objectives are done, and ends the expedition when the last one's are.
+ * one's main objectives are done, and ends the mission when the last one's are.
  */
 export function advance(
   s: ExpeditionState,
@@ -429,7 +548,8 @@ export function advance(
   events: ExpeditionEvent[] = [],
 ): { state: ExpeditionState; events: ExpeditionEvent[] } {
   let state = s;
-  while (chapterDone(state) && state.chapter < CHAPTERS.length - 1) {
+  const n = missionOf(s).chapters.length;
+  while (chapterDone(state) && state.chapter < n - 1) {
     state = { ...state, chapter: state.chapter + 1 };
     events.push({ kind: 'chapter', chapter: state.chapter });
   }
@@ -440,20 +560,22 @@ export function advance(
 // ---------- Ingenuity ----------
 
 /**
- * Ingenuity in a chapter: the index (in FLIGHTS) of the airfield it sits at, and the flight it
- * flies next (null when it has no more flights in this chapter). Before the chapter's first sol it
- * catches up to where it really was; chapters before its first flight here have no helicopter.
+ * Ingenuity in a chapter: the index (in the mission's flights) of the airfield it sits at, and the
+ * flight it flies next (null when it has no more flights in this chapter). Before the chapter's
+ * first sol it catches up to where it really was; chapters before its first flight here have no
+ * helicopter.
  */
 export function ingenuity(s: ExpeditionState): { at: number; next: number | null } | null {
-  const c = CHAPTERS[s.chapter];
-  if (!c) return null;
+  const m = missionOf(s);
+  const c = m.chapters[s.chapter];
+  if (!c || m.flights.length === 0) return null;
   const watched = s.flights.length ? Math.max(...s.flights) : 0;
   let at = -1;
-  FLIGHTS.forEach((f, i) => {
+  m.flights.forEach((f, i) => {
     if (f.sol <= c.sols[0] || f.flight <= watched) at = i;
   });
   if (at < 0) return null;
-  const n = FLIGHTS[at + 1];
+  const n = m.flights[at + 1];
   return { at, next: n && n.sol <= c.sols[1] ? at + 1 : null };
 }
 
@@ -470,19 +592,20 @@ export interface Tube {
 }
 
 /**
- * Perseverance's 38 sample tubes: those filled on the crater floor before this map, the ones cored
- * here, and the empty ones. At Three Forks one tube of each pair cored here is left behind.
+ * Perseverance's 38 sample tubes: those filled before this mission, the ones cored in it, and the
+ * empty ones. At Three Forks one tube of each pair cored there is left behind.
  */
 export function tubeRack(s: ExpeditionState): Tube[] {
+  const earlier = missionOf(s).earlierSamples;
   const out: Tube[] = [];
-  for (const e of [...EARLIER_SAMPLES, ...s.samples]) {
+  for (const e of [...earlier, ...s.samples]) {
     const numbers = e.match(/\d+/g) ?? [];
     numbers.forEach((n, i) =>
       out.push({
         number: n,
         entry: e,
-        earlier: EARLIER_SAMPLES.includes(e),
-        depot: s.deposited && !EARLIER_SAMPLES.includes(e) && numbers.length > 1 && i === 1,
+        earlier: earlier.includes(e),
+        depot: s.deposited && !earlier.includes(e) && numbers.length > 1 && i === 1,
       }),
     );
   }

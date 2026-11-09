@@ -26,6 +26,8 @@ const TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.wasm': 'application/wasm',
   '.terrain': 'application/vnd.quantized-mesh',
+  '.mp4': 'video/mp4',
+  '.vtt': 'text/vtt',
 };
 
 function serveDirectory(mount: string, root: string, cache: (file: string) => string): Plugin {
@@ -52,6 +54,26 @@ function serveDirectory(mount: string, root: string, cache: (file: string) => st
           return;
         }
         res.setHeader('Content-Type', TYPES[extname(file)] ?? 'application/octet-stream');
+        res.setHeader('Accept-Ranges', 'bytes');
+        // Byte ranges (as S3/CloudFront serve them in production): a video can only be sought, and
+        // starts playing before it has all downloaded, when the server answers them.
+        const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+        if (range && (range[1] || range[2])) {
+          const end = range[2] && range[1] ? Math.min(Number(range[2]), stat.size - 1) : stat.size - 1;
+          const start = range[1] ? Number(range[1]) : Math.max(0, stat.size - Number(range[2]));
+          if (start > end || start >= stat.size) {
+            res.statusCode = 416;
+            res.setHeader('Content-Range', `bytes */${stat.size}`);
+            res.end();
+            return;
+          }
+          res.statusCode = 206;
+          res.setHeader('Content-Range', `bytes ${start}-${end}/${stat.size}`);
+          res.setHeader('Content-Length', String(end - start + 1));
+          createReadStream(file, { start, end }).on('error', next).pipe(res);
+          return;
+        }
+        res.setHeader('Content-Length', String(stat.size));
         createReadStream(file).on('error', next).pipe(res);
       });
     },

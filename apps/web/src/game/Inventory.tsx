@@ -4,9 +4,7 @@ import { DATA_VERSION, dataUrl } from '../config';
 import { PANORAMAS, POIS, samplePhotos } from '../data/catalog';
 import type { SampleSite } from '../data/surfaceData';
 import {
-  CHAPTERS,
-  FLIGHTS,
-  PANORAMA_SPOTS,
+  missionOf,
   WITNESS_TUBES,
   objectiveCount,
   objectiveDone,
@@ -227,7 +225,7 @@ function Discoveries({ exp, session }: { exp: ExpeditionState; session: GameSess
     <div className="game-discoveries">
       <h3>{t('game.inventory.discoveries.panoramas')}</h3>
       <ul className="game-pano-list">
-        {PANORAMA_SPOTS.map((p) => {
+        {missionOf(exp).panoramas.map((p) => {
           const have = exp.panoramas.includes(p.id);
           const pano = PANORAMAS.find((x) => x.id === p.id);
           return (
@@ -271,7 +269,7 @@ function Discoveries({ exp, session }: { exp: ExpeditionState; session: GameSess
       {exp.flights.length ? (
         <ul className="game-flights">
           {exp.flights.map((n) => {
-            const f = FLIGHTS.find((x) => x.flight === n);
+            const f = missionOf(exp).flights.find((x) => x.flight === n);
             return (
               <li key={n}>
                 {t('game.inventory.discoveries.flight', {
@@ -294,7 +292,7 @@ function Journal({ exp }: { exp: ExpeditionState }) {
   const { t } = useTranslation();
   return (
     <ol className="game-journal">
-      {CHAPTERS.map((c, i) => {
+      {missionOf(exp).chapters.map((c, i) => {
         const state = i < exp.chapter ? 'is-done' : i === exp.chapter ? 'is-now' : 'is-later';
         return (
           <li key={c.id} className={state}>

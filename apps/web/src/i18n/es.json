@@ -959,7 +959,8 @@
       "photos": "Fotos",
       "options": "Opciones",
       "how": "Cómo jugar",
-      "expedition": "Expedición"
+      "expedition": "Expedición",
+      "missions": "Misiones"
     },
     "collection": {
       "samples": "Muestras",
@@ -1094,6 +1095,14 @@
       "depot": {
         "title": "El depósito de Three Forks",
         "story": "Diciembre de 2022 – enero de 2023: el primer depósito de muestras en otro mundo. Perseverance deja tubos duplicados en el suelo de Three Forks, una reserva para traer muestras a la Tierra, y guarda sus gemelos a bordo. Deja los tubos en la zona del depósito y toma la panorámica del lugar."
+      },
+      "touchdown": {
+        "title": "Contacto",
+        "story": "18 de febrero de 2021: el control de la misión confirma el contacto a las 15:55, hora del este de EE. UU. Perseverance está en el cráter Jezero, en el lugar que la NASA llamará Octavia E. Butler Landing. Los motores de la etapa de descenso barrieron el suelo bajo el rover; la etapa voló lejos y se estrelló a 700 m al noroeste. Prueba el láser de SuperCam en una roca y conduce hasta el lugar del impacto."
+      },
+      "hardware": {
+        "title": "Lo que lo trajo hasta aquí",
+        "story": "El paracaídas de 21,5 m y el escudo trasero que frenó cayeron a 1,15 km al oeste-noroeste del rover; el escudo térmico, soltado antes, a 1,5 km al este-noreste. Nadie fue hasta allí en coche: Ingenuity fotografió el paracaídas y el escudo trasero desde 8 m de altura en abril de 2022. Encuéntralos."
       }
     },
     "objectives": {
@@ -1111,7 +1120,11 @@
       "depot": "Deja los tubos duplicados en Three Forks",
       "pano-forks": "Panorámica de 360° en Three Forks",
       "flight-4": "Observa 3 vuelos de Ingenuity",
-      "optional": "opcional"
+      "optional": "opcional",
+      "landing-laser": "Analiza una roca con SuperCam (F)",
+      "descent-stage": "Llega al lugar del impacto de la etapa de descenso",
+      "parachute": "Llega al paracaídas y al escudo trasero",
+      "heat-shield": "Llega al escudo térmico"
     },
     "toast": {
       "reached": "Llegaste a {{name}}",
@@ -1141,8 +1154,8 @@
     "map": {
       "label": "Mapa del frente del delta",
       "hint": "Clic: AutoNav hasta ahí",
-      "larger": "Más grande",
-      "smaller": "Más pequeño"
+      "larger": "Agrandar el mapa",
+      "smaller": "Reducir el mapa"
     },
     "inventory": {
       "title": "Inventario",
@@ -1190,6 +1203,81 @@
         "wildcat-ridge": "Desde Wildcat Ridge, subiendo por Hawksbill Gap: las rocas en capas del frente del delta alrededor del rover y, abajo, el fondo del cráter que recorrió.",
         "enchanted-lake": "Al pie del frente del delta, donde el rover extrajo el afloramiento Amalik: detrás se alzan los acantilados del frente.",
         "three-forks": "Three Forks, el primer depósito de muestras en otro mundo, visto desde el rover durante las semanas en que dejó los tubos."
+      }
+    },
+    "missions": {
+      "intro": "Episodios de la misión real de Perseverance, cada uno en su propio mapa reconstruido con datos orbitales, en el orden en que los vivió el rover. El progreso se guarda en este navegador, por misión.",
+      "chapters_one": "{{count}} capítulo",
+      "chapters_other": "{{count}} capítulos",
+      "next": "Próximamente",
+      "landing": {
+        "title": "Siete minutos",
+        "desc": "El vídeo del aterrizaje de la NASA y, después, Octavia E. Butler Landing el 18 de febrero de 2021: las marcas del chorro bajo el rover, y la etapa de descenso, el paracaídas con el escudo trasero y el escudo térmico donde los vio la órbita al día siguiente.",
+        "start": "Empezar el aterrizaje",
+        "complete": "Lugar de aterrizaje explorado",
+        "real": "Los restos están donde los fotografió HiRISE el 19 de febrero de 2021. Perseverance nunca fue hasta ellos: Ingenuity sobrevoló el paracaídas y el escudo trasero el 19 de abril de 2022, hacia el sol 414."
+      },
+      "delta": {
+        "title": "El frente del delta",
+        "desc": "Abril de 2022 – febrero de 2023: Hawksbill Gap, Wildcat Ridge, Amalik y el primer depósito de muestras en otro mundo, en Three Forks.",
+        "start": "Empezar la expedición",
+        "complete": "Expedición completada",
+        "real": "Perseverance hizo todo esto entre el sol {{first}} y el sol {{last}}: {{sols}} soles, unos {{months}} meses en la Tierra."
+      },
+      "ingenuity": {
+        "title": "Momento hermanos Wright"
+      },
+      "moxie": {
+        "title": "Aire fabricado"
+      },
+      "firstSample": {
+        "title": "El tubo vacío"
+      },
+      "chute": {
+        "title": "De vuelta al paracaídas"
+      },
+      "lastFlight": {
+        "title": "El último vuelo de Ingenuity"
+      },
+      "leopard": {
+        "title": "Manchas de leopardo"
+      },
+      "rim": {
+        "title": "El borde del cráter"
+      },
+      "sparks": {
+        "title": "Minirrayos"
+      },
+      "aiDrive": {
+        "title": "Planifica la ruta"
+      },
+      "record": {
+        "title": "Récord de distancia"
+      }
+    },
+    "places": {
+      "reach-descent-stage": "Etapa de descenso",
+      "reach-parachute": "Paracaídas y escudo trasero",
+      "reach-heat-shield": "Escudo térmico"
+    },
+    "video": {
+      "back": "Volver a las misiones",
+      "watch": "Ver el vídeo del aterrizaje",
+      "play": "Reproducir",
+      "pause": "Pausa",
+      "seek": "Posición en el vídeo",
+      "mute": "Silenciar",
+      "unmute": "Activar sonido",
+      "volume": "Volumen",
+      "captions": "Subtítulos",
+      "fullscreen": "Pantalla completa",
+      "skip": "Saltar vídeo",
+      "close": "Cerrar",
+      "credit": "Vídeo: NASA/JPL-Caltech, «Perseverance Rover’s Descent and Touchdown on Mars» (22 feb 2021). Subtítulos en inglés.",
+      "landing": {
+        "title": "Perseverance aterriza en Marte",
+        "date": "18 de febrero de 2021 · Cráter Jezero",
+        "context": "Imágenes reales de las cámaras del escudo trasero, la etapa de descenso y el rover: el paracaídas de 21,5 m abriéndose a unos 11 km de altura, el escudo térmico que se suelta, la etapa de descenso bajando el rover con cables y el polvo del contacto. Las voces son del control de la misión en el JPL."
       }
     }
   }

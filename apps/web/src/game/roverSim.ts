@@ -10,7 +10,9 @@ import { follow, M_PER_DEG } from '../lib/math';
  * nuclear power source (an MMRTG that slowly recharges the batteries) follow the real rover.
  *
  * Hazards (HAZARD), after the real rovers' experience:
- * - Soft sand: the wheels slip, and sink while they spin in deep sand, until the rover is stuck.
+ * - Soft sand: the wheels slip, and sink a little while they spin in deep sand: the rover slows
+ *   right down but never gets stuck (getting stuck, then backing out, was more annoying than it
+ *   taught; Spirit's end in the sand at Troy in 2009 is why real drivers avoid it).
  *   Backing out frees it. Spirit was trapped for good at Troy in 2009; Opportunity backed out of
  *   Purgatory dune in 2005.
  * - Sharp rocks: they wear the wheels when driven over fast (Curiosity's wheels were punctured
@@ -56,14 +58,14 @@ export const HAZARD = {
   /** Slip in sand: the speed lost at full sand, and at full sinkage. */
   slipSand: 0.5,
   slipSink: 0.35,
-  /** Sinkage gained per metre the wheels turn in fully deep sand (stuck at 1), ×boost. */
+  /** Sinkage gained per metre the wheels turn in fully deep sand, ×boost; it stops at maxSink. */
   sinkPerM: 0.018,
   boostSinkFactor: 2.5,
   /** Sinkage lost per second backing out, and on firm ground. */
   backOutPerS: 0.3,
   recoverPerS: 0.25,
-  /** Stuck until the sinkage is back below this. */
-  freeAt: 0.5,
+  /** Deepest the wheels sink (0–1): enough to slow the rover hard, never to trap it. */
+  maxSink: 0.6,
   /** Rocks higher than this (m) under a wheel, driven over faster than safeMps, wear the wheels. */
   safeRockM: 0.14,
   safeMps: 2,
@@ -128,7 +130,7 @@ export interface RoverState {
   tiltDeg: number;
   blocked: Blocked;
   recharging: boolean;
-  /** Sand under the rover (0–1), wheel slip (0–1) and sinkage (0–1; 1 is stuck). */
+  /** Sand under the rover (0–1), wheel slip (0–1) and sinkage (0–maxSink); never stuck now. */
   sand: number;
   slip: number;
   sinkage: number;
@@ -251,11 +253,9 @@ export function stepRover(
       : 0;
   const factor = gradeFactor(climb);
 
-  // Soft sand: slip, and sinkage while the wheels turn in deep sand; stuck at full sinkage.
+  // Soft sand: slip, and sinkage while the wheels turn in deep sand (bounded: never stuck).
   s.sand = ground.sand?.(lat, lon) ?? 0;
   const deep = Math.max(0, (s.sand - HAZARD.deepSand) / (1 - HAZARD.deepSand));
-  if (s.sinkage >= 1) s.stuck = true;
-  if (s.stuck && s.sinkage < HAZARD.freeAt) s.stuck = false;
   s.slip = Math.min(0.9, s.sand * HAZARD.slipSand + s.sinkage * HAZARD.slipSink);
 
   // Speed: towards the target set by the throttle, limited by the climb ahead.
@@ -264,7 +264,7 @@ export function stepRover(
     s.wheelsPct >= HAZARD.limpBelowPct ? 1 : 0.45 + (0.55 * s.wheelsPct) / HAZARD.limpBelowPct;
   const top = (boost ? DRIVE.boostMps : DRIVE.cruiseMps) * limp * (env.speedFactor ?? 1);
   const grip = 1 - s.slip;
-  let target =
+  const target =
     throttle > 0
       ? top * throttle * factor * grip
       : throttle < 0
@@ -273,17 +273,13 @@ export function stepRover(
   // Wheels turning in deep sand dig in; backing out, or firm ground, frees them.
   if (throttle > 0 && deep > 0)
     s.sinkage = Math.min(
-      1,
+      HAZARD.maxSink,
       s.sinkage +
         top * throttle * dt * deep * HAZARD.sinkPerM * (boost ? HAZARD.boostSinkFactor : 1),
     );
   else if (throttle < 0) s.sinkage = Math.max(0, s.sinkage - dt * HAZARD.backOutPerS);
   else if (deep === 0 && Math.abs(s.speed) > 0.1)
     s.sinkage = Math.max(0, s.sinkage - dt * HAZARD.recoverPerS);
-  if (s.stuck && throttle > 0) {
-    target = 0;
-    s.blocked = 'sand';
-  }
   const braking = target === 0 || Math.sign(target) !== Math.sign(s.speed);
   const rate =
     throttle === 0 ? DRIVE.coast : braking ? DRIVE.brake : boost ? DRIVE.boostAccel : DRIVE.accel;
@@ -293,7 +289,6 @@ export function stepRover(
     // A boulder ahead (rather than the slope itself).
     s.blocked = (ground.rock?.(aheadPt.lat, aheadPt.lon) ?? 0) > 0.3 ? 'rock' : 'steep';
   }
-  if (s.stuck && throttle > 0) s.speed = Math.min(s.speed, 0);
 
   // Steering: smoothed input; the rover can turn in place, a little slower when fast.
   s.steer += (input.steer - s.steer) * follow(dt, 0.12);

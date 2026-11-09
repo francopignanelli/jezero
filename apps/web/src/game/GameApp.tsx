@@ -1,4 +1,11 @@
-import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  memo,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { DATA_VERSION, dataUrl } from '../config';
 import { POIS, samplePhotos } from '../data/catalog';
@@ -7,12 +14,12 @@ import { formatClock, formatDegrees, formatDistance } from '../lib/format';
 import { M_PER_DEG } from '../lib/math';
 import { readBest, readCareer, resetProgress, type Career } from './career';
 import {
-  CHAPTERS,
-  FLIGHTS,
-  START,
+  MISSIONS,
   isDone,
+  missionOf,
   objectiveCount,
   objectiveDone,
+  type MissionId,
   type Target,
 } from './expedition';
 import { Inventory, whyKey } from './Inventory';
@@ -72,6 +79,7 @@ export function GameApp() {
         </div>
       )}
       {session && phase === 'briefing' && <MainMenu session={session} />}
+      {session && phase === 'intro' && <LandingIntro session={session} />}
       {session && phase === 'loading' && (
         <div className="game-veil" role="status">
           {t('game.loadingMission')}
@@ -89,6 +97,7 @@ export function GameApp() {
       {session && phase === 'panorama' && <PanoramaPhase session={session} />}
       {session && phase === 'complete' && <Complete session={session} />}
       {session && phase === 'photo' && <PhotoMode session={session} />}
+      {session && <VideoReplay />}
     </div>
   );
 }
@@ -154,12 +163,12 @@ function SoundToggle({ session }: { session: GameSession }) {
   );
 }
 
-const TABS = ['expedition', 'collection', 'photos', 'options', 'how'] as const;
+const TABS = ['missions', 'collection', 'photos', 'options', 'how'] as const;
 type Tab = (typeof TABS)[number];
 
 function MainMenu({ session }: { session: GameSession }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<Tab>('expedition');
+  const [tab, setTab] = useState<Tab>('missions');
   const [career, setCareer] = useState<Career>(readCareer);
   return (
     <div className="game-screen">
@@ -199,7 +208,7 @@ function MainMenu({ session }: { session: GameSession }) {
           id={`game-panel-${tab}`}
           aria-labelledby={`game-tab-${tab}`}
         >
-          {tab === 'expedition' && <ExpeditionTab session={session} />}
+          {tab === 'missions' && <MissionsTab session={session} />}
           {tab === 'collection' && <Collection session={session} career={career} />}
           {tab === 'photos' && <Gallery />}
           {tab === 'options' && (
@@ -212,59 +221,104 @@ function MainMenu({ session }: { session: GameSession }) {
   );
 }
 
-/** Continue the saved expedition, or start a new one; the four chapters at a glance. */
-function ExpeditionTab({ session }: { session: GameSession }) {
+/**
+ * The mission slate, in the order Perseverance lived them (the research brief's twelve episodes).
+ * Playable ones have a mission; the others are shown as coming next.
+ */
+const SLATE: Array<{ n: number; key: string; date: string; mission?: MissionId }> = [
+  { n: 1, key: 'landing', date: '2021-02-18', mission: 'landing' },
+  { n: 2, key: 'ingenuity', date: '2021-04' },
+  { n: 3, key: 'moxie', date: '2021–2023' },
+  { n: 4, key: 'firstSample', date: '2021-08' },
+  { n: 5, key: 'chute', date: '2022-04-19' },
+  { n: 6, key: 'delta', date: '2022–2023', mission: 'delta' },
+  { n: 7, key: 'lastFlight', date: '2024-01-18' },
+  { n: 8, key: 'leopard', date: '2024-07' },
+  { n: 9, key: 'rim', date: '2024–2025' },
+  { n: 10, key: 'sparks', date: '2025' },
+  { n: 11, key: 'aiDrive', date: '2025-12' },
+  { n: 12, key: 'record', date: '2026-10' },
+];
+
+/** The missions: continue or start each playable one; the rest, coming next. */
+function MissionsTab({ session }: { session: GameSession }) {
   const { t } = useTranslation();
-  const hasSave = useGame((s) => s.hasSave);
-  const exp = useGame((s) => s.expedition);
-  const [confirm, setConfirm] = useState(false);
-  const best = readBest();
+  const saves = useGame((s) => s.saves);
+  const [confirm, setConfirm] = useState<MissionId | null>(null);
+  const playable = SLATE.filter((m) => m.mission);
+  const later = SLATE.filter((m) => !m.mission);
   return (
-    <div className="game-expedition">
-      <p>{t('game.expedition.intro')}</p>
-      <ol className="game-chapter-list">
-        {CHAPTERS.map((c, i) => (
-          <li key={c.id} className={hasSave && i < exp.chapter ? 'is-done' : ''}>
-            <span className="game-chapter-n">{i + 1}</span>
-            <div>
-              <strong>{t(`game.chapters.${c.id}.title`)}</strong>
-              <span className="meta">
-                {t('game.chapter.sols', { first: c.sols[0], last: c.sols[1] })}
-              </span>
-            </div>
+    <div className="game-missions">
+      <p>{t('game.missions.intro')}</p>
+      <ol className="game-mission-list">
+        {playable.map((m) => {
+          const id = m.mission!;
+          const def = MISSIONS[id];
+          const saved = saves[id];
+          const best = readBest(id);
+          const start = t(`game.missions.${m.key}.start`);
+          return (
+            <li key={m.key} className="game-mission">
+              <div className="game-mission-head">
+                <span className="game-chapter-n">{m.n}</span>
+                <div>
+                  <strong>{t(`game.missions.${m.key}.title`)}</strong>
+                  <span className="meta">
+                    {m.date} · {t('game.missions.chapters', { count: def.chapters.length })}
+                    {best !== null && <> · {t('game.best', { time: formatClock(best) })}</>}
+                  </span>
+                </div>
+              </div>
+              <p>{t(`game.missions.${m.key}.desc`)}</p>
+              <div className="btn-row">
+                {saved !== undefined && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void session.continueExpedition(id)}
+                  >
+                    {t('game.expedition.continue', { chapter: saved + 1 })}
+                  </button>
+                )}
+                {saved !== undefined && confirm !== id ? (
+                  <button type="button" className="btn" onClick={() => setConfirm(id)}>
+                    {t('game.expedition.new')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={saved !== undefined ? 'btn' : 'btn btn-primary'}
+                    onClick={() => void session.newExpedition(id)}
+                  >
+                    {saved !== undefined ? t('game.expedition.newConfirm') : start}
+                  </button>
+                )}
+                {def.intro && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => useGame.getState().set({ video: def.intro! })}
+                  >
+                    ▶ {t('game.video.watch')}
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <h3 className="game-panel-title">{t('game.missions.next')}</h3>
+      <ul className="game-mission-later">
+        {later.map((m) => (
+          <li key={m.key}>
+            <span className="game-chapter-n is-later">{m.n}</span>
+            <span>
+              <strong>{t(`game.missions.${m.key}.title`)}</strong>
+              <span className="meta"> · {m.date}</span>
+            </span>
           </li>
         ))}
-      </ol>
-      <div className="btn-row">
-        {hasSave && (
-          <button
-            type="button"
-            className="btn btn-primary"
-            autoFocus
-            onClick={() => session.continueExpedition()}
-          >
-            {t('game.expedition.continue', { chapter: exp.chapter + 1 })}
-          </button>
-        )}
-        {hasSave && !confirm ? (
-          <button type="button" className="btn" onClick={() => setConfirm(true)}>
-            {t('game.expedition.new')}
-          </button>
-        ) : (
-          <button
-            type="button"
-            className={hasSave ? 'btn' : 'btn btn-primary'}
-            autoFocus={!hasSave}
-            onClick={() => session.newExpedition()}
-          >
-            {hasSave ? t('game.expedition.newConfirm') : t('game.expedition.start')}
-          </button>
-        )}
-      </div>
-      <p className="meta">
-        {t('game.expedition.meta')}
-        {best !== null && <> · {t('game.best', { time: formatClock(best) })}</>}
-      </p>
+      </ul>
     </div>
   );
 }
@@ -538,7 +592,7 @@ function HowToPlay() {
 function ChapterPage({ session }: { session: GameSession }) {
   const { t } = useTranslation();
   const exp = useGame((s) => s.expedition);
-  const c = CHAPTERS[exp.chapter]!;
+  const c = missionOf(exp).chapters[exp.chapter]!;
   return (
     <div className="game-screen">
       <div
@@ -583,7 +637,7 @@ function Objectives() {
   const { t } = useTranslation();
   const exp = useGame((s) => s.expedition);
   const storm = useGame((s) => s.hud.storm);
-  const c = CHAPTERS[exp.chapter];
+  const c = missionOf(exp).chapters[exp.chapter];
   if (!c) return null;
   return (
     <section className="game-panel game-objectives" aria-label={t('game.hud.objectives')}>
@@ -924,7 +978,7 @@ function PhotoMode({ session }: { session: GameSession }) {
   const exp = useGame((s) => s.expedition);
   const [saved, setSaved] = useState<{ blob: Blob; name: string; kept: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
-  const chapter = CHAPTERS[exp.chapter];
+  const chapter = missionOf(exp).chapters[exp.chapter];
   const place = chapter ? t(`game.chapters.${chapter.id}.title`) : t('game.title');
   const caption = `Perseverance · Jezero · ${place} · ${new Date().toLocaleDateString(i18n.language)} · Copernico`;
   return (
@@ -987,7 +1041,19 @@ function PhotoMode({ session }: { session: GameSession }) {
 
 const MAP_W = 300;
 const MAP_H = 210;
-const MAP_SCALE_LARGE = 2.4;
+/** The larger map: at most this much bigger, and only as far as the HUD around it leaves room. */
+const MAP_SCALE_LARGE = 1.5;
+/** Half the width kept free at the bottom centre for the prompt, and the map bar's height (px). */
+const PROMPT_HALF_PX = 230;
+const MAP_BAR_PX = 40;
+
+/** How much the map may grow without covering the objectives panel or the prompt. */
+function largeMapScale(): number {
+  const objectives = document.querySelector('.game-objectives')?.getBoundingClientRect().bottom ?? 140;
+  const byWidth = (window.innerWidth / 2 - PROMPT_HALF_PX - 16) / MAP_W;
+  const byHeight = (window.innerHeight - 16 - MAP_BAR_PX - objectives - 12) / MAP_H;
+  return Math.max(1, Math.min(MAP_SCALE_LARGE, byWidth, byHeight));
+}
 
 /** Local metres of a position from the map centre (x east, y north). */
 const toMap = (lat0: number, lon0: number, lat: number, lon: number): [number, number] => [
@@ -1006,23 +1072,46 @@ const GameMap = memo(function GameMap({ session }: { session: GameSession }) {
   const exp = useGame((s) => s.expedition);
   const route = useGame((s) => s.route);
   const [large, setLarge] = useState(false);
+  const [kLarge, setKLarge] = useState(MAP_SCALE_LARGE);
+  useEffect(() => {
+    if (!large) return;
+    const fit = () => setKLarge(largeMapScale());
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [large]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const roverRef = useRef<SVGGElement>(null);
   const heliRef = useRef<SVGGElement>(null);
-  const k = large ? MAP_SCALE_LARGE : 1;
+  const k = large ? kLarge : 1;
   const W = MAP_W * k;
   const H = MAP_H * k;
 
   // Extent: every place of the map, the start and the airfields, with a margin.
-  const pts = [...session.places, START, ...FLIGHTS];
+  const m = session.missionDef;
+  const pts = [...session.places, m.start, ...m.flights, ...(m.hardware ?? [])];
   const lats = pts.map((p) => p.lat);
   const lons = pts.map((p) => p.lon);
-  const lat0 = (Math.min(...lats) + Math.max(...lats)) / 2;
-  const lon0 = (Math.min(...lons) + Math.max(...lons)) / 2;
+  let lat0 = (Math.min(...lats) + Math.max(...lats)) / 2;
+  let lon0 = (Math.min(...lons) + Math.max(...lons)) / 2;
   const spanX =
     (Math.max(...lons) - Math.min(...lons)) * Math.cos((lat0 * Math.PI) / 180) * M_PER_DEG + 160;
   const spanY = (Math.max(...lats) - Math.min(...lats)) * M_PER_DEG + 160;
-  const mPerPx = Math.max(spanX / W, spanY / H);
+  const base0 = session.mapImage;
+  // The view stays inside the surface image (no empty bands): at most its size, and centred so
+  // that it does not run past its edges.
+  const fitM = base0 ? Math.min(base0.widthM / W, base0.heightM / H) : Infinity;
+  const mPerPx = Math.min(Math.max(spanX / W, spanY / H), fitM);
+  const area0 = session.world.frame;
+  if (base0 && area0) {
+    const [ax, ay] = toMap(lat0, lon0, area0.lat0, area0.lon0);
+    const hx = Math.max(0, base0.widthM / 2 - (W / 2) * mPerPx);
+    const hy = Math.max(0, base0.heightM / 2 - (H / 2) * mPerPx);
+    const dx = Math.min(hx, Math.max(-hx, -ax));
+    const dy = Math.min(hy, Math.max(-hy, -ay));
+    lon0 = lon0 + (ax + dx) / (Math.cos((lat0 * Math.PI) / 180) * M_PER_DEG);
+    lat0 = lat0 + (ay + dy) / M_PER_DEG;
+  }
   const px = (lat: number, lon: number): [number, number] => {
     const [x, y] = toMap(lat0, lon0, lat, lon);
     return [W / 2 + x / mPerPx, H / 2 - y / mPerPx];
@@ -1183,8 +1272,21 @@ const GameMap = memo(function GameMap({ session }: { session: GameSession }) {
       </svg>
       <div className="game-map-bar">
         <span className="meta">{t('game.map.hint')}</span>
-        <button type="button" className="btn btn-icon" onClick={() => setLarge(!large)}>
-          {large ? t('game.map.smaller') : t('game.map.larger')}
+        <button
+          type="button"
+          className="game-map-toggle"
+          aria-label={large ? t('game.map.smaller') : t('game.map.larger')}
+          title={large ? t('game.map.smaller') : t('game.map.larger')}
+          aria-pressed={large}
+          onClick={() => setLarge(!large)}
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            {large ? (
+              <path d="M9.5 2.5v4h4M6.5 13.5v-4h-4M9.5 6.5l4.5-4.5M6.5 9.5L2 14" />
+            ) : (
+              <path d="M10 2h4v4M6 14H2v-4M14 2L9 7M2 14l5-5" />
+            )}
+          </svg>
         </button>
       </div>
     </div>
@@ -1287,6 +1389,15 @@ function PauseMenu({ session }: { session: GameSession }) {
           >
             {t('game.pause.inventory')}
           </button>
+          {session.missionDef.intro && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => useGame.getState().set({ video: session.missionDef.intro! })}
+            >
+              ▶ {t('game.video.watch')}
+            </button>
+          )}
           <button type="button" className="btn" onClick={() => session.quit()}>
             {t('game.pause.menu')}
           </button>
@@ -1364,10 +1475,14 @@ function PanoramaPhase({ session }: { session: GameSession }) {
 function Complete({ session }: { session: GameSession }) {
   const { t, i18n } = useTranslation();
   const result = useGame((s) => s.result);
+  const exp = useGame((s) => s.expedition);
   if (!result) return null;
   const lang = i18n.language;
-  const first = CHAPTERS[0]!.sols[0];
-  const last = CHAPTERS[CHAPTERS.length - 1]!.sols[1];
+  const m = missionOf(exp);
+  const chapters = m.chapters;
+  const first = chapters[0]!.sols[0];
+  const last = chapters[chapters.length - 1]!.sols[1];
+  const sampling = m.id === 'delta';
   return (
     <div className="game-screen">
       <div
@@ -1377,7 +1492,7 @@ function Complete({ session }: { session: GameSession }) {
         aria-labelledby="game-done"
       >
         <div className="game-panel-title">{t('game.title')}</div>
-        <h2 id="game-done">{t('game.complete.title')}</h2>
+        <h2 id="game-done">{t(`game.missions.${m.id}.complete`)}</h2>
         {result.newBest && <p className="game-best">{t('game.complete.newBest')}</p>}
         <dl className="game-stats">
           <div>
@@ -1392,14 +1507,18 @@ function Complete({ session }: { session: GameSession }) {
             <dt>{t('game.complete.energy')}</dt>
             <dd>{Math.round(result.energyUsedPct)}%</dd>
           </div>
-          <div>
-            <dt>{t('game.complete.tubes')}</dt>
-            <dd>{result.tubes}</dd>
-          </div>
-          <div>
-            <dt>{t('game.complete.depot')}</dt>
-            <dd>{result.depotTubes}</dd>
-          </div>
+          {sampling && (
+            <div>
+              <dt>{t('game.complete.tubes')}</dt>
+              <dd>{result.tubes}</dd>
+            </div>
+          )}
+          {sampling && (
+            <div>
+              <dt>{t('game.complete.depot')}</dt>
+              <dd>{result.depotTubes}</dd>
+            </div>
+          )}
           <div>
             <dt>{t('game.complete.science')}</dt>
             <dd>{result.science}</dd>
@@ -1408,21 +1527,25 @@ function Complete({ session }: { session: GameSession }) {
             <dt>{t('game.complete.rocks')}</dt>
             <dd>{result.rocks}</dd>
           </div>
-          <div>
-            <dt>{t('game.complete.panoramas')}</dt>
-            <dd>{result.panoramas}/3</dd>
-          </div>
-          <div>
-            <dt>{t('game.complete.flights')}</dt>
-            <dd>{result.flights}</dd>
-          </div>
+          {sampling && (
+            <div>
+              <dt>{t('game.complete.panoramas')}</dt>
+              <dd>{result.panoramas}/3</dd>
+            </div>
+          )}
+          {sampling && (
+            <div>
+              <dt>{t('game.complete.flights')}</dt>
+              <dd>{result.flights}</dd>
+            </div>
+          )}
           <div>
             <dt>{t('game.complete.wheels')}</dt>
             <dd>{Math.round(result.wheelsPct)}%</dd>
           </div>
         </dl>
         <p>
-          {t('game.complete.real', {
+          {t(`game.missions.${m.id}.real`, {
             first,
             last,
             sols: last - first,
@@ -1438,7 +1561,7 @@ function Complete({ session }: { session: GameSession }) {
           >
             {t('game.complete.explore')}
           </button>
-          <button type="button" className="btn" onClick={() => session.newExpedition()}>
+          <button type="button" className="btn" onClick={() => void session.newExpedition()}>
             {t('game.complete.again')}
           </button>
           <button type="button" className="btn" onClick={() => session.quit()}>
@@ -1447,5 +1570,267 @@ function Complete({ session }: { session: GameSession }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ---------- NASA videos ----------
+
+/** The missions' NASA videos, served with the game's data (no third-party request). */
+const VIDEOS = {
+  landing: {
+    src: 'game/media/landing.mp4',
+    captions: 'game/media/landing.en.vtt',
+    key: 'landing',
+  },
+} as const;
+type VideoId = keyof typeof VIDEOS;
+
+const clock = (s: number) => {
+  if (!Number.isFinite(s) || s < 0) return '0:00';
+  const m = Math.floor(s / 60);
+  return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+};
+
+/**
+ * A video player in a panel over the game (the HUD still shows behind it): the title, the date
+ * and a line of context; play and pause, the time, a seek bar, volume, captions, full screen;
+ * and a button to skip (or close). Keyboard: Space/K play, ←/→ 5 s, M mute, C captions, F full
+ * screen. Keys stay in the player (the game's shortcuts do not fire behind it).
+ */
+function VideoPlayer({
+  id,
+  onDone,
+  doneLabel,
+  onBack,
+  doneAtEnd = false,
+}: {
+  id: VideoId;
+  /** Skip / close. */
+  onDone: () => void;
+  doneLabel: string;
+  onBack?: () => void;
+  /** Go on by itself when the video ends (the landing intro). */
+  doneAtEnd?: boolean;
+}) {
+  const { t, i18n } = useTranslation();
+  const v = VIDEOS[id];
+  const video = useRef<HTMLVideoElement>(null);
+  const frame = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [cc, setCc] = useState(i18n.language !== 'en');
+  const [blocked, setBlocked] = useState(false);
+
+  useEffect(() => {
+    const el = video.current;
+    if (!el) return;
+    // Starting with sound needs the page to have been clicked (the button that opened it was).
+    el.play().catch(() => setBlocked(true));
+  }, []);
+  useEffect(() => {
+    const track = video.current?.textTracks[0];
+    if (track) track.mode = cc ? 'showing' : 'hidden';
+  }, [cc, duration]);
+
+  const toggle = () => {
+    const el = video.current;
+    if (!el) return;
+    setBlocked(false);
+    if (el.paused) void el.play();
+    else el.pause();
+  };
+  const seek = (to: number) => {
+    const el = video.current;
+    if (el) el.currentTime = Math.max(0, Math.min(el.duration || 0, to));
+  };
+  const setVol = (x: number) => {
+    const el = video.current;
+    if (!el) return;
+    el.volume = x;
+    el.muted = x === 0;
+  };
+  const fullscreen = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void frame.current?.requestFullscreen?.().catch(() => {});
+  };
+  const onKey = (e: ReactKeyboardEvent) => {
+    const k = e.code;
+    const handled = ['Space', 'KeyK', 'ArrowLeft', 'ArrowRight', 'KeyM', 'KeyC', 'KeyF'];
+    // The game's own shortcuts listen on the window: keep the keys here.
+    e.stopPropagation();
+    if (!handled.includes(k)) return;
+    // Space on a focused button presses it: leave it to the button.
+    if (k === 'Space' && (e.target as HTMLElement).tagName === 'BUTTON') return;
+    e.preventDefault();
+    if (k === 'Space' || k === 'KeyK') toggle();
+    else if (k === 'ArrowLeft') seek(time - 5);
+    else if (k === 'ArrowRight') seek(time + 5);
+    else if (k === 'KeyM') setVol(muted ? volume || 1 : 0);
+    else if (k === 'KeyC') setCc(!cc);
+    else fullscreen();
+  };
+
+  const pct = duration ? (time / duration) * 100 : 0;
+  return (
+    <div className="game-video-veil">
+      <section
+        className="game-video"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="game-video-title"
+        onKeyDown={onKey}
+      >
+        {onBack && (
+          <button type="button" className="game-video-back" onClick={onBack}>
+            ← {t('game.video.back')}
+          </button>
+        )}
+        <h2 id="game-video-title">{t(`game.video.${v.key}.title`)}</h2>
+        <p className="game-video-date">{t(`game.video.${v.key}.date`)}</p>
+        <p className="game-video-context">{t(`game.video.${v.key}.context`)}</p>
+        <div className="game-video-frame" ref={frame}>
+          <video
+            ref={video}
+            src={dataUrl(`${v.src}?v=${DATA_VERSION}`)}
+            playsInline
+            preload="auto"
+            onClick={toggle}
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+            onVolumeChange={(e) => {
+              setVolume(e.currentTarget.volume);
+              setMuted(e.currentTarget.muted);
+            }}
+            onEnded={() => {
+              setPlaying(false);
+              if (doneAtEnd) onDone();
+            }}
+          >
+            <track
+              kind="captions"
+              src={dataUrl(`${v.captions}?v=${DATA_VERSION}`)}
+              srcLang="en"
+              label="English"
+            />
+          </video>
+          <button type="button" className="game-video-skip" autoFocus onClick={onDone}>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d={doneAtEnd ? "M3 3l5 5-5 5M8.5 3l5 5-5 5" : "M4 4l8 8M12 4l-8 8"} />
+            </svg>
+            {doneLabel}
+          </button>
+          {blocked && (
+            <button type="button" className="game-video-big-play" onClick={toggle}>
+              {t('game.video.play')}
+            </button>
+          )}
+          <div className="game-video-controls">
+            <button
+              type="button"
+              className="game-video-btn"
+              aria-label={playing ? t('game.video.pause') : t('game.video.play')}
+              title={playing ? t('game.video.pause') : t('game.video.play')}
+              onClick={toggle}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                {playing ? <path d="M5 3v10M11 3v10" /> : <path d="M4.5 2.5l9 5.5-9 5.5z" className="is-fill" />}
+              </svg>
+            </button>
+            <span className="game-video-time">
+              {clock(time)} / {clock(duration)}
+            </span>
+            <input
+              type="range"
+              className="game-video-seek"
+              min={0}
+              max={duration || 0}
+              step={0.1}
+              value={time}
+              aria-label={t('game.video.seek')}
+              style={{ ['--pct' as string]: `${pct}%` }}
+              onChange={(e) => seek(Number(e.target.value))}
+            />
+            <button
+              type="button"
+              className="game-video-btn"
+              aria-label={muted ? t('game.video.unmute') : t('game.video.mute')}
+              title={muted ? t('game.video.unmute') : t('game.video.mute')}
+              onClick={() => setVol(muted ? volume || 1 : 0)}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2.5 6h2.5l3.5-3v10L5 10H2.5z" className="is-fill" />
+                {muted ? <path d="M11 6l4 4M15 6l-4 4" /> : <path d="M11 5.5c1.2 1.4 1.2 3.6 0 5M12.8 3.8c2.2 2.4 2.2 6 0 8.4" />}
+              </svg>
+            </button>
+            <input
+              type="range"
+              className="game-video-volume"
+              min={0}
+              max={1}
+              step={0.05}
+              value={muted ? 0 : volume}
+              aria-label={t('game.video.volume')}
+              style={{ ['--pct' as string]: `${(muted ? 0 : volume) * 100}%` }}
+              onChange={(e) => setVol(Number(e.target.value))}
+            />
+            <button
+              type="button"
+              className={`game-video-btn game-video-cc ${cc ? 'is-on' : ''}`}
+              aria-pressed={cc}
+              aria-label={t('game.video.captions')}
+              title={t('game.video.captions')}
+              onClick={() => setCc(!cc)}
+            >
+              CC
+            </button>
+            <button
+              type="button"
+              className="game-video-btn"
+              aria-label={t('game.video.fullscreen')}
+              title={t('game.video.fullscreen')}
+              onClick={fullscreen}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <p className="game-video-credit">{t('game.video.credit')}</p>
+      </section>
+    </div>
+  );
+}
+
+/** NASA's landing video before the landing mission's first chapter. */
+function LandingIntro({ session }: { session: GameSession }) {
+  const { t } = useTranslation();
+  return (
+    <VideoPlayer
+      id="landing"
+      doneLabel={t('game.video.skip')}
+      onDone={() => session.endIntro()}
+      onBack={() => session.quit()}
+      doneAtEnd
+    />
+  );
+}
+
+/** A video watched again (from the missions menu or the pause menu). */
+function VideoReplay() {
+  const { t } = useTranslation();
+  const id = useGame((s) => s.video);
+  if (!id) return null;
+  return (
+    <VideoPlayer
+      id={id}
+      doneLabel={t('game.video.close')}
+      onDone={() => useGame.getState().set({ video: null })}
+    />
   );
 }

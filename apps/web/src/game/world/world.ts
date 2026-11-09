@@ -42,6 +42,7 @@ import { Ingenuity } from './ingenuity';
 import { SiteMarker, type MarkerKind, type MarkerLook } from './markers';
 import { RockField, type Rock } from './rocks';
 import { SunShadows, receiveSunShadow } from './sunShadow';
+import { LandingSite, type HardwareKind } from './landing';
 import { DepotTubes, RouteLine } from './route';
 import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
 import { HORIZON_LINEAR, SkyDome, sunDirection } from './sky';
@@ -372,6 +373,8 @@ export class World {
   /** The delta's broken layered rock: chips around the camera, ledges on the slopes. */
   private chips: Chips | null = null;
   ledges: Ledges | null = null;
+  /** The landing hardware, on the landing's map. */
+  site: LandingSite | null = null;
   /** Perseverance's real route (local x, north), kept free of ledges. */
   private keepRoute: Array<[number, number]> = [];
   readonly wind = new Vector3(1.6, 0, -0.6);
@@ -687,7 +690,39 @@ export class World {
     return d;
   }
 
+  /**
+   * The landing hardware on this area's ground (null: none), and the rover's landing blast. Kept
+   * clear of generated rocks by passing the same points to loadArea's keepClear.
+   */
+  setSite(
+    hardware: Array<{ id: HardwareKind; lat: number; lon: number }> | null,
+    blast: { lat: number; lon: number } | null = null,
+  ): void {
+    if (this.site) {
+      this.scene.remove(this.site.group);
+      this.site.dispose();
+      this.site = null;
+    }
+    const f = this.frame;
+    if (!f || !hardware?.length) {
+      this.terrainMesh?.setMarks([]);
+      return;
+    }
+    const places = hardware.map((h) => {
+      const [x, north] = f.toLocal(h.lat, h.lon);
+      return { kind: h.id, x, north };
+    });
+    const b = blast ? f.toLocal(blast.lat, blast.lon) : null;
+    this.site = new LandingSite(places, b ? { x: b[0], north: b[1] } : null, (x, n) =>
+      this.terrain ? this.terrain.heightAt(x, n) : 0,
+    );
+    for (const m of this.site.materials) receiveSunShadow(m, this.sunShadows);
+    this.scene.add(this.site.group);
+    this.terrainMesh?.setMarks(this.site.marks);
+  }
+
   private unloadArea(): void {
+    this.setSite(null);
     for (const f of [this.chips, this.ledges]) {
       if (!f) continue;
       for (const m of f.meshes) this.scene.remove(m);
@@ -728,7 +763,11 @@ export class World {
 
   /** Height of a rock or a ledge above the ground at a local point (0 on bare ground). */
   obstacleLift(x: number, north: number): number {
-    return Math.max(this.rocks?.rockLift(x, north) ?? 0, this.ledges?.liftAt(x, north) ?? 0);
+    return Math.max(
+      this.rocks?.rockLift(x, north) ?? 0,
+      this.ledges?.liftAt(x, north) ?? 0,
+      this.site?.liftAt(x, north) ?? 0,
+    );
   }
 
   groundY = (x: number, z: number): number => (this.terrain ? this.terrain.heightAt(x, -z) : 0);

@@ -23,6 +23,9 @@ import { SunShadows, receiveSunShadow } from './world/sunShadow';
 import {
   CHAPTERS,
   CORE_S,
+  LANDING,
+  LANDING_HARDWARE,
+  missionOf,
   FLIGHTS,
   PANORAMA_S,
   SAMPLE_TUBES,
@@ -91,18 +94,16 @@ function drive(
 describe('hazards', () => {
   const sandy = (sand: number): GroundProbe => ({ ...flat, sand: () => sand });
 
-  it('soft sand: slip slows the rover, sinkage grows until it is stuck; backing out frees it', () => {
+  it('soft sand: slip slows the rover, the wheels sink a little, and it never gets stuck', () => {
     const firm = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 4);
     const loose = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 4, sandy(0.4));
     expect(loose.speed).toBeLessThan(firm.speed * 0.85);
     expect(loose.sinkage).toBe(0); // not deep: slips but does not dig in
-    let s = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 20, sandy(1));
-    expect(s.stuck).toBe(true);
-    expect(s.blocked).toBe('sand');
-    expect(s.speed).toBeLessThanOrEqual(0);
-    s = drive(s, { throttle: -1 }, 3, sandy(1));
+    const s = drive(initialRover(LAT, LON, 0), { throttle: 1 }, 20, sandy(1));
     expect(s.stuck).toBe(false);
-    expect(s.sinkage).toBeLessThan(HAZARD.freeAt);
+    expect(s.sinkage).toBeLessThanOrEqual(HAZARD.maxSink);
+    expect(s.speed).toBeGreaterThan(0.2);
+    expect(s.speed).toBeLessThan(firm.speed * 0.5);
   });
 
   it('sharp rocks wear the wheels when driven over fast, not slowly; worn wheels are slower', () => {
@@ -678,5 +679,75 @@ describe('game world data', () => {
     }
     expect(max).toBeGreaterThan(0.01);
     expect(max).toBeLessThan(0.08);
+  });
+});
+
+describe('the landing mission', () => {
+  const all = allTargets([], LANDING);
+  const at = (t: { lat: number; lon: number }): RoverState => initialRover(t.lat, t.lon, 0);
+  const place = (id: string) => all.find((t) => t.id === `reach-${id}`)!;
+  const find = { type: ROCK_TYPES[0]!, key: 'landing:1', points: 10, first: true };
+
+  it('has the three pieces of hardware as places, and only the first chapter open', () => {
+    expect(all.map((t) => t.id)).toEqual([
+      'reach-descent-stage',
+      'reach-parachute',
+      'reach-heat-shield',
+    ]);
+    const s = newExpedition('landing');
+    expect(missionOf(s)).toBe(LANDING);
+    expect(openTargets(s, all).map((t) => t.id)).toEqual(['reach-descent-stage']);
+    expect(ingenuity(s)).toBeNull();
+    expect(tubeRack(s).every((t) => t.number === null)).toBe(true);
+  });
+
+  it('opens the hardware chapter after the laser and the descent stage, and ends at the parachute', () => {
+    let s = newExpedition('landing');
+    let r = stepExpedition(s, null, at(place('descent-stage')), all, false, 0.1);
+    expect(r.events.map((e) => e.kind)).toEqual(['reached']);
+    expect(r.state.chapter).toBe(0); // the laser is still to do
+    s = { ...r.state, finds: [find] };
+    r = stepExpedition(s, null, at(place('descent-stage')), all, false, 0.1);
+    expect(r.events.map((e) => e.kind)).toEqual(['chapter']);
+    expect(r.state.chapter).toBe(1);
+    r = stepExpedition(r.state, null, at(place('parachute')), all, false, 0.1);
+    expect(r.events.map((e) => e.kind)).toEqual(['reached', 'complete']);
+    expect(expeditionDone(r.state)).toBe(true);
+  });
+
+  it('places the hardware where HiRISE saw it, relative to the rover (landing-hardware.json)', () => {
+    const rover = at(LANDING.start);
+    const expected: Record<string, [number, number]> = {
+      parachute: [1148, 293],
+      'descent-stage': [697, 310],
+      'heat-shield': [1468, 64],
+    };
+    for (const h of LANDING_HARDWARE) {
+      const e = expected[h.id];
+      if (!e) continue;
+      expect(groundDistanceM(rover, h)).toBeGreaterThan(e[0] * 0.99);
+      expect(groundDistanceM(rover, h)).toBeLessThan(e[0] * 1.01);
+      const deg = ((bearingRad(rover, h) * 180) / Math.PI + 360) % 360;
+      expect(Math.abs(deg - e[1])).toBeLessThan(1.5);
+    }
+  });
+
+  it('keeps each mission’s progress apart', () => {
+    clearSave('landing');
+    clearSave('delta');
+    const rover = {
+      lat: LANDING.start.lat,
+      lon: LANDING.start.lon,
+      headingRad: 0,
+      batteryPct: 90,
+      wheelsPct: 100,
+      odometerM: 300,
+      energyUsedPct: 10,
+    };
+    writeSave({ state: newExpedition('landing'), rover, elapsedS: 60, savedMs: 1, tubesAt: null });
+    expect(readSave('landing')?.rover.odometerM).toBe(300);
+    expect(readSave('delta')).toBeNull();
+    clearSave('landing');
+    expect(readSave('landing')).toBeNull();
   });
 });

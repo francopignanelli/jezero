@@ -1,4 +1,4 @@
-import { CHAPTERS, type ExpeditionState } from './expedition';
+import { MISSIONS, type ExpeditionState, type MissionId } from './expedition';
 import type { RockType } from './science';
 
 /**
@@ -6,7 +6,7 @@ import type { RockType } from './science';
  * - the sample sites ever cored (target ids);
  * - the rock types analysed with the laser, and the rocks already analysed;
  * - the science points.
- * Also here: the expedition in progress (to continue it later), the best time and the options.
+ * Also here: each mission in progress (to continue it later), the best times and the options.
  */
 
 export interface Career {
@@ -24,9 +24,12 @@ export interface GameOptions {
 
 const CAREER_KEY = 'copernico.game.career.v1';
 const OPTIONS_KEY = 'copernico.game.options.v1';
+/** The delta keeps the keys it had as the game's only map, so its saves carry over. */
 const SAVE_KEY = 'copernico.game.expedition.v1';
-const BEST_KEY = 'copernico.game.best.expedition';
+const SAVE_PREFIX = 'copernico.game.mission.';
 const BEST_PREFIX = 'copernico.game.best.';
+const saveKey = (m: MissionId) => (m === 'delta' ? SAVE_KEY : `${SAVE_PREFIX}${m}.v1`);
+const bestKey = (m: MissionId) => `${BEST_PREFIX}${m === 'delta' ? 'expedition' : m}`;
 /** Analysed-rock keys kept (the oldest are dropped). */
 const MAX_ANALYSED = 2000;
 
@@ -103,10 +106,10 @@ export interface ExpeditionSave {
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isList = (v: unknown): v is unknown[] => Array.isArray(v);
 
-/** The saved expedition, or null (none, or not readable: a broken save is dropped). */
-export function readSave(): ExpeditionSave | null {
+/** A mission's saved progress, or null (none, or not readable: a broken save is dropped). */
+export function readSave(mission: MissionId = 'delta'): ExpeditionSave | null {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(saveKey(mission));
     if (!raw) return null;
     const s = JSON.parse(raw) as ExpeditionSave;
     const st = s?.state;
@@ -115,7 +118,8 @@ export function readSave(): ExpeditionSave | null {
       st &&
       isNum(st.chapter) &&
       st.chapter >= 0 &&
-      st.chapter < CHAPTERS.length &&
+      (st.mission ?? 'delta') === mission &&
+      st.chapter < MISSIONS[mission].chapters.length &&
       isList(st.samples) &&
       isList(st.panoramas) &&
       isList(st.reached) &&
@@ -127,48 +131,48 @@ export function readSave(): ExpeditionSave | null {
         isNum,
       ) &&
       isNum(s.elapsedS);
-    return ok ? { ...s, state: { ...st, deposited: !!st.deposited } } : null;
+    return ok ? { ...s, state: { ...st, mission, deposited: !!st.deposited } } : null;
   } catch {
     return null;
   }
 }
-export const writeSave = (s: ExpeditionSave): void => write(SAVE_KEY, s);
-export function clearSave(): void {
+export const writeSave = (s: ExpeditionSave): void => write(saveKey(s.state.mission ?? 'delta'), s);
+export function clearSave(mission: MissionId = 'delta'): void {
   try {
-    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(saveKey(mission));
   } catch {
     // ignore
   }
 }
 
-export function readBest(): number | null {
+export function readBest(mission: MissionId = 'delta'): number | null {
   try {
-    const v = Number(localStorage.getItem(BEST_KEY));
+    const v = Number(localStorage.getItem(bestKey(mission)));
     return Number.isFinite(v) && v > 0 ? v : null;
   } catch {
     return null;
   }
 }
 /** Keeps the time if it is the best; returns whether it was. */
-export function recordBest(s: number): boolean {
-  const previous = readBest();
+export function recordBest(s: number, mission: MissionId = 'delta'): boolean {
+  const previous = readBest(mission);
   if (previous !== null && previous <= s) return false;
   try {
-    localStorage.setItem(BEST_KEY, String(Math.round(s)));
+    localStorage.setItem(bestKey(mission), String(Math.round(s)));
   } catch {
     // ignore
   }
   return true;
 }
 
-/** Clears the career, the saved expedition and the best times (the options and photos stay). */
+/** Clears the career, the saved missions and the best times (the options and photos stay). */
 export function resetProgress(): void {
   try {
     localStorage.removeItem(CAREER_KEY);
     localStorage.removeItem(SAVE_KEY);
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
-      if (k?.startsWith(BEST_PREFIX)) localStorage.removeItem(k);
+      if (k?.startsWith(BEST_PREFIX) || k?.startsWith(SAVE_PREFIX)) localStorage.removeItem(k);
     }
   } catch {
     // ignore

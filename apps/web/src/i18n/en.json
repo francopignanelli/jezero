@@ -959,7 +959,8 @@
       "photos": "Photos",
       "options": "Options",
       "how": "How to play",
-      "expedition": "Expedition"
+      "expedition": "Expedition",
+      "missions": "Missions"
     },
     "collection": {
       "samples": "Samples",
@@ -1094,6 +1095,14 @@
       "depot": {
         "title": "The Three Forks depot",
         "story": "December 2022 – January 2023: the first sample depot on another world. Perseverance leaves duplicate tubes on the ground at Three Forks, a backup for bringing samples to Earth, and keeps their twins on board. Drop the tubes in the depot zone and take the panorama of the site."
+      },
+      "touchdown": {
+        "title": "Touchdown",
+        "story": "18 February 2021: Mission Control confirms touchdown at 3:55 p.m. US Eastern time. Perseverance is down in Jezero Crater, at what NASA will name Octavia E. Butler Landing. The descent stage’s engines scoured the ground under the rover; the stage itself flew off and crashed 700 m to the northwest. Try SuperCam’s laser on a rock, then drive to the crash site."
+      },
+      "hardware": {
+        "title": "What brought it down",
+        "story": "The 21.5 m parachute and the backshell it slowed came down 1.15 km west-northwest of the rover; the heat shield, dropped earlier, 1.5 km east-northeast. Nobody drove there: Ingenuity photographed the parachute and backshell from 8 m up in April 2022. Find them."
       }
     },
     "objectives": {
@@ -1111,7 +1120,11 @@
       "depot": "Leave the duplicate tubes at Three Forks",
       "pano-forks": "360° panorama at Three Forks",
       "flight-4": "Watch 3 of Ingenuity’s flights",
-      "optional": "optional"
+      "optional": "optional",
+      "landing-laser": "Analyse a rock with SuperCam (F)",
+      "descent-stage": "Reach the descent stage’s crash site",
+      "parachute": "Reach the parachute and the backshell",
+      "heat-shield": "Reach the heat shield"
     },
     "toast": {
       "reached": "Reached {{name}}",
@@ -1141,8 +1154,8 @@
     "map": {
       "label": "Map of the delta front",
       "hint": "Click: AutoNav there",
-      "larger": "Larger",
-      "smaller": "Smaller"
+      "larger": "Enlarge the map",
+      "smaller": "Shrink the map"
     },
     "inventory": {
       "title": "Inventory",
@@ -1190,6 +1203,81 @@
         "wildcat-ridge": "From Wildcat Ridge, on the way up Hawksbill Gap: the layered rocks of the delta front around the rover, the crater floor it crossed below.",
         "enchanted-lake": "At the foot of the delta front, where the rover cored the Amalik outcrop: the cliffs of the front rise behind it.",
         "three-forks": "Three Forks, the first sample depot on another world, seen from the rover during the weeks it laid the tubes."
+      }
+    },
+    "missions": {
+      "intro": "Episodes of Perseverance’s real mission, each on its own map rebuilt from orbital data, in the order the rover lived them. Progress is saved in this browser, per mission.",
+      "chapters_one": "{{count}} chapter",
+      "chapters_other": "{{count}} chapters",
+      "next": "Coming next",
+      "landing": {
+        "title": "Seven minutes",
+        "desc": "NASA’s own video of the landing, then Octavia E. Butler Landing on 18 February 2021: the blast marks under the rover, and the descent stage, the parachute with the backshell, and the heat shield where orbit saw them the next day.",
+        "start": "Start the landing",
+        "complete": "Landing site surveyed",
+        "real": "The hardware lies where HiRISE photographed it on 19 February 2021. Perseverance never drove to it: Ingenuity flew over the parachute and backshell on 19 April 2022, about sol 414."
+      },
+      "delta": {
+        "title": "The delta front",
+        "desc": "April 2022 – February 2023: Hawksbill Gap, Wildcat Ridge, Amalik, and the first sample depot on another world, at Three Forks.",
+        "start": "Start the expedition",
+        "complete": "Expedition complete",
+        "real": "Perseverance did all this between sol {{first}} and sol {{last}}: {{sols}} sols, about {{months}} months on Earth."
+      },
+      "ingenuity": {
+        "title": "Wright Brothers moment"
+      },
+      "moxie": {
+        "title": "Air you can make"
+      },
+      "firstSample": {
+        "title": "The empty tube"
+      },
+      "chute": {
+        "title": "Back to the chute"
+      },
+      "lastFlight": {
+        "title": "Ingenuity’s last flight"
+      },
+      "leopard": {
+        "title": "Leopard spots"
+      },
+      "rim": {
+        "title": "The rim"
+      },
+      "sparks": {
+        "title": "Mini-lightning"
+      },
+      "aiDrive": {
+        "title": "Plan the drive"
+      },
+      "record": {
+        "title": "Record breaker"
+      }
+    },
+    "places": {
+      "reach-descent-stage": "Descent stage",
+      "reach-parachute": "Parachute and backshell",
+      "reach-heat-shield": "Heat shield"
+    },
+    "video": {
+      "back": "Back to the missions",
+      "watch": "Watch the landing video",
+      "play": "Play",
+      "pause": "Pause",
+      "seek": "Position in the video",
+      "mute": "Mute",
+      "unmute": "Sound on",
+      "volume": "Volume",
+      "captions": "Captions",
+      "fullscreen": "Full screen",
+      "skip": "Skip video",
+      "close": "Close",
+      "credit": "Video: NASA/JPL-Caltech, “Perseverance Rover’s Descent and Touchdown on Mars” (22 Feb 2021).",
+      "landing": {
+        "title": "Perseverance lands on Mars",
+        "date": "18 February 2021 · Jezero Crater",
+        "context": "Real footage from the cameras on the backshell, the descent stage and the rover: the 21.5 m parachute opening about 11 km up, the heat shield falling away, the descent stage lowering the rover on cables, and the dust of touchdown. The voices are mission control at JPL."
       }
     }
   }

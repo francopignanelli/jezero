@@ -58,6 +58,8 @@ const RANGE_LOW = 2.2;
 const MAX_PATCHES = 1200;
 /** Firm aprons (no sand drifts) around the sample sites, mission starts and the depot. */
 export const MAX_CLEAR = 32;
+/** Landing marks on the ground (blast, debris V, impact scars). */
+export const MAX_MARKS = 8;
 export const CLEAR_INNER_M = 18;
 export const CLEAR_OUTER_M = 40;
 
@@ -255,6 +257,10 @@ const FRAGMENT_PARS = /* glsl */ `
   uniform sampler2D tTracks;
   uniform vec4 uTrackInfo;
   uniform vec2 uTrackFade;
+  /** Marks of the landing (world/landing.ts): centre (x, north), radius (m), type; direction. */
+  uniform vec4 uMarks[${MAX_MARKS}];
+  uniform vec2 uMarkDir[${MAX_MARKS}];
+  uniform int uMarkCount;
   /** A Perseverance rut across its width (u 0–1): berms of pushed-aside soil at the sides, the
    *  compacted groove between them, crossed by the grousers' imprints (along: metres). In metres. */
   float rutH(float u, float along, float across2, float grousers) {
@@ -566,6 +572,35 @@ const FRAGMENT_COLOR = /* glsl */ `
       }
     }
   }
+  // Marks of the landing: the rover's blast (dust scoured away, darker ground in streaks), the
+  // descent stage's debris V and the impact scars, as HiRISE shows them.
+  for (int i = 0; i < ${MAX_MARKS}; i++) {
+    if (i >= uMarkCount) break;
+    vec4 mk = uMarks[i];
+    vec2 d = vP - mk.xy;
+    float r = length(d) / mk.z;
+    if (r > 1.6) continue;
+    float ang = atan(d.y, d.x);
+    float k = 0.0;
+    if (mk.w < 1.5) {
+      // Radial streaks under the hovering descent stage's eight engines.
+      float rays = 0.55 + 0.45 * vnoise(vec2(ang * 9.0, r * 2.0));
+      k = (1.0 - smoothstep(0.2, 1.15, r)) * rays * 0.55 + 0.12 * exp(-r * r * 30.0);
+    } else if (mk.w < 2.5) {
+      // A V opening along the direction of flight, streaked, fading downrange.
+      vec2 dir = uMarkDir[i];
+      float along = dot(d, dir) / mk.z;
+      float across = dot(d, vec2(-dir.y, dir.x)) / mk.z;
+      float a = abs(atan(across, max(along, 1e-3)));
+      float streak = 0.5 + 0.5 * vnoise(vec2(atan(across, along) * 40.0, along * 6.0));
+      k = step(0.0, along) * (1.0 - smoothstep(0.32, 0.5, a)) * (1.0 - smoothstep(0.15, 1.0, along)) * streak * 0.5;
+    } else {
+      // An impact scar: a dark, rayed patch.
+      float rays = 0.6 + 0.4 * vnoise(vec2(ang * 7.0, 3.0));
+      k = exp(-r * r * 3.0) * rays * 0.45;
+    }
+    groundCol *= 1.0 - k;
+  }
   // Far away, where the ground photos have faded to their mean colour, the orbital image sets
   // the tones, with a hint of colour: dark sand greyer, bright dust and bedrock warmer.
   float farK = 1.0 - fade;
@@ -697,6 +732,9 @@ export class TerrainMesh {
       tTracks: { value: null },
       uTrackInfo: { value: new Vector4() },
       uTrackFade: { value: new Vector2(50, 70) },
+      uMarks: { value: Array.from({ length: MAX_MARKS }, () => new Vector4()) },
+      uMarkDir: { value: Array.from({ length: MAX_MARKS }, () => new Vector2(1, 0)) },
+      uMarkCount: { value: 0 },
     };
     for (const t of [
       macro.detail,
@@ -784,6 +822,19 @@ export class TerrainMesh {
     u.set(at[0], at[1], at[2], 1);
     const list = this.uniforms.uWheelAO!.value as Vector2[];
     for (let i = 0; i < 6; i++) list[i]!.set(...(wheels[i] ?? [1e6, 1e6]));
+  }
+
+  /** Marks of the landing on the ground (world/landing.ts); up to MAX_MARKS. */
+  setMarks(marks: Array<{ x: number; north: number; radiusM: number; type: number; dir: [number, number] }>): void {
+    const m = this.uniforms.uMarks!.value as Vector4[];
+    const d = this.uniforms.uMarkDir!.value as Vector2[];
+    const n = Math.min(MAX_MARKS, marks.length);
+    for (let i = 0; i < n; i++) {
+      const k = marks[i]!;
+      m[i]!.set(k.x, k.north, k.radiusM, k.type);
+      d[i]!.set(k.dir[0], k.dir[1]);
+    }
+    this.uniforms.uMarkCount!.value = n;
   }
 
   /** The wheel tracks' map (effects.ts Tracks): texture, centre and size, and their fade (m). */

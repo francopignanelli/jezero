@@ -1,0 +1,28 @@
+{
+  "title": "Perseverance Rover’s Descent and Touchdown on Mars: Onboard Camera Views",
+  "nasaId": "JPL-20210222-M2020f-0001-Perseverance Rover’s Descent and Touchdown on Mars",
+  "credit": "NASA/JPL-Caltech",
+  "released": "2021-02-22",
+  "page": "https://images.nasa.gov/details/JPL-20210222-M2020f-0001-Perseverance%20Rover%E2%80%99s%20Descent%20and%20Touchdown%20on%20Mars",
+  "usage": "NASA still images, audio and video are generally not copyrighted. Credit NASA/JPL-Caltech; do not use the NASA insignia or logotype, or imply endorsement (nasa.gov/nasa-brand-center/images-and-media).",
+  "files": [
+    {
+      "file": "game/media/landing.mp4",
+      "sourceUrl": "https://images-assets.nasa.gov/video/JPL-20210222-M2020f-0001-Perseverance%20Rover%E2%80%99s%20Descent%20and%20Touchdown%20on%20Mars/JPL-20210222-M2020f-0001-Perseverance%20Rover%E2%80%99s%20Descent%20and%20Touchdown%20on%20Mars~medium.mp4",
+      "bytes": 63189086,
+      "sha256": "3db42b2bca35ac01cbd842c3ebce5f5e5399c5b82558a32421bdff4dd00b47b1"
+    },
+    {
+      "file": "game/media/landing.en.srt",
+      "sourceUrl": "https://images-assets.nasa.gov/video/JPL-20210222-M2020f-0001-Perseverance%20Rover%E2%80%99s%20Descent%20and%20Touchdown%20on%20Mars/JPL-20210222-M2020f-0001-Perseverance%20Rover%E2%80%99s%20Descent%20and%20Touchdown%20on%20Mars.srt",
+      "bytes": 5201,
+      "sha256": "86b12b98c434009001511b2bd5b08183aea30542a2a632a269bd974b26cdc72e"
+    },
+    {
+      "file": "game/media/landing.en.vtt",
+      "sourceUrl": "landing.en.srt, converted to WebVTT",
+      "bytes": 4915,
+      "sha256": "9131a9a3296106f2b34c781174b1f7676df33d6a02249c5cef072499652f5942"
+    }
+  ]
+}

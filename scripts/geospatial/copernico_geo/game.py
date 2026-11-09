@@ -40,11 +40,16 @@ class Area:
     height_m: int
 
 
-# The game's one map (centre, size): the delta front, sample sites 10–18, Three Forks and
-# Hawksbill Gap, with a margin of drivable ground. Its 25 cm core imagery is added by
-# scripts/data/build-game-core.ts (kept when this area is rebuilt).
+# The game's maps (centre, size):
+# - delta: the delta front, sample sites 10–18, Three Forks and Hawksbill Gap, with a margin of
+#   drivable ground. Its 25 cm core imagery is added by scripts/data/build-game-core.ts (kept when
+#   this area is rebuilt).
+# - landing: Octavia E. Butler Landing and the landing hardware as HiRISE saw it on 19 Feb 2021
+#   (ESP_068294_1985): parachute and backshell 1.15 km WNW, descent stage 0.70 km NW, heat shield
+#   1.47 km ENE of the rover, with a margin (data/catalog/landing-hardware.json).
 AREAS = [
     Area("delta", 18.4537, 77.4063, 1500, 1300),
+    Area("landing", 18.4495, 77.4531, 3000, 1300),
 ]
 MID_M, MID_RES = 12_000, 8.0
 FAR_M, FAR_RES = 64_000, 100.0
