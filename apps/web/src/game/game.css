@@ -1894,3 +1894,93 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* ---------- the sample tube (NASA's model) in the rack and on the card ---------- */
+.game-rack li {
+  position: relative;
+  height: 86px;
+  align-content: end;
+  padding-bottom: 3px;
+}
+.game-rack-tube {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  height: 64px;
+  width: auto;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.game-rack li > span {
+  position: relative;
+}
+.game-rack li.is-empty .game-rack-tube {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.game-rack li.is-depot .game-rack-tube {
+  opacity: 0.4;
+}
+.game-rack li.is-witness .game-rack-tube {
+  filter: hue-rotate(60deg) saturate(0.6);
+}
+.game-card-tube {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: radial-gradient(ellipse at 50% 40%, rgb(255 255 255 / 0.06), transparent 70%);
+}
+.game-card-tube-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.game-card-tube-row img {
+  width: min(300px, 70%);
+  height: auto;
+  animation: game-tube-in 0.7s ease both;
+}
+.game-card-tube-row:nth-child(2) img {
+  animation-delay: 0.15s;
+}
+.game-card-tube-row span {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.game-card-tube figcaption {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+@keyframes game-tube-in {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-card-tube-row img {
+    animation: none;
+  }
+}
+
+/* The rack's tubes read best on a dark slot; the state shows in the slot's edge. */
+.game-rack li,
+.game-rack li.is-earlier,
+.game-rack li.is-here,
+.game-rack li.is-witness {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.03), rgb(255 255 255 / 0.07));
+}
+.game-rack li.is-earlier {
+  border-color: #7d8fa8;
+}
+.game-rack li.is-here {
+  border-color: #e59a52;
+  box-shadow: 0 0 10px rgb(242 160 75 / 0.35);
+}
+.game-rack li.is-witness {
+  border-color: #6f9a83;
+}

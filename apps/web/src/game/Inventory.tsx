@@ -15,6 +15,7 @@ import { mainElements, ROCK_TYPES } from './science';
 import type { GameSession } from './session';
 import { Spectrum } from './Spectrum';
 import { useGame } from './store';
+import { useTubePicture } from './useTubePicture';
 
 const TABS = ['tubes', 'samples', 'science', 'discoveries', 'journal'] as const;
 type Tab = (typeof TABS)[number];
@@ -89,6 +90,9 @@ function Tubes({ exp, sites }: { exp: ExpeditionState; sites: SampleSite[] }) {
   const rack = tubeRack(exp);
   const name = (entry: string | null) => sites.find((s) => s.sampleNumber === entry)?.name ?? '';
   const filled = rack.filter((x) => x.number).length;
+  // Every tube drawn from NASA's model of the Mars 2020 sample tube.
+  const picture = useTubePicture();
+  const img = picture ? <img src={picture} alt="" className="game-rack-tube" /> : null;
   return (
     <div className="game-tubes">
       <p className="meta">{t('game.inventory.tubes.intro', { filled, total: rack.length })}</p>
@@ -106,6 +110,7 @@ function Tubes({ exp, sites }: { exp: ExpeditionState; sites: SampleSite[] }) {
             : t('game.inventory.tubes.empty');
           return (
             <li key={i} className={state} title={label} aria-label={label}>
+              {img}
               <span aria-hidden="true">{tube.number ?? ''}</span>
             </li>
           );
@@ -117,6 +122,7 @@ function Tubes({ exp, sites }: { exp: ExpeditionState; sites: SampleSite[] }) {
             title={t('game.inventory.tubes.witness')}
             aria-label={t('game.inventory.tubes.witness')}
           >
+            {img}
             <span aria-hidden="true">W</span>
           </li>
         ))}

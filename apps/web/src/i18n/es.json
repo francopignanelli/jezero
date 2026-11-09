@@ -934,7 +934,8 @@
         "regolith": "Regolito: roca suelta y polvo de la superficie. Muestra cómo afectaría el suelo marciano a los astronautas y a su equipo.",
         "carbonate": "Carbonato cementado con sílice: minerales que crecen en el agua y pueden atrapar huellas del entorno en que se formaron."
       },
-      "inRack": "Sellada y guardada en el portatubos (I: inventario)."
+      "inRack": "Sellada y guardada en el portatubos (I: inventario).",
+      "tubeCaption": "Sellada en su propio tubo (el modelo de NASA del tubo de muestras de Mars 2020, 14 cm de largo)"
     },
     "complete": {
       "title": "Expedición completada",

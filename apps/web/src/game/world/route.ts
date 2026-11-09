@@ -9,7 +9,9 @@ import {
   MeshStandardMaterial,
   ShaderMaterial,
   Vector3,
+  type Material,
 } from 'three';
+import { loadTube } from './tube';
 
 /**
  * AutoNav's planned path, draped on the ground: a band of chevrons flowing towards the goal, as
@@ -164,14 +166,35 @@ export class RouteLine {
  * Sample tubes left on the ground at the depot (titanium, ~17 cm long with the cap), in a line
  * behind the rover a few metres apart, as at Three Forks.
  */
+/**
+ * The tubes left at the depot, lying on the ground: NASA's sample tube model (world/tube.ts) once
+ * it has loaded, a plain cylinder of the same size until then.
+ */
 export class DepotTubes {
   readonly group = new Group();
-  private readonly geometry = new CylinderGeometry(0.012, 0.012, 0.17, 10);
-  private readonly material = new MeshStandardMaterial({
+  private geometry: BufferGeometry = new CylinderGeometry(0.0115, 0.0115, 0.142, 10).rotateZ(
+    Math.PI / 2,
+  );
+  private material: Material = new MeshStandardMaterial({
     color: new Color(0.82, 0.8, 0.76),
     metalness: 0.85,
     roughness: 0.28,
   });
+  private radiusM = 0.0115;
+
+  constructor() {
+    void loadTube().then((tube) => {
+      if (!tube) return;
+      this.geometry.dispose();
+      // Lying along x, centred.
+      this.geometry = tube.geometry.clone().translate(0, -tube.lengthM / 2, 0).rotateZ(Math.PI / 2);
+      this.material = tube.material;
+      for (const m of this.group.children as Mesh[]) {
+        m.geometry = this.geometry;
+        m.material = this.material;
+      }
+    });
+  }
 
   /** Lays `count` tubes from `origin` along `dir` (world, horizontal), `spacingM` apart. */
   lay(
@@ -189,8 +212,8 @@ export class DepotTubes {
       const off = (i % 2 ? 1 : -1) * 1.6;
       const x = origin.x + dir.x * spacingM * (i + 1) + side.x * off;
       const z = origin.z + dir.z * spacingM * (i + 1) + side.z * off;
-      m.position.set(x, groundY(x, z) + 0.012, z);
-      m.rotation.set(0, Math.random() * Math.PI, Math.PI / 2);
+      m.position.set(x, groundY(x, z) + this.radiusM, z);
+      m.rotation.set(0, Math.random() * Math.PI * 2, 0);
       m.castShadow = true;
       this.group.add(m);
     }

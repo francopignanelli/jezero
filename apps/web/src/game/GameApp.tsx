@@ -32,6 +32,7 @@ import { GameSession, readQuality, writeQuality } from './session';
 import { Spectrum } from './Spectrum';
 import { useGame } from './store';
 import { useTip } from './tips';
+import { useTubePicture } from './useTubePicture';
 import { ModeSwitch } from '../ui/ModeSwitch';
 import { PHOTO_FILTERS, type Quality } from './world/world';
 
@@ -1310,6 +1311,7 @@ function PauseMenu({ session }: { session: GameSession }) {
 function SampleCard({ session }: { session: GameSession }) {
   const { t, i18n } = useTranslation();
   const card = useGame((s) => s.card);
+  const tube = useTubePicture(true);
   const site = card?.site;
   if (!card || !site) return null;
   const photo = samplePhotos(site.sampleNumber)[0];
@@ -1346,6 +1348,17 @@ function SampleCard({ session }: { session: GameSession }) {
           <p>{t(`game.card.why.${whyKey(site)}`)}</p>
           {poi && <p>{poi.why[lang]}</p>}
           <p className="meta">{t('game.card.cored', { sol: site.sol, date: site.earthDate })}</p>
+          {tube && (
+            <figure className="game-card-tube">
+              {numbers.map((n) => (
+                <div key={n} className="game-card-tube-row">
+                  <img src={tube} alt="" />
+                  <span>{t('game.card.number', { number: n })}</span>
+                </div>
+              ))}
+              <figcaption>{t('game.card.tubeCaption')}</figcaption>
+            </figure>
+          )}
           <p className="meta">{t('game.card.inRack')}</p>
           <button
             type="button"
