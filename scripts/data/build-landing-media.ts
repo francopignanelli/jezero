@@ -9,7 +9,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium } from '@playwright/test';
+import { chromium, type Page } from '@playwright/test';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const OUT = join(ROOT, 'data', 'build', 'landing');
@@ -95,7 +95,7 @@ const browser = await chromium.launch({
 }
 
 // ---- the two modes, as they look ----
-const shot = async (url: string, prepare: (p: import('@playwright/test').Page) => Promise<void>, file: string) => {
+const shot = async (url: string, prepare: (p: Page) => Promise<void>, file: string) => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
   await page.addInitScript(NAME_SHIM);
   await page.addInitScript(() => {
