@@ -888,7 +888,15 @@
       "shooting": "Mastcam-Z: panorámica de {{name}}…",
       "heli": "Ingenuity está a {{distance}} m: acércate a menos de 70 m para verlo volar",
       "autonavHint": "Pulsa N: AutoNav conduce hasta el siguiente objetivo",
-      "heliFlying": "Ingenuity está volando: arrastra la vista para seguirlo"
+      "heliFlying": "Ingenuity está volando: arrastra la vista para seguirlo",
+      "holdToStep": "Pulsa Espacio para {{action}}",
+      "stopToStep": "Para aquí para {{action}}",
+      "doing": {
+        "shield": "Soltando el escudo protector…",
+        "rotate": "Poniendo a Ingenuity en vertical, desplegando sus patas…",
+        "drop": "Soltando a Ingenuity…",
+        "film": "Mastcam-Z está filmando el primer vuelo de Ingenuity…"
+      }
     },
     "touch": {
       "forward": "Avanzar",
@@ -1107,6 +1115,18 @@
       "hardware": {
         "title": "Lo que lo trajo hasta aquí",
         "story": "El paracaídas de 21,5 m y el escudo trasero que frenó cayeron a 1,15 km al oeste-noroeste del rover; el escudo térmico, soltado antes, a 1,5 km al este-noreste. Nadie fue hasta allí en coche: Ingenuity fotografió el paracaídas y el escudo trasero desde 8 m de altura en abril de 2022. Encuéntralos."
+      },
+      "shield": {
+        "title": "El escudo protector",
+        "story": "21 de marzo de 2021, sol 30. Ingenuity ha viajado a Marte de lado, bajo la panza del rover, detrás de un escudo que lo protegió en el aterrizaje. Para y suelta el escudo; después conduce hasta el aeródromo que eligió el equipo: un terreno llano de unos 10 × 10 m al norte del lugar de aterrizaje, hoy Wright Brothers Field. Aparca justo sobre su centro."
+      },
+      "deploy": {
+        "title": "Dejarlo en el suelo",
+        "story": "Soles 34–43. Durante varios soles un pequeño motor pone el helicóptero en vertical y sus patas se despliegan; el 3 de abril de 2021 Perseverance lo suelta, una caída de pocos centímetros. Desde ese momento Ingenuity depende de su propia batería, y solo su panel solar puede recargarla: aléjate al menos 5 m para que le dé el Sol, en menos de un día."
+      },
+      "firstFlight": {
+        "title": "El primer vuelo",
+        "story": "Soles 44–58. Perseverance va hasta Van Zyl Overlook, a 64,3 m, desde donde puede observar y retransmitir. El 19 de abril de 2021 Ingenuity acelera sus dos rotores a unas 2.500 rpm, sube a 3 m, se mantiene 30 s y aterriza: 39,1 s en el aire. Para en el mirador y fílmalo con Mastcam-Z."
       }
     },
     "objectives": {
@@ -1128,12 +1148,26 @@
       "landing-laser": "Analiza una roca con SuperCam (F)",
       "descent-stage": "Llega al lugar del impacto de la etapa de descenso",
       "parachute": "Llega al paracaídas y al escudo trasero",
-      "heat-shield": "Llega al escudo térmico"
+      "heat-shield": "Llega al escudo térmico",
+      "drop-shield": "Suelta el escudo protector",
+      "reach-field": "Aparca sobre el centro de Wright Brothers Field",
+      "rotate-heli": "Pon a Ingenuity en vertical y despliega sus patas",
+      "drop-heli": "Deja a Ingenuity en Marte",
+      "drive-away": "Aléjate al menos 5 m para que a su panel solar le dé el Sol",
+      "reach-overlook": "Conduce hasta Van Zyl Overlook",
+      "film-flight": "Filma el primer vuelo con Mastcam-Z"
     },
     "toast": {
       "reached": "Llegaste a {{name}}",
       "resumed": "Expedición reanudada: capítulo {{chapter}}",
-      "deposited": "{{count}} tubos en Three Forks: se quedan en Marte, sus gemelos van a bordo"
+      "deposited": "{{count}} tubos en Three Forks: se quedan en Marte, sus gemelos van a bordo",
+      "step": {
+        "shield": "Escudo protector soltado (sol 30, 21 de marzo de 2021)",
+        "rotate": "Ingenuity en vertical, patas desplegadas (soles 38–39)",
+        "drop": "Ingenuity está en Marte (sol 43, 3 de abril de 2021). Ahora depende de su batería",
+        "away": "Despejado: el Sol llega al panel solar de Ingenuity",
+        "film": "El primer vuelo propulsado y controlado en otro planeta: 39,1 s"
+      }
     },
     "autonav": {
       "start": "AutoNav: ruta segura trazada, {{distance}} m",
@@ -1233,7 +1267,10 @@
       "ingenuity": {
         "title": "Momento hermanos Wright",
         "when": "abr 2021",
-        "desc": "Deja a Ingenuity en su aeródromo, aléjate y presencia el primer vuelo propulsado en otro mundo."
+        "desc": "Deja a Ingenuity en su aeródromo, aléjate y presencia el primer vuelo propulsado en otro mundo.",
+        "start": "Empezar",
+        "complete": "Primer vuelo filmado",
+        "real": "Ingenuity voló 39,1 s el 19 de abril de 2021 (sol 58), el primer vuelo propulsado y controlado en otro planeta. Después voló 72 veces, unos 129 minutos y 17 km en total, hasta que se le rompió una pala en su último vuelo, el 18 de enero de 2024."
       },
       "moxie": {
         "title": "Aire fabricado",
@@ -1289,7 +1326,12 @@
     "places": {
       "reach-descent-stage": "Etapa de descenso",
       "reach-parachute": "Paracaídas y escudo trasero",
-      "reach-heat-shield": "Escudo térmico"
+      "reach-heat-shield": "Escudo térmico",
+      "reach-wright-field": "Wright Brothers Field",
+      "reach-van-zyl": "Van Zyl Overlook",
+      "station-shield-spot": "Escudo protector",
+      "station-field": "Wright Brothers Field",
+      "station-overlook": "Van Zyl Overlook"
     },
     "video": {
       "back": "Volver a las misiones",
@@ -1320,6 +1362,12 @@
       "photo": "P: modo foto, con los filtros de las cámaras del propio rover",
       "warp": "T acelera el tiempo mientras conduce AutoNav",
       "pause": "Esc pausa: opciones, fotos y el vídeo de la misión"
+    },
+    "steps": {
+      "shield": "soltar el escudo protector",
+      "rotate": "poner a Ingenuity en vertical",
+      "drop": "dejar a Ingenuity en el suelo",
+      "film": "filmar el primer vuelo"
     }
   },
   "modes": {

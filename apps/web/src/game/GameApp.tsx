@@ -206,7 +206,7 @@ function SoundToggle({ session }: { session: GameSession }) {
  */
 const SLATE: Array<{ n: number; key: string; mission?: MissionId }> = [
   { n: 1, key: 'landing', mission: 'landing' },
-  { n: 2, key: 'ingenuity' },
+  { n: 2, key: 'ingenuity', mission: 'ingenuity' },
   { n: 3, key: 'moxie' },
   { n: 4, key: 'firstSample' },
   { n: 5, key: 'chute' },
@@ -696,7 +696,9 @@ function Prompt() {
         ? t('game.prompt.coring', { name: here.name })
         : action.kind === 'panorama'
           ? t('game.prompt.shooting', { name: here.name })
-          : t('game.prompt.dropping');
+          : action.kind === 'deposit'
+            ? t('game.prompt.dropping')
+            : t(`game.prompt.doing.${action.kind}`);
   } else if (hud.laser) {
     text = t('game.prompt.lasering');
   } else if (hud.blocked === 'power' || hud.recharging) {
@@ -723,6 +725,11 @@ function Prompt() {
   } else if (hud.slip > 0.3 && Math.abs(hud.speedMps) > 0.3) {
     text = t('game.prompt.sand', { pct: Math.round(hud.slip * 100) });
     tone = 'is-warn';
+  } else if (here?.kind === 'station' && here.step) {
+    text = t(`game.prompt.${here.stopped ? 'hold' : 'stop'}ToStep`, {
+      action: t(`game.steps.${here.step}`),
+    });
+    tone = 'is-go';
   } else if (here) {
     const key = here.kind === 'depot' ? 'Drop' : here.kind === 'panorama' ? 'Pano' : 'Core';
     text = t(`game.prompt.${here.stopped ? 'hold' : 'stop'}To${key}`, { name: here.name });

@@ -1,0 +1,35 @@
+{
+  "description": "Facts and places behind the rover game's Ingenuity deployment mission (mission 2).",
+  "places": {
+    "shieldDrop": { "lat": 18.445164, "lon": 77.451822, "basis": "MMGIS rover waypoint, sols 29–30 (data/build/rover/rover.json); the shield was dropped on sol 30" },
+    "wrightBrothersField": { "lat": 18.444863, "lon": 77.451019, "basis": "MMGIS ingenuity.json 'flight 0' (sol 43, the deploy spot); the rover parked over it on sol 34 (waypoint 18.444863, 77.451022)" },
+    "vanZylOverlook": { "lat": 18.444752, "lon": 77.45214, "basis": "MMGIS rover waypoint, sol 52 (stays until sol 65); 64 m from the field, NASA gives 64.3 m" },
+    "driveAway": "Rover waypoint sol 43: 4.6 m from the field (odometer 186.4 → 191.0 m)"
+  },
+  "timeline": [
+    { "sol": 30, "date": "2021-03-21", "event": "Debris shield dropped" },
+    { "sol": 38, "date": "2021-03-29", "event": "Helicopter rotated to vertical" },
+    { "sol": 39, "date": "2021-03-30", "event": "Last two legs unfolded" },
+    { "sol": 43, "date": "2021-04-03", "event": "Ingenuity released onto the surface; rover drives clear so its solar panel gets sunlight" },
+    { "sol": 58, "date": "2021-04-19", "event": "First flight: climb to 3 m, 30 s hover, land; 39.1 s; filmed from Van Zyl Overlook" }
+  ],
+  "figures": {
+    "airfield": "about 10 × 10 m, just north of the landing site (NASA)",
+    "helicopter": "1.8 kg, 0.49 m tall, two coaxial rotors 1.2 m across (NASA)",
+    "firstFlight": "3 m, 30 s hover, 39.1 s from takeoff to touchdown, 12:33 local mean solar time (NASA release, 19 April 2021)"
+  },
+  "unverified": [
+    "The drop height (reported as a few centimetres; no NASA figure found).",
+    "How Ingenuity lay under the belly, and the debris shield's size and look: drawn approximately."
+  ],
+  "model": {
+    "file": "data/raw/models/25043_Ingenuity_v3.glb (NASA 3D Resources, NASA/JPL-Caltech; science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model)",
+    "build": "npx -y @gltf-transform/cli@4 optimize data/raw/models/25043_Ingenuity_v3.glb data/build/models/ingenuity.glb --texture-compress webp --texture-size 512 --compress meshopt (1.81 MB → 225 KB)"
+  },
+  "sources": [
+    "https://www.nasa.gov/news-release/nasas-ingenuity-mars-helicopter-succeeds-in-historic-first-flight/",
+    "https://spaceexplored.com/2021/04/08/ingenuity-deployment-timeline/",
+    "https://www.space.com/nasa-mars-2020-mission-helicopter-ingenuity.html",
+    "https://science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model/"
+  ]
+}

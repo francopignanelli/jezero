@@ -237,7 +237,7 @@ export class SiteMarker {
           // Quiet close by (it would be a wall of light beside the rover), dimmer very far away.
           float near = mix(0.15, 1.0, smoothstep(8.0, 40.0, vDist));
           float far = mix(1.0, 0.45, smoothstep(1500.0, 5000.0, vDist));
-          float a = (core * 0.9 + halo * 0.22) * rise * shimmer * near * far * uStrength * (1.0 + 0.4 * uActive);
+          float a = (core * 0.9 + halo * 0.22) * rise * shimmer * near * far * uStrength * (1.0 - 0.85 * uActive);
           vec3 c = mix(uColor, vec3(1.0, 0.97, 0.92), core * 0.6);
           gl_FragColor = vec4(c * a, 1.0);
           #include <tonemapping_fragment>

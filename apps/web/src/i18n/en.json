@@ -888,7 +888,15 @@
       "shooting": "Mastcam-Z: panorama of {{name}}…",
       "heli": "Ingenuity is {{distance}} m away: come within 70 m to watch it fly",
       "autonavHint": "Press N: AutoNav drives to the next objective",
-      "heliFlying": "Ingenuity is flying: drag the view to follow it"
+      "heliFlying": "Ingenuity is flying: drag the view to follow it",
+      "holdToStep": "Press Space to {{action}}",
+      "stopToStep": "Stop here to {{action}}",
+      "doing": {
+        "shield": "Dropping the debris shield…",
+        "rotate": "Turning Ingenuity upright, unfolding its legs…",
+        "drop": "Releasing Ingenuity…",
+        "film": "Mastcam-Z is filming Ingenuity’s first flight…"
+      }
     },
     "touch": {
       "forward": "Forward",
@@ -1107,6 +1115,18 @@
       "hardware": {
         "title": "What brought it down",
         "story": "The 21.5 m parachute and the backshell it slowed came down 1.15 km west-northwest of the rover; the heat shield, dropped earlier, 1.5 km east-northeast. Nobody drove there: Ingenuity photographed the parachute and backshell from 8 m up in April 2022. Find them."
+      },
+      "shield": {
+        "title": "The debris shield",
+        "story": "21 March 2021, sol 30. Ingenuity has ridden to Mars on its side under the rover’s belly, behind a shield that protected it during landing. Stop and drop the shield, then drive to the airfield the team picked: a flat patch of about 10 × 10 m just north of the landing site, now Wright Brothers Field. Park right over its centre."
+      },
+      "deploy": {
+        "title": "Setting it down",
+        "story": "Sols 34–43. Over several sols a small motor turns the helicopter upright and its legs unfold; on 3 April 2021 Perseverance lets go of it, a drop of a few centimetres. From that moment Ingenuity runs on its own battery, and only its solar panel can recharge it: drive at least 5 m away so the Sun reaches it, within about a day."
+      },
+      "firstFlight": {
+        "title": "The first flight",
+        "story": "Sols 44–58. Perseverance drives to Van Zyl Overlook, 64.3 m away, where it can watch and relay. On 19 April 2021 Ingenuity spins its two rotors up to about 2,500 rpm, climbs to 3 m, hovers for 30 s and lands: 39.1 s in the air. Stop at the overlook and film it with Mastcam-Z."
       }
     },
     "objectives": {
@@ -1128,12 +1148,26 @@
       "landing-laser": "Analyse a rock with SuperCam (F)",
       "descent-stage": "Reach the descent stage’s crash site",
       "parachute": "Reach the parachute and the backshell",
-      "heat-shield": "Reach the heat shield"
+      "heat-shield": "Reach the heat shield",
+      "drop-shield": "Drop the debris shield",
+      "reach-field": "Park over the centre of Wright Brothers Field",
+      "rotate-heli": "Turn Ingenuity upright and unfold its legs",
+      "drop-heli": "Set Ingenuity down on Mars",
+      "drive-away": "Drive at least 5 m away so its solar panel gets the Sun",
+      "reach-overlook": "Drive to Van Zyl Overlook",
+      "film-flight": "Film the first flight with Mastcam-Z"
     },
     "toast": {
       "reached": "Reached {{name}}",
       "resumed": "Expedition resumed: chapter {{chapter}}",
-      "deposited": "{{count}} tubes left at Three Forks: they stay on Mars, their twins on board"
+      "deposited": "{{count}} tubes left at Three Forks: they stay on Mars, their twins on board",
+      "step": {
+        "shield": "Debris shield dropped (sol 30, 21 March 2021)",
+        "rotate": "Ingenuity is upright, legs out (sols 38–39)",
+        "drop": "Ingenuity is on Mars (sol 43, 3 April 2021). Its battery is on its own now",
+        "away": "Clear: the Sun reaches Ingenuity’s solar panel",
+        "film": "The first powered, controlled flight on another planet: 39.1 s"
+      }
     },
     "autonav": {
       "start": "AutoNav: safe path planned, {{distance}} m",
@@ -1233,7 +1267,10 @@
       "ingenuity": {
         "title": "Wright Brothers moment",
         "when": "Apr 2021",
-        "desc": "Drop Ingenuity on its airfield, back away, and watch the first powered flight on another world."
+        "desc": "Drop Ingenuity on its airfield, back away, and watch the first powered flight on another world.",
+        "start": "Start",
+        "complete": "First flight filmed",
+        "real": "Ingenuity flew 39.1 s on 19 April 2021 (sol 58), the first powered, controlled flight on another planet. It went on to fly 72 times, about 129 minutes and 17 km in all, until a rotor blade broke on its last flight, 18 January 2024."
       },
       "moxie": {
         "title": "Air you can make",
@@ -1289,7 +1326,12 @@
     "places": {
       "reach-descent-stage": "Descent stage",
       "reach-parachute": "Parachute and backshell",
-      "reach-heat-shield": "Heat shield"
+      "reach-heat-shield": "Heat shield",
+      "reach-wright-field": "Wright Brothers Field",
+      "reach-van-zyl": "Van Zyl Overlook",
+      "station-shield-spot": "Debris shield",
+      "station-field": "Wright Brothers Field",
+      "station-overlook": "Van Zyl Overlook"
     },
     "video": {
       "back": "Back to the missions",
@@ -1320,6 +1362,12 @@
       "photo": "P: photo mode, with the filters of the rover’s own cameras",
       "warp": "T speeds up time while AutoNav drives",
       "pause": "Esc pauses: options, photos, and the mission’s video"
+    },
+    "steps": {
+      "shield": "drop the debris shield",
+      "rotate": "turn Ingenuity upright",
+      "drop": "set Ingenuity down",
+      "film": "film the first flight"
     }
   },
   "modes": {

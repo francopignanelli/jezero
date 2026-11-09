@@ -1,16 +1,20 @@
 import {
   AdditiveBlending,
+  BoxGeometry,
   Color,
   CylinderGeometry,
   DirectionalLight,
   FogExp2,
   HalfFloatType,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
+  MeshStandardMaterial,
   NeutralToneMapping,
   PCFShadowMap,
   PerspectiveCamera,
   PointLight,
+  Quaternion,
   Scene,
   SphereGeometry,
   SRGBColorSpace,
@@ -43,6 +47,15 @@ import { SiteMarker, type MarkerKind, type MarkerLook } from './markers';
 import { RockField, type Rock } from './rocks';
 import { SunShadows, receiveSunShadow } from './sunShadow';
 import { LandingSite, type HardwareKind } from './landing';
+
+/** The deployment as drawn (see World.setDeploy). */
+export interface DeployView {
+  stage: 'stowed' | 'lying' | 'upright' | 'down';
+  anim: 'shield' | 'rotate' | 'drop' | null;
+  p: number;
+  /** Where the shield lies when it was dropped before this session (local x, north). */
+  shieldAt?: [number, number] | null;
+}
 import { DepotTubes, RouteLine } from './route';
 import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
 import { HORIZON_LINEAR, SkyDome, sunDirection } from './sky';
@@ -494,6 +507,17 @@ export class World {
     (this.grade.uniforms.uTexel as { value: Vector2 }).value.set(1 / (w * pr), 1 / (h * pr));
     this.dust.setViewportHeight(h * this.renderer.getPixelRatio(), this.camera.fov);
     (this.photoPass.uniforms.uAspect as { value: number }).value = w / h;
+  }
+
+  /** NASA's Ingenuity model (the built stand-in stays if it cannot be loaded). */
+  async loadIngenuity(url: string): Promise<void> {
+    try {
+      await this.ingenuity.load(url);
+    } catch (e) {
+      console.warn('[Copernico game] Ingenuity model not loaded', e);
+    }
+    for (const m of this.ingenuity.allMaterials)
+      if (m.type !== 'MeshBasicMaterial') receiveSunShadow(m, this.sunShadows);
   }
 
   async loadRover(url: string): Promise<void> {
@@ -1043,6 +1067,7 @@ export class World {
       }
     }
     this.updateLaser();
+    this.updateDeploy();
     this.updateIngenuity(dt);
     this.route.update(this.time, pose.x, -pose.z);
     this.dust.update(
@@ -1071,6 +1096,103 @@ export class World {
   }
   /** Set when a flight ends (read and cleared by the session). */
   ingenuityLanded = false;
+
+  // ---------- Ingenuity's deployment (the helicopter under the rover, the debris shield) ----------
+
+  /** What the deployment shows now (null: nothing under the rover). */
+  private deploy: DeployView | null = null;
+  private shield: Mesh | null = null;
+  /** The shield on the ground once dropped (world matrix), and where it fell from. */
+  private shieldDown = false;
+  private readonly mLocal = new Matrix4();
+  private readonly mTmp = new Matrix4();
+
+  /**
+   * The helicopter and its debris shield for the deployment mission (null: none). Stages: stowed
+   * on its side under the belly behind the shield; lying there once the shield is off; upright with
+   * legs out; down on the ground. `anim` and `p` (0–1): the step under way.
+   */
+  setDeploy(d: DeployView | null): void {
+    this.deploy = d;
+    if (!d) {
+      if (this.shield) this.shield.visible = false;
+      this.shieldDown = false;
+      return;
+    }
+    if (!this.shield) {
+      // The debris shield: a light panel that covered the helicopter (about 0.8 × 0.9 m here).
+      const g = new BoxGeometry(0.78, 0.025, 0.9);
+      const m = new MeshStandardMaterial({ color: new Color(0.78, 0.76, 0.72), roughness: 0.7, metalness: 0.2 });
+      receiveSunShadow(m, this.sunShadows);
+      this.shield = new Mesh(g, m);
+      this.shield.castShadow = true;
+      this.shield.receiveShadow = true;
+      this.shield.matrixAutoUpdate = false;
+      this.scene.add(this.shield);
+    }
+    // Restored from a save: the shield already lies where it was dropped.
+    if (d.shieldAt && !this.shieldDown) {
+      const [x, n] = d.shieldAt;
+      this.tmp.set(x, this.groundY(x, -n) + 0.012, -n);
+      this.shield.matrix.compose(this.tmp, new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0.6), new Vector3(1, 1, 1));
+      this.shieldDown = true;
+    }
+    if (!d.shieldAt && d.stage === 'stowed' && !d.anim) this.shieldDown = false;
+    this.shield.visible = true;
+  }
+
+  /** Each frame, after the rover's pose: the helicopter carried, set down, and the shield. */
+  private updateDeploy(): void {
+    const d = this.deploy;
+    const rover = this.rover;
+    if (!d || !rover) return;
+    const R = rover.root.matrixWorld;
+    const ease = (t: number) => {
+      const x = Math.min(1, Math.max(0, t));
+      return x * x * (3 - 2 * x);
+    };
+    // Under the belly: hung from a point 0.58 m up; upright, its feet 0.07 m above the ground.
+    const PIVOT_Y = 0.58;
+    const HANG_M = 0.51;
+    if (d.stage !== 'down') {
+      let tilt = d.stage === 'upright' ? 0 : 1;
+      if (d.anim === 'rotate') tilt = 1 - ease(d.p);
+      let drop = 0;
+      if (d.anim === 'drop') drop = Math.min(1, Math.max(0, (d.p - 0.35) / 0.15)) ** 2 * (PIVOT_Y - HANG_M);
+      this.mLocal.makeTranslation(0, PIVOT_Y - drop, 0);
+      this.mLocal.multiply(this.mTmp.makeRotationX((tilt * Math.PI) / 2));
+      this.mLocal.multiply(this.mTmp.makeTranslation(0, -HANG_M, 0));
+      this.mTmp.multiplyMatrices(R, this.mLocal);
+      this.ingenuity.carry(this.mTmp, d.stage === 'upright' && !d.anim ? 0 : d.anim === 'rotate' ? 1 - ease(d.p) : d.anim === 'drop' ? 0 : 1);
+    }
+    // The shield: under the belly until dropped, then falling and lying on the ground.
+    const sh = this.shield;
+    if (sh && !this.shieldDown) {
+      const fall = d.anim === 'shield' ? ease(d.p * 1.6) : 0;
+      this.mLocal.makeTranslation(0, 0.24 - 0.21 * fall, 0.05 * fall);
+      this.mLocal.multiply(this.mTmp.makeRotationZ(0.12 * fall));
+      sh.matrix.multiplyMatrices(R, this.mLocal);
+      if (d.anim === 'shield' && d.p >= 0.7) this.shieldDown = true;
+    }
+  }
+
+  /**
+   * A camera shot over the rig: looking at `target` from `from` (world; by default Mastcam-Z on the
+   * mast head) with a field of view (°); null eases back to the rig.
+   */
+  setWatch(target: Vector3 | null, from: Vector3 | null = null, fovDeg = 12): void {
+    if (target) (this.watch ??= new Vector3()).copy(target);
+    this.watchFrom = from ? (this.watchFrom ?? new Vector3()).copy(from) : null;
+    this.watchFov = fovDeg;
+    this.watching = !!target;
+  }
+  private watchFrom: Vector3 | null = null;
+  private watchFov = 12;
+  private watch: Vector3 | null = null;
+  private watching = false;
+  private watchK = 0;
+  private readonly watchPos = new Vector3();
+  private readonly watchLook = new Vector3();
 
   /** Ingenuity parked at a local point (x, north), or hidden. */
   placeIngenuity(at: [number, number] | null, headingRad?: number): void {
@@ -1241,6 +1363,28 @@ export class World {
   /** Camera, level of detail, shadows, then the frame. */
   render(dt: number, rig: Omit<Parameters<CameraRig['update']>[0], 'ground' | 'drill'>): void {
     this.rig.update({ ...rig, ground: this.groundY, drill: this.drill }, dt);
+    // Watching through Mastcam-Z: from the mast head, zoomed in on the target.
+    this.watchK += ((this.watching ? 1 : 0) - this.watchK) * Math.min(1, dt * 1.6);
+    if (this.watchK > 0.002 && this.watch && this.rover) {
+      const k = this.watchK * this.watchK * (3 - 2 * this.watchK);
+      const r = this.rover.root.position;
+      if (this.watchFrom) this.watchPos.copy(this.watchFrom);
+      else {
+        this.watchPos.set(r.x, r.y + 2.15, r.z);
+        // A little behind the mast, away from the target, so the mast is not in the way.
+        this.tmp.copy(this.watch).sub(this.watchPos).setY(0).normalize();
+        this.watchPos.addScaledVector(this.tmp, -0.6);
+      }
+      this.watchLook.copy(this.watch);
+      this.camera.position.lerp(this.watchPos, k);
+      this.tmp2.copy(this.rig.lookTarget).lerp(this.watchLook, k);
+      this.camera.lookAt(this.tmp2);
+      this.camera.fov = 55 + (this.watchFov - 55) * k;
+      this.camera.updateProjectionMatrix();
+    } else if (this.camera.fov !== 55) {
+      this.camera.fov = 55;
+      this.camera.updateProjectionMatrix();
+    }
     this.camera.updateMatrixWorld();
     this.terrainMesh?.update(this.camera);
     if (this.rocks) this.rocks.update(this.camera.position.x, -this.camera.position.z);

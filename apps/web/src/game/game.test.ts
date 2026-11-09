@@ -23,8 +23,12 @@ import { SunShadows, receiveSunShadow } from './world/sunShadow';
 import {
   CHAPTERS,
   CORE_S,
+  INGENUITY_MISSION,
   LANDING,
   LANDING_HARDWARE,
+  STEP_S,
+  VAN_ZYL,
+  WRIGHT_FIELD,
   missionOf,
   FLIGHTS,
   PANORAMA_S,
@@ -749,5 +753,49 @@ describe('the landing mission', () => {
     expect(readSave('delta')).toBeNull();
     clearSave('landing');
     expect(readSave('landing')).toBeNull();
+  });
+});
+
+describe('the Ingenuity deployment mission', () => {
+  const all = allTargets([], INGENUITY_MISSION);
+  const at = (t: { lat: number; lon: number }): RoverState => initialRover(t.lat, t.lon, 0);
+  /** Holds the action key at a place until the sequence there ends. */
+  const doStep = (s0: ExpeditionState, where: { lat: number; lon: number }, seconds: number) => {
+    let s = s0;
+    let action: Action | null = null;
+    const events: ExpeditionEvent[] = [];
+    for (let k = 0; k <= seconds / 0.1 + 1; k++) {
+      const r = stepExpedition(s, action, at(where), all, k === 0, 0.1);
+      s = r.state;
+      action = r.action;
+      events.push(...r.events);
+    }
+    return { s, events };
+  };
+
+  it('drops the shield, sets the helicopter down, drives clear and films the first flight', () => {
+    let s = newExpedition('ingenuity');
+    let r = doStep(s, INGENUITY_MISSION.start, STEP_S.shield);
+    expect(r.s.steps).toEqual(['shield']);
+    r = doStep(r.s, WRIGHT_FIELD, 0.2); // reaching the field opens chapter 2
+    expect(r.s.chapter).toBe(1);
+    r = doStep(r.s, WRIGHT_FIELD, STEP_S.rotate);
+    r = doStep(r.s, WRIGHT_FIELD, STEP_S.drop);
+    expect(r.s.steps).toEqual(['shield', 'rotate', 'drop']);
+    // 5 m north of where it was set down: clear.
+    s = r.s;
+    const away = stepExpedition(s, null, at({ lat: WRIGHT_FIELD.lat + 6 / 59_274, lon: WRIGHT_FIELD.lon }), all, false, 0.1);
+    expect(away.state.steps).toContain('away');
+    expect(away.state.chapter).toBe(2);
+    r = doStep(away.state, VAN_ZYL, 0.2);
+    r = doStep(r.s, VAN_ZYL, STEP_S.film);
+    expect(r.events.map((e) => e.kind)).toContain('complete');
+    expect(expeditionDone(r.s)).toBe(true);
+  });
+
+  it('puts Van Zyl Overlook 64 m from Wright Brothers Field, as NASA gives it (64.3 m)', () => {
+    const d = groundDistanceM(at(WRIGHT_FIELD), VAN_ZYL);
+    expect(d).toBeGreaterThan(62);
+    expect(d).toBeLessThan(66);
   });
 });

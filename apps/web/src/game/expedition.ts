@@ -7,6 +7,9 @@ import type { RockType } from './science';
  * chapters of objectives that follow what the rover really did there; every place is real.
  * - landing: Octavia E. Butler Landing, 18 Feb 2021, and the landing hardware where HiRISE saw it
  *   the next day (data/catalog/landing-hardware.json). Opens with NASA's landing video.
+ * - ingenuity: Wright Brothers Field, March–April 2021: the debris shield dropped, the helicopter
+ *   turned upright and set down under the rover, the rover driving clear, and the first powered
+ *   flight on another planet filmed from Van Zyl Overlook (data/catalog/ingenuity-deploy.json).
  * - delta: the delta front of Jezero, driven as Perseverance did between sols 408 and 693 (April
  *   2022 – February 2023): arrival at the front, the climb up Hawksbill Gap, back down to Amalik,
  *   Hidden Harbor and Observation Mountain, and the Three Forks sample depot. Sample sites
@@ -16,7 +19,7 @@ import type { RockType } from './science';
  * Pure: the session feeds it the rover and the player's actions; tested in game.test.ts.
  */
 
-export type MissionId = 'landing' | 'delta';
+export type MissionId = 'landing' | 'ingenuity' | 'delta';
 
 export const SAMPLE_RADIUS_M = 14;
 export const PANORAMA_RADIUS_M = 12;
@@ -36,7 +39,19 @@ export const CORE_COST_PCT = 4;
 export const SAMPLE_TUBES = 38;
 export const WITNESS_TUBES = 5;
 
-export type TargetKind = 'sample' | 'depot' | 'panorama' | 'reach';
+export type TargetKind = 'sample' | 'depot' | 'panorama' | 'reach' | 'station';
+
+/** Steps of a mission done at a station by the action key, in order (and 'away', by driving). */
+export type StepId = 'shield' | 'rotate' | 'drop' | 'away' | 'film';
+/** Seconds each step's sequence runs (the film: Ingenuity's first flight, 39.1 s in the air). */
+export const STEP_S: Record<Exclude<StepId, 'away'>, number> = {
+  shield: 3,
+  rotate: 8,
+  drop: 3,
+  film: 45,
+};
+/** The rover clears the helicopter (its solar panel needs the Sun) once this far from it (m). */
+export const AWAY_M = 5;
 
 export interface Target {
   id: string;
@@ -50,6 +65,8 @@ export interface Target {
   site?: SampleSite;
   /** Panorama id (data/catalog/panoramas.json). */
   panoramaId?: string;
+  /** A station's marker icon. */
+  icon?: 'sample' | 'depot' | 'panorama' | 'reach';
 }
 
 export const tubesIn = (sampleNumber: string): number => (sampleNumber.match(/\d+/g) ?? []).length;
@@ -77,7 +94,8 @@ export type Objective =
   | { id: string; kind: 'panorama'; panorama: string; optional?: boolean }
   | { id: string; kind: 'depot'; optional?: boolean }
   | { id: string; kind: 'laser'; count: number; optional?: boolean }
-  | { id: string; kind: 'flight'; count: number; optional?: boolean };
+  | { id: string; kind: 'flight'; count: number; optional?: boolean }
+  | { id: string; kind: 'step'; step: StepId; at?: string; optional?: boolean };
 
 export interface Chapter {
   id: string;
@@ -112,6 +130,10 @@ export interface MissionDef {
   hardware?: Hardware[];
   /** The rover's landing blast: the descent stage's engines scoured the ground under it. */
   blast?: { lat: number; lon: number };
+  /** Places where steps are done (by id; the step objectives name them with `at`). */
+  stations?: Array<Spot & { icon: 'sample' | 'depot' | 'panorama' | 'reach' }>;
+  /** Ingenuity rides under the rover at the start (the deployment mission). */
+  stowedHelicopter?: boolean;
 }
 
 // ---------- the delta front ----------
@@ -252,7 +274,75 @@ export const LANDING: MissionDef = {
   blast: { lat: 18.444627, lon: 77.450886 },
 };
 
-export const MISSIONS: Record<MissionId, MissionDef> = { landing: LANDING, delta: DELTA };
+// ---------- Ingenuity's deployment and first flight ----------
+
+/**
+ * Wright Brothers Field: where Perseverance set Ingenuity down on sol 43 (3 April 2021), the
+ * helicopter's first logged position (MMGIS ingenuity.json, "flight 0"); the rover had parked over
+ * it on sol 34. Van Zyl Overlook: the rover's position from sol 52 to the first flight (sol 58),
+ * 64 m away (NASA: 64.3 m).
+ */
+export const WRIGHT_FIELD = { lat: 18.444863, lon: 77.451019 };
+export const VAN_ZYL = { lat: 18.444752, lon: 77.45214 };
+
+export const INGENUITY_MISSION: MissionDef = {
+  id: 'ingenuity',
+  areaId: 'landing',
+  /** The rover's position on sols 29–30, where it dropped the debris shield (21 March 2021). */
+  start: { lat: 18.445164, lon: 77.451822, headingDeg: 250 },
+  chapters: [
+    {
+      // Sol 30: the shield that protected the helicopter during landing comes off; then the drive
+      // to the airfield the team had chosen (sols 31–34).
+      id: 'shield',
+      sols: [30, 34],
+      objectives: [
+        { id: 'drop-shield', kind: 'step', step: 'shield', at: 'shield-spot' },
+        { id: 'reach-field', kind: 'reach', target: 'wright-field' },
+      ],
+    },
+    {
+      // Sols 34–44: turned upright, legs unfolded, released; the rover drives clear within a day.
+      id: 'deploy',
+      sols: [34, 44],
+      objectives: [
+        { id: 'rotate-heli', kind: 'step', step: 'rotate', at: 'field' },
+        { id: 'drop-heli', kind: 'step', step: 'drop', at: 'field' },
+        { id: 'drive-away', kind: 'step', step: 'away' },
+      ],
+    },
+    {
+      // Sols 44–58: to Van Zyl Overlook, then the first flight, filmed by Mastcam-Z.
+      id: 'firstFlight',
+      sols: [44, 58],
+      objectives: [
+        { id: 'reach-overlook', kind: 'reach', target: 'van-zyl' },
+        { id: 'film-flight', kind: 'step', step: 'film', at: 'overlook' },
+      ],
+    },
+  ],
+  reach: [
+    { id: 'wright-field', name: 'Wright Brothers Field', ...WRIGHT_FIELD, radiusM: 3 },
+    { id: 'van-zyl', name: 'Van Zyl Overlook', ...VAN_ZYL, radiusM: 9 },
+  ],
+  panoramas: [],
+  depot: null,
+  flights: [],
+  earlierSamples: [],
+  routeSols: [29, 58],
+  stations: [
+    { id: 'shield-spot', name: 'Debris shield drop', lat: 18.445164, lon: 77.451822, radiusM: 10, icon: 'depot' },
+    { id: 'field', name: 'Wright Brothers Field', ...WRIGHT_FIELD, radiusM: 3, icon: 'depot' },
+    { id: 'overlook', name: 'Van Zyl Overlook', ...VAN_ZYL, radiusM: 9, icon: 'panorama' },
+  ],
+  stowedHelicopter: true,
+};
+
+export const MISSIONS: Record<MissionId, MissionDef> = {
+  landing: LANDING,
+  ingenuity: INGENUITY_MISSION,
+  delta: DELTA,
+};
 export const missionOf = (s: { mission?: MissionId }): MissionDef => MISSIONS[s.mission ?? 'delta'];
 
 /** The delta's definitions under their earlier names (the delta was the game's only map). */
@@ -281,6 +371,10 @@ export interface ExpeditionState {
   /** Rocks analysed with SuperCam during this mission, and the science points earned. */
   finds: Find[];
   science: number;
+  /** Steps done (deployment mission); missing in older saves. */
+  steps?: StepId[];
+  /** Where Ingenuity was set down (the rover's position then). */
+  dropAt?: { lat: number; lon: number };
 }
 
 export interface Find {
@@ -301,6 +395,7 @@ export const newExpedition = (mission: MissionId = 'delta'): ExpeditionState => 
   flights: [],
   finds: [],
   science: 0,
+  steps: [],
 });
 
 /** Flights watched within a chapter's sols (flight objectives count only the chapter's own). */
@@ -324,6 +419,8 @@ export function objectiveDone(s: ExpeditionState, o: Objective, c: Chapter): boo
       return s.finds.length >= o.count;
     case 'flight':
       return flightsIn(s, c) >= o.count;
+    case 'step':
+      return (s.steps ?? []).includes(o.step);
   }
 }
 
@@ -389,6 +486,17 @@ export function allTargets(samples: SampleSite[], m: MissionDef = DELTA): Target
       panoramaId: p.id,
     });
   if (m.depot) out.push({ id: 'depot', kind: 'depot', name: 'Three Forks', ...m.depot, tubes: 0 });
+  for (const st of m.stations ?? [])
+    out.push({
+      id: `station-${st.id}`,
+      kind: 'station',
+      name: st.name,
+      lat: st.lat,
+      lon: st.lon,
+      radiusM: st.radiusM ?? REACH_RADIUS_M,
+      tubes: 0,
+      icon: st.icon,
+    });
   return out;
 }
 
@@ -401,7 +509,9 @@ const targetFor = (o: Objective): string | null =>
         ? `pano-${o.panorama}`
         : o.kind === 'depot'
           ? 'depot'
-          : null;
+          : o.kind === 'step' && o.at
+            ? `station-${o.at}`
+            : null;
 
 export const targetOf = (o: Objective, targets: Target[]): Target | undefined => {
   const id = targetFor(o);
@@ -412,7 +522,19 @@ export function isDone(s: ExpeditionState, t: Target): boolean {
   if (t.kind === 'reach') return s.reached.includes(t.id.slice('reach-'.length));
   if (t.kind === 'sample') return s.samples.includes(t.site?.sampleNumber ?? '');
   if (t.kind === 'panorama') return s.panoramas.includes(t.panoramaId ?? '');
+  if (t.kind === 'station') return stationStep(s, t) === null;
   return s.deposited;
+}
+
+/** The next step to do at a station in the current chapter (in order), or null. */
+export function stationStep(s: ExpeditionState, t: Target): Exclude<StepId, 'away'> | null {
+  const c = missionOf(s).chapters[s.chapter];
+  if (!c) return null;
+  const at = t.id.slice('station-'.length);
+  for (const o of c.objectives)
+    if (o.kind === 'step' && o.at === at && !(s.steps ?? []).includes(o.step))
+      return o.step as Exclude<StepId, 'away'>;
+  return null;
 }
 
 /**
@@ -452,7 +574,7 @@ export function nextTarget(
  * depot, then a panorama; among equals, the nearest.
  */
 export function targetHere(rover: RoverState, open: Target[]): Target | null {
-  const rank: Record<TargetKind, number> = { sample: 0, depot: 1, panorama: 2, reach: 3 };
+  const rank: Record<TargetKind, number> = { sample: 0, station: 1, depot: 2, panorama: 3, reach: 4 };
   let best: Target | null = null;
   let bestKey = Infinity;
   for (const t of open) {
@@ -467,7 +589,7 @@ export function targetHere(rover: RoverState, open: Target[]): Target | null {
   return best;
 }
 
-export type ActionKind = 'core' | 'deposit' | 'panorama';
+export type ActionKind = 'core' | 'deposit' | 'panorama' | Exclude<StepId, 'away'>;
 export interface Action {
   targetId: string;
   kind: ActionKind;
@@ -475,13 +597,20 @@ export interface Action {
 }
 
 export const actionSeconds = (k: ActionKind): number =>
-  k === 'core' ? CORE_S : k === 'panorama' ? PANORAMA_S : DEPOSIT_S;
+  k === 'core'
+    ? CORE_S
+    : k === 'panorama'
+      ? PANORAMA_S
+      : k === 'deposit'
+        ? DEPOSIT_S
+        : STEP_S[k];
 
 export type ExpeditionEvent =
   | { kind: 'reached'; target: Target }
   | { kind: 'collected'; target: Target }
   | { kind: 'panorama'; target: Target }
   | { kind: 'deposited'; target: Target }
+  | { kind: 'step'; step: StepId; target: Target | null }
   | { kind: 'chapter'; chapter: number }
   | { kind: 'complete' };
 
@@ -506,6 +635,18 @@ export function stepExpedition(
       state = { ...state, reached: [...state.reached, t.id.slice('reach-'.length)] };
       events.push({ kind: 'reached', target: t });
     }
+  // Driving clear of the helicopter once it is down (the 'away' step of the current chapter).
+  const steps = state.steps ?? [];
+  const chapter = missionOf(state).chapters[state.chapter];
+  if (
+    steps.includes('drop') &&
+    !steps.includes('away') &&
+    chapter?.objectives.some((o) => o.kind === 'step' && o.step === 'away') &&
+    groundDistanceM(rover, s.dropAt ?? WRIGHT_FIELD) >= AWAY_M
+  ) {
+    state = { ...state, steps: [...steps, 'away'] };
+    events.push({ kind: 'step', step: 'away', target: null });
+  }
   const running = action && targets.find((t) => t.id === action.targetId);
   const here =
     running ||
@@ -516,8 +657,20 @@ export function stepExpedition(
   let next: Action | null = action;
   if (running || (pressed && here && Math.abs(rover.speed) <= STOPPED_MPS && !rover.recharging)) {
     const t = here!;
-    const kind: ActionKind =
-      t.kind === 'depot' ? 'deposit' : t.kind === 'panorama' ? 'panorama' : 'core';
+    const kind: ActionKind | null =
+      t.kind === 'depot'
+        ? 'deposit'
+        : t.kind === 'panorama'
+          ? 'panorama'
+          : t.kind === 'station'
+            ? running
+              ? (action!.kind as ActionKind)
+              : stationStep(state, t)
+            : 'core';
+    if (!kind) {
+      const adv = advance(state, s, events);
+      return { state: adv.state, action: null, events: adv.events };
+    }
     const heldS = (action?.heldS ?? 0) + dt;
     if (heldS < actionSeconds(kind)) next = { targetId: t.id, kind, heldS };
     else {
@@ -528,6 +681,15 @@ export function stepExpedition(
       } else if (kind === 'panorama') {
         state = { ...state, panoramas: [...state.panoramas, t.panoramaId!] };
         events.push({ kind: 'panorama', target: t });
+      } else if (t.kind === 'station') {
+        const step = kind as StepId;
+        state = {
+          ...state,
+          steps: [...(state.steps ?? []), step],
+          // Where the helicopter was set down (under the rover), for driving clear of it.
+          ...(step === 'drop' ? { dropAt: { lat: rover.lat, lon: rover.lon } } : {}),
+        };
+        events.push({ kind: 'step', step, target: t });
       } else {
         state = { ...state, deposited: true };
         events.push({ kind: 'deposited', target: t });

@@ -7,6 +7,7 @@ import {
   type ExpeditionState,
   type Find,
   type MissionId,
+  type StepId,
   type Target,
   type TargetKind,
 } from './expedition';
@@ -41,7 +42,14 @@ export interface Hud {
   /** The objective the compass points to: distance and bearing relative to the camera (°, clockwise). */
   next: { id: string; name: string; kind: TargetKind; distanceM: number; relDeg: number } | null;
   /** Target whose zone the rover is in. */
-  here: { id: string; name: string; kind: TargetKind; stopped: boolean } | null;
+  here: {
+    id: string;
+    name: string;
+    kind: TargetKind;
+    stopped: boolean;
+    /** At a station: the step the action key does there. */
+    step?: StepId | null;
+  } | null;
   action: { kind: ActionKind; fraction: number } | null;
   /** Hazards: sand under the rover (0–1), slip (0–1), stuck; wheel health (%), wearing now. */
   sand: number;

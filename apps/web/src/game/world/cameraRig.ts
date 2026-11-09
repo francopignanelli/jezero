@@ -97,6 +97,11 @@ export class CameraRig {
     return this.mode;
   }
 
+  /** The point the camera looks at. */
+  get lookTarget(): Vector3 {
+    return this.look;
+  }
+
   /** Heading the camera looks along (for the HUD arrow and the mini-map). */
   get headingRad(): number {
     return this.heading;
