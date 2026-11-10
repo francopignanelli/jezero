@@ -76,7 +76,7 @@ test('rover game: the delta-front expedition, a core, the inventory, AutoNav, sa
   await expect(card).toBeVisible({ timeout: 240_000 });
   await expect(card).toContainText('Samples 10 & 11');
   await expect(card).toContainText('Sedimentary rock');
-  await expect(card.locator('img')).toHaveJSProperty('complete', true);
+  await expect(card.locator('figure:not(.game-card-tube) img')).toHaveJSProperty('complete', true);
   await card.getByRole('button', { name: 'Continue' }).click();
   await expect(page.locator('.game-objectives li.is-done')).toHaveCount(1);
 

@@ -1376,6 +1376,7 @@
     "planner": "Planner",
     "plannerHint": "Plan a Marswalk in Jezero Crater",
     "game": "Rover game",
-    "gameHint": "Drive Perseverance through its real missions"
+    "gameHint": "Drive Perseverance through its real missions",
+    "home": "Copernico home"
   }
 }

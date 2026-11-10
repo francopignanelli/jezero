@@ -1742,3 +1742,10 @@
 .game-rack li.is-witness {
   border-color: #6f9a83;
 }
+
+.game-home-modes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}

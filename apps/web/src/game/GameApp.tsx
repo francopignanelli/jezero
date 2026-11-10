@@ -232,7 +232,13 @@ function MainMenu({ session }: { session: GameSession }) {
     <div className="game-screen game-home">
       <section className="game-home-panel" aria-labelledby="game-title">
         <header className="game-home-head">
-          <ModeSwitch current="game" />
+          <div className="game-home-modes">
+            <a className="brand" href={HOME} title={t('modes.home')}>
+              <span className="brand-mark" aria-hidden="true" />
+              <span className="brand-name">{t('app.name')}</span>
+            </a>
+            <ModeSwitch current="game" />
+          </div>
           <LanguageSwitch />
         </header>
         <h1 id="game-title">{t('game.title')}</h1>

@@ -20,10 +20,10 @@ export function TopBar() {
 
   return (
     <header className="topbar">
-      <div className="brand">
+      <a className="brand" href="./" title={t('modes.home')}>
         <span className="brand-mark" aria-hidden="true" />
         <span className="brand-name">{t('app.name')}</span>
-      </div>
+      </a>
       <ModeSwitch current="planner" />
       <nav aria-label="Breadcrumb">
         <ol className="breadcrumb">

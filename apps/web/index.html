@@ -11,6 +11,11 @@
       // Planner links shared before the home page existed (/#m=…) open the planner.
       if (/^#m=/.test(location.hash)) location.replace('./planner.html' + location.hash);
     </script>
+    <!--
+      The home page: static HTML (no app bundle), so it shows at once. Its text is in English and
+      Spanish below; the language is the one the planner and the game use (localStorage
+      copernico.lang, else the browser's), and the flags change it for all three.
+    -->
     <style>
       :root {
         --bg: #07080c; --fg: #eceae6; --muted: #a4adba; --mars: #e0784a; --line: rgb(255 255 255 / 0.12);
@@ -20,10 +25,21 @@
       * { box-sizing: border-box; }
       html, body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 var(--sans); }
       a { color: inherit; }
+      .top {
+        position: absolute; inset: 0 0 auto; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+        padding: calc(14px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 14px max(16px, env(safe-area-inset-left, 0px));
+      }
+      .brand { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
+      .brand i { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f08a57, #8e3f20); }
+      .lang { display: flex; gap: 6px; }
+      .lang button { display: grid; place-items: center; width: 38px; height: 28px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: rgb(0 0 0 / 0.35); cursor: pointer; opacity: 0.65; }
+      .lang button[aria-pressed='true'] { opacity: 1; border-color: var(--mars); }
+      .lang button:focus-visible { outline: 2px solid #f2b84b; outline-offset: 1px; }
+      .lang svg { width: 100%; height: 100%; display: block; border-radius: 2px; }
       .hero { position: relative; min-height: 78vh; display: grid; align-items: end; overflow: hidden; }
       .hero video, .hero .shade { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-      .hero .shade { background: linear-gradient(180deg, rgb(7 8 12 / 0.15) 0%, rgb(7 8 12 / 0.35) 55%, var(--bg) 100%); }
-      .hero-in { position: relative; width: min(1120px, 100%); margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-left, 0px)) 40px; display: grid; gap: 12px; }
+      .hero .shade { background: linear-gradient(180deg, rgb(7 8 12 / 0.45) 0%, rgb(7 8 12 / 0.15) 22%, rgb(7 8 12 / 0.35) 55%, var(--bg) 100%); }
+      .hero-in { position: relative; width: min(1120px, 100%); margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 12px; }
       .eyebrow { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mars); }
       h1 { margin: 0; font-size: clamp(2.6rem, 7vw, 4.6rem); line-height: 1; letter-spacing: -0.01em; }
       .lede { margin: 0; max-width: 60ch; font-size: 1.12rem; color: #d9d6d0; }
@@ -31,13 +47,14 @@
       .watch:hover, .watch:focus-visible { border-color: var(--mars); outline: none; }
       main { width: min(1120px, 100%); margin: 0 auto; padding: 8px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 28px; }
       .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
-      .mode { display: grid; grid-template-rows: auto 1fr; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #11141b; text-decoration: none; transition: border-color 0.15s ease, transform 0.15s ease; }
+      .mode { display: grid; grid-template-rows: auto 1fr; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #11141b; text-decoration: none; transition: border-color 0.15s ease, transform 0.15s ease; }
       .mode:hover, .mode:focus-visible { border-color: var(--mars); transform: translateY(-2px); outline: none; }
-      .mode img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #000; }
-      .mode div { display: grid; gap: 6px; padding: 16px 18px 18px; }
+      .mode img { display: block; width: 100%; height: auto; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #000; }
+      .mode.planner img { object-position: 75% 50%; }
+      .mode div { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px 18px; }
       .mode h2 { margin: 0; font-size: 1.4rem; }
       .mode p { margin: 0; color: var(--muted); }
-      .mode span { margin-top: 6px; color: var(--mars); font-weight: 600; }
+      .mode span { margin-top: auto; padding-top: 6px; color: var(--mars); font-weight: 600; }
       .credits { margin: 0; color: #7d8592; font-size: 0.85rem; max-width: 90ch; }
       dialog { width: min(1040px, 94vw); padding: 0; border: 1px solid var(--line); border-radius: 14px; background: #0e1117; color: var(--fg); }
       dialog::backdrop { background: rgb(0 0 0 / 0.7); }
@@ -48,38 +65,49 @@
     </style>
   </head>
   <body>
+    <div class="top">
+      <a class="brand" href="./"><i aria-hidden="true"></i>Copernico</a>
+      <div class="lang" role="group" aria-label="Language / Idioma">
+        <button type="button" data-lang="en" aria-label="English" title="English">
+          <svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="uks"><path d="M0 0v30h60V0z" /></clipPath><clipPath id="ukt"><path d="M30 15h30v15zv15H0zH0V0zV0h30z" /></clipPath><g clip-path="url(#uks)"><path d="M0 0v30h60V0z" fill="#012169" /><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6" /><path d="M0 0l60 30m0-30L0 30" clip-path="url(#ukt)" stroke="#c8102e" stroke-width="4" /><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10" /><path d="M30 0v30M0 15h60" stroke="#c8102e" stroke-width="6" /></g></svg>
+        </button>
+        <button type="button" data-lang="es" aria-label="Español" title="Español">
+          <svg viewBox="0 0 750 500" aria-hidden="true"><rect width="750" height="500" fill="#c60b1e" /><rect y="125" width="750" height="250" fill="#ffc400" /></svg>
+        </button>
+      </div>
+    </div>
     <header class="hero">
       <video id="hero" autoplay muted loop playsinline poster="./data/landing/hero.webp" aria-hidden="true">
         <source src="./data/landing/hero.webm" type="video/webm" />
       </video>
       <div class="shade"></div>
       <div class="hero-in">
-        <span class="eyebrow">Jezero Crater, Mars · NASA Space Apps 2026</span>
+        <span class="eyebrow" data-t="eyebrow">Jezero Crater, Mars · NASA Space Apps 2026</span>
         <h1>Copernico</h1>
-        <p class="lede">Jezero Crater rebuilt from NASA's own data: orbital terrain and imagery, Perseverance's real route, samples and panoramas. Plan a walk there, or drive the rover through its real missions.</p>
-        <button class="watch" type="button" id="watch">▶ Watch Perseverance land (3:25)</button>
+        <p class="lede" data-t="lede">Jezero Crater rebuilt from NASA's own data: orbital terrain and imagery, Perseverance's real route, samples and panoramas. Plan a walk there, or drive the rover through its real missions.</p>
+        <button class="watch" type="button" id="watch" data-t="watch">▶ Watch Perseverance land (3:25)</button>
       </div>
     </header>
     <main>
-      <nav class="modes" aria-label="Copernico modes">
-        <a class="mode" href="./planner.html">
-          <img src="./data/landing/planner.webp" alt="The planner: Jezero Crater in 3D" width="960" height="570" />
+      <nav class="modes" aria-label="Copernico modes" data-t-label="modes">
+        <a class="mode planner" href="./planner.html">
+          <img src="./data/landing/planner.webp" alt="" width="960" height="570" />
           <div>
-            <h2>Planner</h2>
-            <p>Plan a scientifically grounded Marswalk in Jezero: terrain, slopes, sunlight and the places Perseverance studied, with routes of lower estimated risk.</p>
-            <span>Open the planner →</span>
+            <h2 data-t="planner">Planner</h2>
+            <p data-t="plannerText">Plan a scientifically grounded Marswalk in Jezero: terrain, slopes, sunlight and the places Perseverance studied, with routes of lower estimated risk.</p>
+            <span data-t="plannerGo">Open the planner →</span>
           </div>
         </a>
         <a class="mode" href="./play.html">
-          <img src="./data/landing/game.webp" alt="The rover game: Perseverance at Wildcat Ridge" width="960" height="570" />
+          <img src="./data/landing/game.webp" alt="" width="960" height="570" />
           <div>
-            <h2>Rover game</h2>
-            <p>Drive Perseverance through episodes of its real mission: the landing, Ingenuity's first flight, the delta front and the sample depot.</p>
-            <span>Play →</span>
+            <h2 data-t="game">Rover game</h2>
+            <p data-t="gameText">Drive Perseverance through episodes of its real mission: the landing, Ingenuity's first flight, the delta front and the sample depot.</p>
+            <span data-t="gameGo">Play →</span>
           </div>
         </a>
       </nav>
-      <p class="credits">Video and images: NASA/JPL-Caltech. Terrain and imagery: HiRISE, CTX and MOLA (NASA, USGS, University of Arizona). Rover route and places: NASA/JPL MMGIS. 3D models: NASA 3D Resources. Research and education prototype.</p>
+      <p class="credits" data-t="credits">Video and images: NASA/JPL-Caltech. Terrain and imagery: HiRISE, CTX and MOLA (NASA, USGS, University of Arizona). Rover route and places: NASA/JPL MMGIS. 3D models: NASA 3D Resources. Research and education prototype.</p>
     </main>
     <dialog id="player" aria-label="Perseverance's landing (NASA video)">
       <video id="full" controls playsinline preload="none">
@@ -87,11 +115,44 @@
         <track kind="captions" src="./data/game/media/landing.en.vtt" srclang="en" label="English" />
       </video>
       <form method="dialog">
-        <span>NASA/JPL-Caltech · Perseverance's descent and touchdown, 18 February 2021</span>
-        <button type="submit">Close</button>
+        <span data-t="videoCredit">NASA/JPL-Caltech · Perseverance's descent and touchdown, 18 February 2021</span>
+        <button type="submit" data-t="close">Close</button>
       </form>
     </dialog>
     <script>
+      const T = {
+        es: {
+          eyebrow: 'Cráter Jezero, Marte · NASA Space Apps 2026',
+          lede: 'El cráter Jezero reconstruido con datos de la propia NASA: terreno e imágenes orbitales, la ruta real de Perseverance, sus muestras y panorámicas. Planifica una caminata por allí, o conduce el rover por sus misiones reales.',
+          watch: '▶ Ver aterrizar a Perseverance (3:25)',
+          modes: 'Modos de Copernico',
+          planner: 'Planificador',
+          plannerText: 'Planifica una caminata con base científica en Jezero: terreno, pendientes, luz solar y los lugares que estudió Perseverance, con rutas de menor riesgo estimado.',
+          plannerGo: 'Abrir el planificador →',
+          game: 'Juego del rover',
+          gameText: 'Conduce a Perseverance por episodios de su misión real: el aterrizaje, el primer vuelo de Ingenuity, el frente del delta y el depósito de muestras.',
+          gameGo: 'Jugar →',
+          credits: 'Vídeo e imágenes: NASA/JPL-Caltech. Terreno e imágenes: HiRISE, CTX y MOLA (NASA, USGS, Universidad de Arizona). Ruta y lugares del rover: NASA/JPL MMGIS. Modelos 3D: NASA 3D Resources. Prototipo de investigación y educación.',
+          videoCredit: 'NASA/JPL-Caltech · Descenso y contacto de Perseverance, 18 de febrero de 2021 (subtítulos en inglés)',
+          close: 'Cerrar',
+        },
+      };
+      const EN = {};
+      document.querySelectorAll('[data-t]').forEach((el) => (EN[el.dataset.t] = el.textContent));
+      document.querySelectorAll('[data-t-label]').forEach((el) => (EN[el.dataset.tLabel] = el.getAttribute('aria-label')));
+      function setLang(lang, save) {
+        const d = lang === 'es' ? T.es : EN;
+        document.documentElement.lang = lang;
+        document.querySelectorAll('[data-t]').forEach((el) => (el.textContent = d[el.dataset.t] ?? EN[el.dataset.t]));
+        document.querySelectorAll('[data-t-label]').forEach((el) => el.setAttribute('aria-label', d[el.dataset.tLabel] ?? EN[el.dataset.tLabel]));
+        document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+        if (save) try { localStorage.setItem('copernico.lang', lang); } catch {}
+      }
+      let lang = navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en';
+      try { const s = localStorage.getItem('copernico.lang'); if (s === 'en' || s === 'es') lang = s; } catch {}
+      setLang(lang, false);
+      document.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang, true)));
+
       const dlg = document.getElementById('player');
       const full = document.getElementById('full');
       document.getElementById('watch').addEventListener('click', () => {

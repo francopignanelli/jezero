@@ -1376,6 +1376,7 @@
     "planner": "Planificador",
     "plannerHint": "Planifica una caminata en el cráter Jezero",
     "game": "Juego del rover",
-    "gameHint": "Conduce a Perseverance por sus misiones reales"
+    "gameHint": "Conduce a Perseverance por sus misiones reales",
+    "home": "Inicio de Copernico"
   }
 }

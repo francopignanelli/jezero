@@ -47,6 +47,7 @@ import { SiteMarker, type MarkerKind, type MarkerLook } from './markers';
 import { RockField, type Rock } from './rocks';
 import { SunShadows, receiveSunShadow } from './sunShadow';
 import { LandingSite, type HardwareKind } from './landing';
+import { loadTube } from './tube';
 
 /** The deployment as drawn (see World.setDeploy). */
 export interface DeployView {
@@ -522,6 +523,8 @@ export class World {
 
   async loadRover(url: string): Promise<void> {
     this.rover = await Rover3D.load(url);
+    const rover = this.rover;
+    void loadTube().then((t) => t && rover.setTube(t.geometry, t.material, t.lengthM));
     // In the scarp's shadow, the rover is in shadow too.
     const done = new Set<Material>();
     this.rover.root.traverse((o) => {
@@ -1265,6 +1268,10 @@ export class World {
     const ground = this.groundY(this.drill.x, this.drill.z);
     this.drill.y = Math.max(this.drill.y, ground + 0.03);
     rover.led.visible = coring !== null && c > 0.28 && c < 0.88;
+    // The tube rides in the bit from the moment it presses on the rock until the arm folds back
+    // (then it goes into the rover to be measured, imaged and sealed).
+    const lift = Math.min(1, Math.max(0, (c - DRILL_PHASE[1]) / 0.05)) * (1 - Math.min(1, Math.max(0, (c - 0.9) / 0.05)));
+    rover.showTube(coring !== null && c > 0.3 && c < 0.97, 0.06 * lift * lift * (3 - 2 * lift));
     if (pose.drill > 0) {
       // Cuttings thrown out by the percussive drill, more as it bites deeper.
       const n = Math.random() < dt * 50 ? 1 + Math.floor(Math.random() * 2) : 0;

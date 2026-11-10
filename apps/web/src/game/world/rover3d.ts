@@ -13,6 +13,7 @@ import {
   SphereGeometry,
   Vector3,
   type InterleavedBufferAttribute,
+  type Material,
   type MeshStandardMaterial,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -159,6 +160,10 @@ export class Rover3D {
   private readonly wristRest = new Vector3();
   /** Drill tip in the wrist frame. */
   private readonly tipLocal = new Vector3();
+  /** The drill's axis in the wrist frame (pointing out of the bit, into the ground when coring). */
+  private readonly drillAxisLocal = new Vector3(0, -1, 0);
+  /** The sample tube in the coring bit (NASA's model), shown while a core is taken. */
+  private tube: Mesh | null = null;
   /** Elbow angle that puts the drill on the ground (rover's wheel plane), with CORE_SHOULDER. */
   coreElbow = 2.0;
   private readonly suspension: SuspensionMesh[] = [];
@@ -480,6 +485,9 @@ export class Rover3D {
     drumBox();
     const tip = new Vector3((box.min.x + box.max.x) / 2, box.min.y, (box.min.z + box.max.z) / 2);
     wrist.worldToLocal(this.tipLocal.copy(tip));
+    // At this pose the drill points straight down: that direction, in the wrist's frame.
+    const wq = wrist.getWorldQuaternion(new Quaternion()).invert();
+    this.drillAxisLocal.set(0, -1, 0).applyQuaternion(wq).normalize();
     wrist.add(this.led);
     this.led.position.copy(this.tipLocal).add(new Vector3(0, 0.12, 0));
     this.setArm({ shoulder: 0, elbow: 0, wrist: 0, drill: 0 }, 0);
@@ -608,6 +616,32 @@ export class Rover3D {
       this.wrist.position.y += Math.abs(Math.sin(timeS * 47)) * j;
     }
   }
+
+  /**
+   * The sample tube (geometry along +Y, closed end at 0, open end at `lengthM`) inside the coring
+   * bit: coaxial with the drill, its open end at the bit's tip, where the core enters. The real tube
+   * sits inside the bit; here its gold head shows at the tip, and once the core is taken it slides
+   * out a few centimetres (showTube's `out`) so the tube can be seen.
+   */
+  setTube(geometry: BufferGeometry, material: Material, lengthM: number): void {
+    if (!this.wrist || this.tube) return;
+    const m = new Mesh(geometry, material);
+    m.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), this.drillAxisLocal);
+    m.position.copy(this.tipLocal).addScaledVector(this.drillAxisLocal, 0.015 - lengthM);
+    this.tubeBase.copy(m.position);
+    m.castShadow = true;
+    m.visible = false;
+    this.wrist.add(m);
+    this.tube = m;
+  }
+
+  /** Shows the tube in the bit (while a core is taken), or hides it; `out`: metres slid out. */
+  showTube(on: boolean, out = 0): void {
+    if (!this.tube) return;
+    this.tube.visible = on;
+    this.tube.position.copy(this.tubeBase).addScaledVector(this.drillAxisLocal, out);
+  }
+  private readonly tubeBase = new Vector3();
 
   /** The drill tip in world space (follows the arm). */
   drillTipWorld(target: Vector3): Vector3 {
