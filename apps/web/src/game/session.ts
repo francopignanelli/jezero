@@ -24,15 +24,19 @@ import { Controls, type Command } from './controls';
 import {
   CORE_COST_PCT,
   DELTA,
+  DRIVE_STEP_SPEED,
   FLIGHT_TRIGGER_M,
   MISSIONS,
   STOPPED_MPS,
   actionSeconds,
   advance,
   allTargets,
+  chainUnderWay,
+  driveStep,
   expeditionDone,
   ingenuity,
   newExpedition,
+  nextStep,
   nextTarget,
   openTargets,
   stationStep,
@@ -40,6 +44,7 @@ import {
   targetHere,
   targetOf,
   type Action,
+  type DriveStep,
   type ExpeditionEvent,
   type ExpeditionState,
   type MissionDef,
@@ -59,7 +64,7 @@ import {
   type RoverState,
 } from './roverSim';
 import { LASER_COST_PCT, LASER_RANGE_M, LASER_S, POINTS, rockKey, rockType } from './science';
-import { EMPTY_HUD, toast, useGame, type ExpeditionResult, type Phase } from './store';
+import { EMPTY_HUD, toast, useGame, type ExpeditionResult, type Hud, type Phase } from './store';
 import { loadManifest, sampleBilinear, type WorldManifest } from './world/heights';
 import type { Rock } from './world/rocks';
 import { DRILL_PHASE, World, type PhotoFilter, type Quality } from './world/world';
@@ -367,6 +372,14 @@ export class GameSession {
     useGame.getState().set({ phase: 'chapter' });
   }
 
+  /** NASA's film of the mission (Ingenuity's first flight) ended or was skipped: on to the end. */
+  endFilm(): void {
+    if (useGame.getState().phase !== 'film') return;
+    this.filming = false;
+    this.world.setWatch(null);
+    this.resume();
+  }
+
   /** Continues a mission's saved progress where it was left. */
   async continueExpedition(id: MissionId = this.mission.id): Promise<void> {
     const save = readSave(id);
@@ -412,6 +425,8 @@ export class GameSession {
     this.world.tracks.clear();
     this.world.depotTubes.clear();
     this.filming = false;
+    this.driving = null;
+    this.awayShot = false;
     this.world.setWatch(null);
     this.world.setDeploy(null);
     this.dropHeadingRad = save?.rover.headingRad ?? 0;
@@ -718,7 +733,12 @@ export class GameSession {
   /** The first flight is under way (filmed through Mastcam-Z). */
   private filming = false;
 
-  /** The deployment mission: what hangs under the rover, and the filmed first flight. */
+  /**
+   * The deployment mission: what hangs under the rover and the shots of the chain (low, in front,
+   * while the shield falls and the helicopter turns and drops; from beside the helicopter while
+   * the rover drives clear); at Van Zyl Overlook, Mastcam-Z turning to the helicopter before
+   * NASA's video of the flight.
+   */
   private stepDeploy(): void {
     if (!this.mission.stowedHelicopter || !this.running) {
       this.world.setDeploy(null);
@@ -728,7 +748,7 @@ export class GameSession {
     const a = this.action;
     const anim = a && (a.kind === 'shield' || a.kind === 'rotate' || a.kind === 'drop') ? a.kind : null;
     const f = this.world.frame;
-    const spot = this.mission.stations?.find((x) => x.id === 'shield-spot');
+    const sh = this.exp.shieldAt;
     this.world.setDeploy({
       stage: steps.includes('drop')
         ? 'down'
@@ -739,15 +759,17 @@ export class GameSession {
             : 'stowed',
       anim,
       p: anim && a ? a.heldS / actionSeconds(a.kind) : 0,
-      shieldAt: steps.includes('shield') && f && spot ? f.toLocal(spot.lat, spot.lon) : null,
+      shieldAt: steps.includes('shield') && f && sh ? f.toLocal(sh.lat, sh.lon) : null,
     });
-    if (anim) {
-      // A low shot under the belly, where the helicopter hangs.
+    const drive = driveStep(this.exp);
+    const p = this.world.rover!.root.position;
+    // The whole chain up to the drive away (and the shield's fall before it) in one shot.
+    if (anim || (chainUnderWay(this.exp) && drive?.step !== 'away')) {
+      // A low shot under the belly, where the helicopter hangs: from in front, between the front
+      // wheels (from the side the middle wheel hides it).
       const h = this.rover.headingRad;
-      const p = this.world.rover!.root.position;
       const fx = Math.sin(h);
       const fz = -Math.cos(h);
-      // From in front, low, between the front wheels (from the side the middle wheel hides it).
       this.shotFrom.set(p.x + fx * 3.6 + Math.cos(h) * 0.9, 0, p.z + fz * 3.6 + Math.sin(h) * 0.9);
       this.shotFrom.y = this.world.groundY(this.shotFrom.x, this.shotFrom.z) + 0.32;
       this.watchAt.set(p.x, p.y + 0.38, p.z);
@@ -755,23 +777,60 @@ export class GameSession {
       this.shooting = true;
       return;
     }
-    if (this.shooting) {
-      this.shooting = false;
-      this.world.setWatch(null);
-    }
-    if (a?.kind === 'film') {
-      if (!this.filming) {
-        this.filming = true;
-        this.world.ingenuity.flyFirst();
-      }
-      // Mastcam-Z near full zoom (110 mm: a field about 6° across) on the helicopter.
+    if (drive?.step === 'away' && this.world.ingenuity.root.visible) {
+      // From the ground beside the helicopter, still: the rover rolls away over it.
       const hp = this.world.ingenuity.position;
-      this.world.setWatch(this.watchAt.set(hp.x, hp.y + 0.6, hp.z), null, 7);
-    } else if (this.filming) {
+      if (!this.awayShot) {
+        const h = this.dropHeadingRad;
+        const [fx, fz, rx, rz] = [Math.sin(h), -Math.cos(h), Math.cos(h), Math.sin(h)];
+        this.shotFrom.set(hp.x + rx * 4.6 - fx * 1.2, 0, hp.z + rz * 4.6 - fz * 1.2);
+        this.shotFrom.y = this.world.groundY(this.shotFrom.x, this.shotFrom.z) + 0.75;
+        this.awayShot = true;
+      }
+      this.watchAt.set((hp.x + p.x) / 2, (hp.y + p.y) / 2 + 0.45, (hp.z + p.z) / 2);
+      this.world.setWatch(this.watchAt, this.shotFrom, 42);
+      this.shooting = true;
+      return;
+    }
+    this.awayShot = false;
+    if (a?.kind === 'film' && this.world.ingenuity.root.visible) {
+      // Mastcam-Z zoomed in on the helicopter at the airfield, 64 m away.
+      this.filming = true;
+      const hp = this.world.ingenuity.position;
+      this.world.setWatch(this.watchAt.set(hp.x, hp.y + 0.3, hp.z), null, 5);
+      return;
+    }
+    if (this.shooting || this.filming) {
+      this.shooting = false;
       this.filming = false;
       this.world.setWatch(null);
     }
   }
+
+  /** The mission's own drive (off the shield, clear of Ingenuity): straight, reversing if blocked. */
+  private driving: { step: DriveStep; dir: 1 | -1; odo: number; t: number } | null = null;
+  private driveThrottle(step: DriveStep, dt: number): number {
+    if (this.driving?.step !== step)
+      this.driving = { step, dir: 1, odo: this.rover.odometerM, t: 0 };
+    const d = this.driving;
+    d.t += dt;
+    if (d.t > 3) {
+      if (this.rover.odometerM - d.odo < 0.3) d.dir = d.dir === 1 ? -1 : 1;
+      d.t = 0;
+      d.odo = this.rover.odometerM;
+    }
+    return d.dir;
+  }
+
+  /** The rover is in the zone of a step that starts once it stops there (it brakes by itself). */
+  private arriving(): boolean {
+    const o = nextStep(this.exp);
+    if (o?.run !== 'arrive' || !o.at) return false;
+    const t = this.all.find((x) => x.id === `station-${o.at}`);
+    return !!t && groundDistanceM(this.rover, t) <= t.radiusM;
+  }
+
+  private awayShot = false;
   private readonly watchAt = new Vector3();
   private readonly shotFrom = new Vector3();
   private shooting = false;
@@ -1118,6 +1177,19 @@ export class GameSession {
       else input = { ...this.autoInput(dt), action: input.action };
     } else if (this.warp > 1 && (input.throttle !== 0 || input.steer !== 0)) this.warp = 1;
     const busy = this.action !== null || this.laser !== null;
+    // The mission has the wheel during a chain (the deployment) and when stopping at a station.
+    const drive = driveStep(this.exp);
+    if (chainUnderWay(this.exp) || this.arriving()) {
+      if (this.auto) this.stopAutoNav();
+      this.warp = 1;
+      input = {
+        ...input,
+        throttle: drive && !busy ? this.driveThrottle(drive.step, dt) : 0,
+        steer: 0,
+        boost: false,
+        action: false,
+      };
+    }
     this.stepStorm(dt);
     const stuckBefore = this.rover.stuck;
     this.rover = stepRover(
@@ -1126,8 +1198,8 @@ export class GameSession {
       dt,
       this.ground,
       this.bounds,
-      // AutoNav slows down when the storm hides the terrain.
-      { speedFactor: 1 - 0.45 * this.storm.level },
+      // AutoNav slows down when the storm hides the terrain; the mission's own drives are slow.
+      { speedFactor: drive ? DRIVE_STEP_SPEED : 1 - 0.45 * this.storm.level },
     );
     if (this.rover.stuck && !stuckBefore) this.audio.warn();
     if (this.rover.wearPct > 0) this.wearShownS = 1.2;
@@ -1188,9 +1260,15 @@ export class GameSession {
         this.world.layTubesAt(x, n, this.rover.headingRad, this.depotCount());
         this.audio.chime(false);
         toast('game.toast.deposited', { count: this.depotCount() });
+      } else if (e.kind === 'step' && e.step === 'film') {
+        // NASA's video of the flight; the mission ends when it does.
+        this.audio.chime(false);
+        dialog = { phase: 'film' };
       } else if (e.kind === 'step') {
         this.audio.chime(false);
-        toast(`game.toast.step.${e.step}`);
+        if (e.step !== 'clear') toast(`game.toast.step.${e.step}`);
+        // Clear of the helicopter: the rover stops there (the next chapter's page opens).
+        if (e.step === 'away') this.rover = { ...this.rover, speed: 0 };
         if (e.step === 'drop') {
           this.dropHeadingRad = this.rover.headingRad;
           this.refreshHeli();
@@ -1277,8 +1355,13 @@ export class GameSession {
           name: here.name,
           kind: here.kind,
           stopped: Math.abs(r.speed) <= STOPPED_MPS,
-          step: here.kind === 'station' ? stationStep(this.exp, here) : null,
+          step: here.kind === 'station' ? (stationStep(this.exp, here)?.step ?? null) : null,
+          run: here.kind === 'station' ? (stationStep(this.exp, here)?.run ?? null) : null,
         },
+        drive: ((): Hud['drive'] => {
+          const d = driveStep(this.exp);
+          return d && { step: d.step, fraction: Math.min(1, groundDistanceM(r, d.from) / d.m) };
+        })(),
         action:
           this.action && fraction !== null
             ? { kind: this.action.kind, fraction: Math.min(1, fraction) }

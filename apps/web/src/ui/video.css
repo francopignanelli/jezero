@@ -177,11 +177,15 @@
   color: var(--text);
   background: rgb(255 255 255 / 0.12);
 }
-.game-video-time {
+.game-video-time,
+.game-video-silent {
   flex: none;
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-sm);
   color: var(--text-muted);
+}
+.game-video-silent {
+  font-variant-numeric: normal;
 }
 .game-video-seek,
 .game-video-volume {

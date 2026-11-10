@@ -26,6 +26,7 @@ import {
   INGENUITY_MISSION,
   LANDING,
   LANDING_HARDWARE,
+  DRIVE_STEP_M,
   STEP_S,
   VAN_ZYL,
   WRIGHT_FIELD,
@@ -37,8 +38,10 @@ import {
   chapterDone,
   expeditionDone,
   ingenuity,
+  listedObjectives,
   newExpedition,
   nextTarget,
+  objectiveDone,
   openTargets,
   stepExpedition,
   tubeRack,
@@ -773,24 +776,54 @@ describe('the Ingenuity deployment mission', () => {
     return { s, events };
   };
 
-  it('drops the shield, sets the helicopter down, drives clear and films the first flight', () => {
-    let s = newExpedition('ingenuity');
-    let r = doStep(s, INGENUITY_MISSION.start, STEP_S.shield);
+  /** A point `m` metres north of the field (the rover driving straight on). */
+  const north = (m: number) => ({ lat: WRIGHT_FIELD.lat + m / 59_274, lon: WRIGHT_FIELD.lon });
+
+  it('one press at the field runs the whole deployment; stopping at the overlook films the flight', () => {
+    const s = newExpedition('ingenuity');
+    const deploy = INGENUITY_MISSION.chapters[0]!;
+    expect(listedObjectives(deploy).map((o) => o.id)).toEqual(['deploy-heli']);
+    // Away from the field, the key does nothing.
+    expect(doStep(s, INGENUITY_MISSION.start, 1).s.steps).toEqual([]);
+    // At the field: the shield falls where the rover stands…
+    let r = doStep(s, WRIGHT_FIELD, STEP_S.shield);
     expect(r.s.steps).toEqual(['shield']);
-    r = doStep(r.s, WRIGHT_FIELD, 0.2); // reaching the field opens chapter 2
-    expect(r.s.chapter).toBe(1);
-    r = doStep(r.s, WRIGHT_FIELD, STEP_S.rotate);
-    r = doStep(r.s, WRIGHT_FIELD, STEP_S.drop);
-    expect(r.s.steps).toEqual(['shield', 'rotate', 'drop']);
-    // 5 m north of where it was set down: clear.
-    s = r.s;
-    const away = stepExpedition(s, null, at({ lat: WRIGHT_FIELD.lat + 6 / 59_274, lon: WRIGHT_FIELD.lon }), all, false, 0.1);
+    expect(r.s.shieldAt).toEqual({ lat: WRIGHT_FIELD.lat, lon: WRIGHT_FIELD.lon });
+    expect(objectiveDone(r.s, deploy.objectives[0]!, deploy)).toBe(false); // its chain is under way
+    // …nothing more until the rover has rolled off it (the session drives it)…
+    expect(doStep(r.s, WRIGHT_FIELD, 1).s.steps).toEqual(['shield']);
+    // …then the helicopter turns upright and is set down by itself, without the key.
+    const off = north(DRIVE_STEP_M.clear + 0.1);
+    let state = r.s;
+    let action: Action | null = null;
+    for (let k = 0; k < (STEP_S.rotate + STEP_S.drop) / 0.1 + 3; k++) {
+      const x = stepExpedition(state, action, at(off), all, false, 0.1);
+      state = x.state;
+      action = x.action;
+    }
+    expect(state.steps).toEqual(['shield', 'clear', 'rotate', 'drop']);
+    expect(groundDistanceM(at(state.dropAt!), state.shieldAt!)).toBeGreaterThan(1.5);
+    expect(state.chapter).toBe(0);
+    // 5 m on from where it was set down: clear, the chapter is done.
+    const away = stepExpedition(state, null, at(north(DRIVE_STEP_M.clear + 5.2)), all, false, 0.1);
     expect(away.state.steps).toContain('away');
-    expect(away.state.chapter).toBe(2);
-    r = doStep(away.state, VAN_ZYL, 0.2);
-    r = doStep(r.s, VAN_ZYL, STEP_S.film);
+    expect(away.state.chapter).toBe(1);
+    expect(objectiveDone(away.state, deploy.objectives[0]!, deploy)).toBe(true);
+    // At Van Zyl Overlook, stopped: Mastcam-Z turns to it and the film step is done (no key).
+    r = doStep(away.state, VAN_ZYL, STEP_S.film + 0.2);
+    const film = r.events.find((e) => e.kind === 'step');
+    expect(film && film.kind === 'step' && film.step).toBe('film');
     expect(r.events.map((e) => e.kind)).toContain('complete');
     expect(expeditionDone(r.s)).toBe(true);
+  });
+
+  it('the film waits for the rover to stop in the overlook zone', () => {
+    const s = { ...newExpedition('ingenuity'), chapter: 1, steps: ['shield', 'clear', 'rotate', 'drop', 'away'] } as ExpeditionState;
+    const moving = { ...at(VAN_ZYL), speed: 2 };
+    expect(stepExpedition(s, null, moving, all, false, 0.1).action).toBeNull();
+    expect(stepExpedition(s, null, at(VAN_ZYL), all, false, 0.1).action?.kind).toBe('film');
+    // Outside the zone, stopped: nothing.
+    expect(stepExpedition(s, null, at(WRIGHT_FIELD), all, false, 0.1).action).toBeNull();
   });
 
   it('puts Van Zyl Overlook 64 m from Wright Brothers Field, as NASA gives it (64.3 m)', () => {

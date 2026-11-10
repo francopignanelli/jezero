@@ -16,6 +16,7 @@ import { resetProgress } from './career';
 import {
   MISSIONS,
   isDone,
+  listedObjectives,
   missionOf,
   objectiveCount,
   objectiveDone,
@@ -84,6 +85,7 @@ export function GameApp() {
       )}
       {session && phase === 'briefing' && <MainMenu session={session} />}
       {session && phase === 'intro' && <LandingIntro session={session} />}
+      {session && phase === 'film' && <MissionFilm session={session} />}
       {session && phase === 'loading' && (
         <div className="game-veil" role="status">
           {t('game.loadingMission')}
@@ -458,7 +460,7 @@ function ChapterPage({ session }: { session: GameSession }) {
         <h2 id="game-chapter-title">{t(`game.chapters.${c.id}.title`)}</h2>
         <p>{t(`game.chapters.${c.id}.story`)}</p>
         <ul className="game-chapter-goals">
-          {c.objectives.map((o) => (
+          {listedObjectives(c).map((o) => (
             <li key={o.id} className={o.optional ? 'is-optional' : ''}>
               <span aria-hidden="true">{o.optional ? '◇' : '○'}</span>{' '}
               {t(`game.objectives.${o.id}`)}
@@ -496,7 +498,7 @@ function Objectives() {
         {t('game.chapter.short', { n: exp.chapter + 1 })} · {t(`game.chapters.${c.id}.title`)}
       </div>
       <ol>
-        {c.objectives.map((o) => {
+        {listedObjectives(c).map((o) => {
           const done = objectiveDone(exp, o, c);
           const count = objectiveCount(exp, o, c);
           return (
@@ -696,7 +698,8 @@ function Prompt() {
   let tone = '';
   let hint = false;
   const { here, action } = hud;
-  const fraction = action?.fraction ?? hud.laser?.fraction ?? null;
+  const drive = hud.drive;
+  const fraction = action?.fraction ?? hud.laser?.fraction ?? (drive && !action ? drive.fraction : null);
   if (action && here) {
     text =
       action.kind === 'core'
@@ -706,6 +709,8 @@ function Prompt() {
           : action.kind === 'deposit'
             ? t('game.prompt.dropping')
             : t(`game.prompt.doing.${action.kind}`);
+  } else if (drive) {
+    text = t(`game.prompt.doing.${drive.step}`);
   } else if (hud.laser) {
     text = t('game.prompt.lasering');
   } else if (hud.blocked === 'power' || hud.recharging) {
@@ -732,6 +737,12 @@ function Prompt() {
   } else if (hud.slip > 0.3 && Math.abs(hud.speedMps) > 0.3) {
     text = t('game.prompt.sand', { pct: Math.round(hud.slip * 100) });
     tone = 'is-warn';
+  } else if (here?.kind === 'station' && here.step && here.run === 'chain') {
+    // Between two steps of a chain (the rover stopping before the next): what comes now.
+    text = t(`game.prompt.doing.${here.step}`);
+  } else if (here?.kind === 'station' && here.step && here.run === 'arrive') {
+    text = t(`game.prompt.arrive.${here.step}`);
+    tone = 'is-go';
   } else if (here?.kind === 'station' && here.step) {
     text = t(`game.prompt.${here.stopped ? 'hold' : 'stop'}ToStep`, {
       action: t(`game.steps.${here.step}`),
@@ -774,7 +785,7 @@ function Prompt() {
           {text}
         </span>
       )}
-      {fraction !== null && (action || hud.laser) && (
+      {fraction !== null && (action || hud.laser || drive) && (
         <div className="game-bar game-action-bar" aria-hidden="true">
           <div style={{ width: `${fraction * 100}%` }} />
         </div>
@@ -1235,6 +1246,10 @@ function PauseMenu({ session }: { session: GameSession }) {
   const { t } = useTranslation();
   const [view, setView] = useState<'main' | 'options' | 'photos'>('main');
   const [confirmRestart, setConfirmRestart] = useState(false);
+  const steps = useGame((s) => s.expedition.steps);
+  // The mission's NASA video: the landing's intro; the first flight once it has been filmed.
+  const m = session.missionDef;
+  const pausedVideo = m.intro ?? (m.film && steps?.includes('film') ? m.film : null);
   if (view !== 'main')
     return (
       <div className="game-screen">
@@ -1280,13 +1295,13 @@ function PauseMenu({ session }: { session: GameSession }) {
           >
             {t('game.pause.inventory')}
           </button>
-          {session.missionDef.intro && (
+          {pausedVideo && (
             <button
               type="button"
               className="btn"
-              onClick={() => useGame.getState().set({ video: session.missionDef.intro! })}
+              onClick={() => useGame.getState().set({ video: pausedVideo })}
             >
-              ▶ {t('game.video.watch')}
+              ▶ {t(`game.video.${pausedVideo}.watch`)}
             </button>
           )}
           <button type="button" className="btn" onClick={() => setView('options')}>
@@ -1501,6 +1516,16 @@ function LandingIntro({ session }: { session: GameSession }) {
       onBack={() => session.quit()}
       doneAtEnd
     />
+  );
+}
+
+/** NASA's video at the mission's 'film' step: it ends the mission. */
+function MissionFilm({ session }: { session: GameSession }) {
+  const { t } = useTranslation();
+  const id = session.missionDef.film;
+  if (!id) return null;
+  return (
+    <VideoPlayer id={id} doneLabel={t('game.video.next')} onDone={() => session.endFilm()} doneAtEnd />
   );
 }
 

@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import type { CameraMode } from './world/cameraRig';
 import type { PhotoFilter } from './world/world';
+import type { VideoId } from '../ui/VideoPlayer';
 import {
   newExpedition,
   type ActionKind,
   type ExpeditionState,
   type Find,
   type MissionId,
+  type DriveStep,
   type StepId,
   type Target,
   type TargetKind,
@@ -18,6 +20,8 @@ export type Phase =
   | 'briefing'
   /** NASA's landing video, before the landing mission's first chapter. */
   | 'intro'
+  /** NASA's video at a mission's 'film' step (Ingenuity's first flight). */
+  | 'film'
   | 'chapter'
   | 'playing'
   | 'paused'
@@ -47,10 +51,13 @@ export interface Hud {
     name: string;
     kind: TargetKind;
     stopped: boolean;
-    /** At a station: the step the action key does there. */
+    /** At a station: the step done there now, and whether it starts by itself. */
     step?: StepId | null;
+    run?: 'chain' | 'arrive' | null;
   } | null;
   action: { kind: ActionKind; fraction: number } | null;
+  /** A drive the mission does itself (off the shield, clear of Ingenuity): how far along (0–1). */
+  drive: { step: DriveStep; fraction: number } | null;
   /** Hazards: sand under the rover (0–1), slip (0–1), stuck; wheel health (%), wearing now. */
   sand: number;
   slip: number;
@@ -101,7 +108,7 @@ interface GameUi {
   /** The mission being played (or shown behind the menu). */
   mission: MissionId;
   /** A NASA video being watched again (over the menu or the pause menu). */
-  video: 'landing' | null;
+  video: VideoId | null;
   /** Targets open now (current chapter, panorama spots). */
   targets: Target[];
   camera: CameraMode;
@@ -134,6 +141,7 @@ export const EMPTY_HUD: Hud = {
   next: null,
   here: null,
   action: null,
+  drive: null,
   sand: 0,
   slip: 0,
   stuck: false,

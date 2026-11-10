@@ -1,0 +1,43 @@
+{
+  "title": "First Video of NASA’s Ingenuity Mars Helicopter in Flight, Including Takeoff and Landing (High-Res)",
+  "nasaId": "JPL-20210419-TECHf-0001-First Video of NASA’s Ingenuity Mars Helicopter in Flight",
+  "credit": "NASA/JPL-Caltech/ASU/MSSS",
+  "released": "2021-04-19",
+  "page": "https://images.nasa.gov/details/JPL-20210419-TECHf-0001-First%20Video%20of%20NASA%E2%80%99s%20Ingenuity%20Mars%20Helicopter%20in%20Flight",
+  "camera": "Mastcam-Z, Perseverance at Van Zyl Overlook, 64.3 m from Wright Brothers Field",
+  "usage": "NASA still images, audio and video are generally not copyrighted. Credit NASA/JPL-Caltech/ASU/MSSS; do not use the NASA insignia or logotype, or imply endorsement (nasa.gov/nasa-brand-center/images-and-media). The cut leaves out the insignia that ends the original.",
+  "source": {
+    "url": "https://images-assets.nasa.gov/video/JPL-20210419-TECHf-0001-First%20Video%20of%20NASA%E2%80%99s%20Ingenuity%20Mars%20Helicopter%20in%20Flight/JPL-20210419-TECHf-0001-First%20Video%20of%20NASA%E2%80%99s%20Ingenuity%20Mars%20Helicopter%20in%20Flight~orig.mp4",
+    "file": "data/raw/media/first-flight.orig.mp4",
+    "bytes": 42494762,
+    "sha256": "8b73eefec12fa5eef7fcc5fb57b12b1410691a396c08463bb0c7071979384288"
+  },
+  "edit": {
+    "cutS": [
+      13,
+      43
+    ],
+    "takeoffS": 15.7,
+    "touchdownS": 39.5,
+    "cropPx": [
+      213,
+      240,
+      853,
+      480
+    ],
+    "durationS": 30.07,
+    "output": "1280 × 720, VP9 WebM, silent"
+  },
+  "files": [
+    {
+      "file": "game/media/first-flight.webm",
+      "bytes": 5253489,
+      "sha256": "c3d303836b0f94864fea0e1c60da4efc507cfa253bafe1cef17c2981de9e1570"
+    },
+    {
+      "file": "game/media/first-flight.webp",
+      "bytes": 48884,
+      "sha256": "03d25460ff5cdbf35d3e6557c694b7c22698c3d83a4f1b463740d94316e15e0f"
+    }
+  ]
+}

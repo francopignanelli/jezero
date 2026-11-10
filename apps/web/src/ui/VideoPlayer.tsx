@@ -9,14 +9,16 @@ import { DATA_VERSION, dataUrl } from '../config';
 import './video.css';
 
 /** The missions' NASA videos, served with the game's data (no third-party request). */
-const VIDEOS = {
-  landing: {
-    src: 'game/media/landing.mp4',
-    captions: 'game/media/landing.en.vtt',
-    key: 'landing',
+export type VideoId = 'landing' | 'firstFlight';
+const VIDEOS: Record<VideoId, { src: string; captions?: string; poster?: string; silent?: boolean }> = {
+  landing: { src: 'game/media/landing.mp4', captions: 'game/media/landing.en.vtt' },
+  // Mastcam-Z's images of the flight, cut to the flight itself (scripts/data/fetch-first-flight-video.ts).
+  firstFlight: {
+    src: 'game/media/first-flight.webm',
+    poster: 'game/media/first-flight.webp',
+    silent: true,
   },
-} as const;
-export type VideoId = keyof typeof VIDEOS;
+};
 
 const clock = (s: number) => {
   if (!Number.isFinite(s) || s < 0) return '0:00';
@@ -54,7 +56,7 @@ export function VideoPlayer({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
-  const [cc, setCc] = useState(i18n.language !== 'en');
+  const [cc, setCc] = useState(i18n.language !== 'en' && !!v.captions);
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
@@ -121,13 +123,15 @@ export function VideoPlayer({
             ← {t('game.video.back')}
           </button>
         )}
-        <h2 id="game-video-title">{t(`game.video.${v.key}.title`)}</h2>
-        <p className="game-video-date">{t(`game.video.${v.key}.date`)}</p>
-        <p className="game-video-context">{t(`game.video.${v.key}.context`)}</p>
+        <h2 id="game-video-title">{t(`game.video.${id}.title`)}</h2>
+        <p className="game-video-date">{t(`game.video.${id}.date`)}</p>
+        <p className="game-video-context">{t(`game.video.${id}.context`)}</p>
         <div className="game-video-frame" ref={frame}>
           <video
             ref={video}
             src={dataUrl(`${v.src}?v=${DATA_VERSION}`)}
+            poster={v.poster && dataUrl(`${v.poster}?v=${DATA_VERSION}`)}
+            muted={v.silent}
             playsInline
             preload="auto"
             onClick={toggle}
@@ -144,12 +148,14 @@ export function VideoPlayer({
               if (doneAtEnd) onDone();
             }}
           >
-            <track
-              kind="captions"
-              src={dataUrl(`${v.captions}?v=${DATA_VERSION}`)}
-              srcLang="en"
-              label="English"
-            />
+            {v.captions && (
+              <track
+                kind="captions"
+                src={dataUrl(`${v.captions}?v=${DATA_VERSION}`)}
+                srcLang="en"
+                label="English"
+              />
+            )}
           </video>
           <button type="button" className="game-video-skip" autoFocus onClick={onDone}>
             <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -188,39 +194,47 @@ export function VideoPlayer({
               style={{ ['--pct' as string]: `${pct}%` }}
               onChange={(e) => seek(Number(e.target.value))}
             />
-            <button
-              type="button"
-              className="game-video-btn"
-              aria-label={muted ? t('game.video.unmute') : t('game.video.mute')}
-              title={muted ? t('game.video.unmute') : t('game.video.mute')}
-              onClick={() => setVol(muted ? volume || 1 : 0)}
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M2.5 6h2.5l3.5-3v10L5 10H2.5z" className="is-fill" />
-                {muted ? <path d="M11 6l4 4M15 6l-4 4" /> : <path d="M11 5.5c1.2 1.4 1.2 3.6 0 5M12.8 3.8c2.2 2.4 2.2 6 0 8.4" />}
-              </svg>
-            </button>
-            <input
-              type="range"
-              className="game-video-volume"
-              min={0}
-              max={1}
-              step={0.05}
-              value={muted ? 0 : volume}
-              aria-label={t('game.video.volume')}
-              style={{ ['--pct' as string]: `${(muted ? 0 : volume) * 100}%` }}
-              onChange={(e) => setVol(Number(e.target.value))}
-            />
-            <button
-              type="button"
-              className={`game-video-btn game-video-cc ${cc ? 'is-on' : ''}`}
-              aria-pressed={cc}
-              aria-label={t('game.video.captions')}
-              title={t('game.video.captions')}
-              onClick={() => setCc(!cc)}
-            >
-              CC
-            </button>
+            {v.silent ? (
+              <span className="game-video-silent">{t('game.video.silent')}</span>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="game-video-btn"
+                  aria-label={muted ? t('game.video.unmute') : t('game.video.mute')}
+                  title={muted ? t('game.video.unmute') : t('game.video.mute')}
+                  onClick={() => setVol(muted ? volume || 1 : 0)}
+                >
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M2.5 6h2.5l3.5-3v10L5 10H2.5z" className="is-fill" />
+                    {muted ? <path d="M11 6l4 4M15 6l-4 4" /> : <path d="M11 5.5c1.2 1.4 1.2 3.6 0 5M12.8 3.8c2.2 2.4 2.2 6 0 8.4" />}
+                  </svg>
+                </button>
+                <input
+                  type="range"
+                  className="game-video-volume"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={muted ? 0 : volume}
+                  aria-label={t('game.video.volume')}
+                  style={{ ['--pct' as string]: `${(muted ? 0 : volume) * 100}%` }}
+                  onChange={(e) => setVol(Number(e.target.value))}
+                />
+              </>
+            )}
+            {v.captions && (
+              <button
+                type="button"
+                className={`game-video-btn game-video-cc ${cc ? 'is-on' : ''}`}
+                aria-pressed={cc}
+                aria-label={t('game.video.captions')}
+                title={t('game.video.captions')}
+                onClick={() => setCc(!cc)}
+              >
+                CC
+              </button>
+            )}
             <button
               type="button"
               className="game-video-btn"
@@ -234,7 +248,7 @@ export function VideoPlayer({
             </button>
           </div>
         </div>
-        <p className="game-video-credit">{t('game.video.credit')}</p>
+        <p className="game-video-credit">{t(`game.video.${id}.credit`)}</p>
       </section>
     </div>
   );

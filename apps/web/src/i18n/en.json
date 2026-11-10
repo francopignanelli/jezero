@@ -895,7 +895,12 @@
         "shield": "Dropping the debris shield…",
         "rotate": "Turning Ingenuity upright, unfolding its legs…",
         "drop": "Releasing Ingenuity…",
-        "film": "Mastcam-Z is filming Ingenuity’s first flight…"
+        "film": "Mastcam-Z zooms in on Ingenuity, 64 m away…",
+        "clear": "Rolling off the shield…",
+        "away": "Driving clear: the Sun must reach Ingenuity’s solar panel…"
+      },
+      "arrive": {
+        "film": "Van Zyl Overlook: stopping to film the flight…"
       }
     },
     "touch": {
@@ -1117,17 +1122,13 @@
         "title": "What brought it down",
         "story": "The 21.5 m parachute and the backshell it slowed came down 1.15 km west-northwest of the rover; the heat shield, dropped earlier, 1.5 km east-northeast. Nobody drove there: Ingenuity photographed the parachute and backshell from 8 m up in April 2022. Find them."
       },
-      "shield": {
-        "title": "The debris shield",
-        "story": "21 March 2021, sol 30. Ingenuity has ridden to Mars on its side under the rover’s belly, behind a shield that protected it during landing. Stop and drop the shield, then drive to the airfield the team picked: a flat patch of about 10 × 10 m just north of the landing site, now Wright Brothers Field. Park right over its centre."
-      },
       "deploy": {
-        "title": "Setting it down",
-        "story": "Sols 34–43. Over several sols a small motor turns the helicopter upright and its legs unfold; on 3 April 2021 Perseverance lets go of it, a drop of a few centimetres. From that moment Ingenuity runs on its own battery, and only its solar panel can recharge it: drive at least 5 m away so the Sun reaches it, within about a day."
+        "title": "Wright Brothers Field",
+        "story": "March–April 2021, sols 30–43. Ingenuity has ridden to Mars on its side under the rover’s belly, behind a shield that protected it during landing. Drive to the airfield the team picked, a flat patch of about 10 × 10 m now called Wright Brothers Field, and stop near its centre. One press does the rest, as the rover did over two weeks: the shield drops, the helicopter turns upright and unfolds its legs, Perseverance lets go of it and drives clear so the Sun reaches its solar panel."
       },
       "firstFlight": {
         "title": "The first flight",
-        "story": "Sols 44–58. Perseverance drives to Van Zyl Overlook, 64.3 m away, where it can watch and relay. On 19 April 2021 Ingenuity spins its two rotors up to about 2,500 rpm, climbs to 3 m, hovers for 30 s and lands: 39.1 s in the air. Stop at the overlook and film it with Mastcam-Z."
+        "story": "Sols 44–58. Ingenuity now lives on its own battery and solar panel. Perseverance drives to Van Zyl Overlook, 64.3 m away, to watch it and relay its data. On 19 April 2021 it climbed to 3 m, hovered and landed: 39.1 s in the air, the first powered, controlled flight on another planet. Drive to the overlook: when you stop there, Mastcam-Z films it."
       }
     },
     "objectives": {
@@ -1150,13 +1151,12 @@
       "descent-stage": "Reach the descent stage’s crash site",
       "parachute": "Reach the parachute and the backshell",
       "heat-shield": "Reach the heat shield",
-      "drop-shield": "Drop the debris shield",
-      "reach-field": "Park over the centre of Wright Brothers Field",
       "rotate-heli": "Turn Ingenuity upright and unfold its legs",
       "drop-heli": "Set Ingenuity down on Mars",
       "drive-away": "Drive at least 5 m away so its solar panel gets the Sun",
-      "reach-overlook": "Drive to Van Zyl Overlook",
-      "film-flight": "Film the first flight with Mastcam-Z"
+      "film-flight": "Stop at Van Zyl Overlook to film the first flight",
+      "deploy-heli": "Deploy Ingenuity at Wright Brothers Field",
+      "clear-shield": "Roll off the shield"
     },
     "toast": {
       "reached": "Reached {{name}}",
@@ -1166,8 +1166,7 @@
         "shield": "Debris shield dropped (sol 30, 21 March 2021)",
         "rotate": "Ingenuity is upright, legs out (sols 38–39)",
         "drop": "Ingenuity is on Mars (sol 43, 3 April 2021). Its battery is on its own now",
-        "away": "Clear: the Sun reaches Ingenuity’s solar panel",
-        "film": "The first powered, controlled flight on another planet: 39.1 s"
+        "away": "Clear: the Sun reaches Ingenuity’s solar panel"
       }
     },
     "autonav": {
@@ -1268,7 +1267,7 @@
       "ingenuity": {
         "title": "Wright Brothers moment",
         "when": "Apr 2021",
-        "desc": "Drop Ingenuity on its airfield, back away, and watch the first powered flight on another world.",
+        "desc": "Set Ingenuity down on its airfield and watch, in NASA’s own footage, the first powered flight on another world.",
         "start": "Start",
         "complete": "First flight filmed",
         "real": "Ingenuity flew 39.1 s on 19 April 2021 (sol 58), the first powered, controlled flight on another planet. It went on to fly 72 times, about 129 minutes and 17 km in all, until a rotor blade broke on its last flight, 18 January 2024."
@@ -1328,15 +1327,11 @@
       "reach-descent-stage": "Descent stage",
       "reach-parachute": "Parachute and backshell",
       "reach-heat-shield": "Heat shield",
-      "reach-wright-field": "Wright Brothers Field",
-      "reach-van-zyl": "Van Zyl Overlook",
-      "station-shield-spot": "Debris shield",
       "station-field": "Wright Brothers Field",
       "station-overlook": "Van Zyl Overlook"
     },
     "video": {
       "back": "Back to the missions",
-      "watch": "Watch the landing video",
       "play": "Play",
       "pause": "Pause",
       "seek": "Position in the video",
@@ -1347,11 +1342,21 @@
       "fullscreen": "Full screen",
       "skip": "Skip video",
       "close": "Close",
-      "credit": "Video: NASA/JPL-Caltech, “Perseverance Rover’s Descent and Touchdown on Mars” (22 Feb 2021).",
       "landing": {
         "title": "Perseverance lands on Mars",
         "date": "18 February 2021 · Jezero Crater",
-        "context": "Real footage from the cameras on the backshell, the descent stage and the rover: the 21.5 m parachute opening about 11 km up, the heat shield falling away, the descent stage lowering the rover on cables, and the dust of touchdown. The voices are mission control at JPL."
+        "context": "Real footage from the cameras on the backshell, the descent stage and the rover: the 21.5 m parachute opening about 11 km up, the heat shield falling away, the descent stage lowering the rover on cables, and the dust of touchdown. The voices are mission control at JPL.",
+        "credit": "Video: NASA/JPL-Caltech, “Perseverance Rover’s Descent and Touchdown on Mars” (22 Feb 2021).",
+        "watch": "Watch the landing video"
+      },
+      "next": "Continue",
+      "silent": "Silent video",
+      "firstFlight": {
+        "title": "Ingenuity’s first flight",
+        "date": "19 April 2021 · sol 58 · Wright Brothers Field",
+        "context": "Real images from Mastcam-Z, on Perseverance at Van Zyl Overlook, 64.3 m away: Ingenuity spins up its rotors, climbs to 3 m, hovers and lands. Only the flight is shown, cropped closer. NASA’s video shows it in about 24 s; the flight itself lasted 39.1 s.",
+        "credit": "Video: NASA/JPL-Caltech/ASU/MSSS, “First Video of NASA’s Ingenuity Mars Helicopter in Flight” (19 Apr 2021), cut and cropped.",
+        "watch": "Watch the first flight again"
       }
     },
     "tips": {
@@ -1365,7 +1370,7 @@
       "pause": "Esc pauses: options, photos, and the mission’s video"
     },
     "steps": {
-      "shield": "drop the debris shield",
+      "shield": "deploy Ingenuity",
       "rotate": "turn Ingenuity upright",
       "drop": "set Ingenuity down",
       "film": "film the first flight"

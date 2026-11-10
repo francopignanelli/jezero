@@ -895,7 +895,12 @@
         "shield": "Soltando el escudo protector…",
         "rotate": "Poniendo a Ingenuity en vertical, desplegando sus patas…",
         "drop": "Soltando a Ingenuity…",
-        "film": "Mastcam-Z está filmando el primer vuelo de Ingenuity…"
+        "film": "Mastcam-Z enfoca a Ingenuity, a 64 m…",
+        "clear": "Apartándose del escudo…",
+        "away": "Alejándose: el Sol tiene que llegar al panel solar de Ingenuity…"
+      },
+      "arrive": {
+        "film": "Van Zyl Overlook: parando para filmar el vuelo…"
       }
     },
     "touch": {
@@ -1117,17 +1122,13 @@
         "title": "Lo que lo trajo hasta aquí",
         "story": "El paracaídas de 21,5 m y el escudo trasero que frenó cayeron a 1,15 km al oeste-noroeste del rover; el escudo térmico, soltado antes, a 1,5 km al este-noreste. Nadie fue hasta allí en coche: Ingenuity fotografió el paracaídas y el escudo trasero desde 8 m de altura en abril de 2022. Encuéntralos."
       },
-      "shield": {
-        "title": "El escudo protector",
-        "story": "21 de marzo de 2021, sol 30. Ingenuity ha viajado a Marte de lado, bajo la panza del rover, detrás de un escudo que lo protegió en el aterrizaje. Para y suelta el escudo; después conduce hasta el aeródromo que eligió el equipo: un terreno llano de unos 10 × 10 m al norte del lugar de aterrizaje, hoy Wright Brothers Field. Aparca justo sobre su centro."
-      },
       "deploy": {
-        "title": "Dejarlo en el suelo",
-        "story": "Soles 34–43. Durante varios soles un pequeño motor pone el helicóptero en vertical y sus patas se despliegan; el 3 de abril de 2021 Perseverance lo suelta, una caída de pocos centímetros. Desde ese momento Ingenuity depende de su propia batería, y solo su panel solar puede recargarla: aléjate al menos 5 m para que le dé el Sol, en menos de un día."
+        "title": "Wright Brothers Field",
+        "story": "Marzo–abril de 2021, soles 30–43. Ingenuity ha viajado a Marte de lado, bajo la panza del rover, detrás de un escudo que lo protegió en el aterrizaje. Conduce hasta el aeródromo que eligió el equipo, un terreno llano de unos 10 × 10 m hoy llamado Wright Brothers Field, y para cerca de su centro. Una pulsación hace el resto, como lo hizo el rover en dos semanas: cae el escudo, el helicóptero se pone en vertical y despliega sus patas, Perseverance lo suelta y se aleja para que el Sol llegue a su panel solar."
       },
       "firstFlight": {
         "title": "El primer vuelo",
-        "story": "Soles 44–58. Perseverance va hasta Van Zyl Overlook, a 64,3 m, desde donde puede observar y retransmitir. El 19 de abril de 2021 Ingenuity acelera sus dos rotores a unas 2.500 rpm, sube a 3 m, se mantiene 30 s y aterriza: 39,1 s en el aire. Para en el mirador y fílmalo con Mastcam-Z."
+        "story": "Soles 44–58. Ingenuity ya depende de su batería y su panel solar. Perseverance va hasta Van Zyl Overlook, a 64,3 m, para observarlo y retransmitir sus datos. El 19 de abril de 2021 subió a 3 m, se mantuvo en el aire y aterrizó: 39,1 s de vuelo, el primer vuelo propulsado y controlado en otro planeta. Conduce hasta el mirador: al parar allí, Mastcam-Z lo filma."
       }
     },
     "objectives": {
@@ -1150,13 +1151,12 @@
       "descent-stage": "Llega al lugar del impacto de la etapa de descenso",
       "parachute": "Llega al paracaídas y al escudo trasero",
       "heat-shield": "Llega al escudo térmico",
-      "drop-shield": "Suelta el escudo protector",
-      "reach-field": "Aparca sobre el centro de Wright Brothers Field",
       "rotate-heli": "Pon a Ingenuity en vertical y despliega sus patas",
       "drop-heli": "Deja a Ingenuity en Marte",
       "drive-away": "Aléjate al menos 5 m para que a su panel solar le dé el Sol",
-      "reach-overlook": "Conduce hasta Van Zyl Overlook",
-      "film-flight": "Filma el primer vuelo con Mastcam-Z"
+      "film-flight": "Para en Van Zyl Overlook para filmar el primer vuelo",
+      "deploy-heli": "Despliega a Ingenuity en Wright Brothers Field",
+      "clear-shield": "Apártate del escudo"
     },
     "toast": {
       "reached": "Llegaste a {{name}}",
@@ -1166,8 +1166,7 @@
         "shield": "Escudo protector soltado (sol 30, 21 de marzo de 2021)",
         "rotate": "Ingenuity en vertical, patas desplegadas (soles 38–39)",
         "drop": "Ingenuity está en Marte (sol 43, 3 de abril de 2021). Ahora depende de su batería",
-        "away": "Despejado: el Sol llega al panel solar de Ingenuity",
-        "film": "El primer vuelo propulsado y controlado en otro planeta: 39,1 s"
+        "away": "Despejado: el Sol llega al panel solar de Ingenuity"
       }
     },
     "autonav": {
@@ -1268,7 +1267,7 @@
       "ingenuity": {
         "title": "Momento hermanos Wright",
         "when": "abr 2021",
-        "desc": "Deja a Ingenuity en su aeródromo, aléjate y presencia el primer vuelo propulsado en otro mundo.",
+        "desc": "Deja a Ingenuity en su aeródromo y mira, con las imágenes reales de la NASA, el primer vuelo propulsado en otro mundo.",
         "start": "Empezar",
         "complete": "Primer vuelo filmado",
         "real": "Ingenuity voló 39,1 s el 19 de abril de 2021 (sol 58), el primer vuelo propulsado y controlado en otro planeta. Después voló 72 veces, unos 129 minutos y 17 km en total, hasta que se le rompió una pala en su último vuelo, el 18 de enero de 2024."
@@ -1328,15 +1327,11 @@
       "reach-descent-stage": "Etapa de descenso",
       "reach-parachute": "Paracaídas y escudo trasero",
       "reach-heat-shield": "Escudo térmico",
-      "reach-wright-field": "Wright Brothers Field",
-      "reach-van-zyl": "Van Zyl Overlook",
-      "station-shield-spot": "Escudo protector",
       "station-field": "Wright Brothers Field",
       "station-overlook": "Van Zyl Overlook"
     },
     "video": {
       "back": "Volver a las misiones",
-      "watch": "Ver el vídeo del aterrizaje",
       "play": "Reproducir",
       "pause": "Pausa",
       "seek": "Posición en el vídeo",
@@ -1347,11 +1342,21 @@
       "fullscreen": "Pantalla completa",
       "skip": "Saltar vídeo",
       "close": "Cerrar",
-      "credit": "Vídeo: NASA/JPL-Caltech, «Perseverance Rover’s Descent and Touchdown on Mars» (22 feb 2021). Subtítulos en inglés.",
       "landing": {
         "title": "Perseverance aterriza en Marte",
         "date": "18 de febrero de 2021 · Cráter Jezero",
-        "context": "Imágenes reales de las cámaras del escudo trasero, la etapa de descenso y el rover: el paracaídas de 21,5 m abriéndose a unos 11 km de altura, el escudo térmico que se suelta, la etapa de descenso bajando el rover con cables y el polvo del contacto. Las voces son del control de la misión en el JPL."
+        "context": "Imágenes reales de las cámaras del escudo trasero, la etapa de descenso y el rover: el paracaídas de 21,5 m abriéndose a unos 11 km de altura, el escudo térmico que se suelta, la etapa de descenso bajando el rover con cables y el polvo del contacto. Las voces son del control de la misión en el JPL.",
+        "credit": "Vídeo: NASA/JPL-Caltech, «Perseverance Rover’s Descent and Touchdown on Mars» (22 feb 2021). Subtítulos en inglés.",
+        "watch": "Ver el vídeo del aterrizaje"
+      },
+      "next": "Continuar",
+      "silent": "Vídeo sin sonido",
+      "firstFlight": {
+        "title": "El primer vuelo de Ingenuity",
+        "date": "19 de abril de 2021 · sol 58 · Wright Brothers Field",
+        "context": "Imágenes reales de Mastcam-Z, desde Perseverance en Van Zyl Overlook, a 64,3 m: Ingenuity acelera sus rotores, sube a 3 m, se mantiene en el aire y aterriza. Solo se muestra el vuelo, recortado para verlo más cerca. El vídeo de la NASA lo muestra en unos 24 s; el vuelo real duró 39,1 s.",
+        "credit": "Vídeo: NASA/JPL-Caltech/ASU/MSSS, «First Video of NASA’s Ingenuity Mars Helicopter in Flight» (19 abr 2021), recortado.",
+        "watch": "Volver a ver el primer vuelo"
       }
     },
     "tips": {
@@ -1365,7 +1370,7 @@
       "pause": "Esc pausa: opciones, fotos y el vídeo de la misión"
     },
     "steps": {
-      "shield": "soltar el escudo protector",
+      "shield": "desplegar a Ingenuity",
       "rotate": "poner a Ingenuity en vertical",
       "drop": "dejar a Ingenuity en el suelo",
       "film": "filmar el primer vuelo"

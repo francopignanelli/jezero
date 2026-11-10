@@ -7,9 +7,9 @@ import type { RockType } from './science';
  * chapters of objectives that follow what the rover really did there; every place is real.
  * - landing: Octavia E. Butler Landing, 18 Feb 2021, and the landing hardware where HiRISE saw it
  *   the next day (data/catalog/landing-hardware.json). Opens with NASA's landing video.
- * - ingenuity: Wright Brothers Field, March–April 2021: the debris shield dropped, the helicopter
- *   turned upright and set down under the rover, the rover driving clear, and the first powered
- *   flight on another planet filmed from Van Zyl Overlook (data/catalog/ingenuity-deploy.json).
+ * - ingenuity: Wright Brothers Field, March–April 2021: one press there runs the deployment by
+ *   itself (debris shield off, helicopter upright, set down, the rover driving clear), then NASA's
+ *   video of the first flight from Van Zyl Overlook (data/catalog/ingenuity-deploy.json).
  * - delta: the delta front of Jezero, driven as Perseverance did between sols 408 and 693 (April
  *   2022 – February 2023): arrival at the front, the climb up Hawksbill Gap, back down to Amalik,
  *   Hidden Harbor and Observation Mountain, and the Three Forks sample depot. Sample sites
@@ -41,17 +41,30 @@ export const WITNESS_TUBES = 5;
 
 export type TargetKind = 'sample' | 'depot' | 'panorama' | 'reach' | 'station';
 
-/** Steps of a mission done at a station by the action key, in order (and 'away', by driving). */
-export type StepId = 'shield' | 'rotate' | 'drop' | 'away' | 'film';
-/** Seconds each step's sequence runs (the film: Ingenuity's first flight, 39.1 s in the air). */
-export const STEP_S: Record<Exclude<StepId, 'away'>, number> = {
+/**
+ * Steps of a mission, done in order: at a station, a sequence that runs for a time (STEP_S); or a
+ * short drive the mission does itself (DRIVE_STEP_M).
+ */
+export type StepId = 'shield' | 'clear' | 'rotate' | 'drop' | 'away' | 'film';
+export type DriveStep = 'clear' | 'away';
+export type TimedStep = Exclude<StepId, DriveStep>;
+export const isDriveStep = (s: StepId): s is DriveStep => s === 'clear' || s === 'away';
+/** Seconds each step's sequence runs (the film: Mastcam-Z turning to the helicopter). */
+export const STEP_S: Record<TimedStep, number> = {
   shield: 3,
   rotate: 8,
   drop: 3,
-  film: 45,
+  film: 3,
 };
-/** The rover clears the helicopter (its solar panel needs the Sun) once this far from it (m). */
-export const AWAY_M = 5;
+/**
+ * The drives (m), from where the shield fell and from where the helicopter was set down: off the
+ * shield (about 0.9 m long) so the helicopter does not land on it; and clear of the helicopter, so
+ * its solar panel gets the Sun (the rover drove 4.6 m on sol 43).
+ */
+export const DRIVE_STEP_M: Record<DriveStep, number> = { clear: 1.5, away: 5 };
+export const AWAY_M = DRIVE_STEP_M.away;
+/** How fast the mission drives the rover (a share of its cruise speed). */
+export const DRIVE_STEP_SPEED = 0.15;
 
 export interface Target {
   id: string;
@@ -95,7 +108,22 @@ export type Objective =
   | { id: string; kind: 'depot'; optional?: boolean }
   | { id: string; kind: 'laser'; count: number; optional?: boolean }
   | { id: string; kind: 'flight'; count: number; optional?: boolean }
-  | { id: string; kind: 'step'; step: StepId; at?: string; optional?: boolean };
+  | StepObjective;
+
+/**
+ * A step. `run`: 'chain', it starts by itself once the step before it is done (it is part of that
+ * step: not listed, and that step counts as done once its chain is); 'arrive', it starts by
+ * itself when the rover stops in the station's zone (the rover brakes there). Otherwise the
+ * action key starts it.
+ */
+export interface StepObjective {
+  id: string;
+  kind: 'step';
+  step: StepId;
+  at?: string;
+  run?: 'chain' | 'arrive';
+  optional?: boolean;
+}
 
 export interface Chapter {
   id: string;
@@ -127,6 +155,8 @@ export interface MissionDef {
   routeSols: [number, number] | null;
   /** NASA video played before the first chapter. */
   intro?: 'landing';
+  /** NASA video played when the 'film' step is done (and offered again once seen). */
+  film?: 'firstFlight';
   hardware?: Hardware[];
   /** The rover's landing blast: the descent stage's engines scoured the ground under it. */
   blast?: { lat: number; lon: number };
@@ -288,51 +318,41 @@ export const VAN_ZYL = { lat: 18.444752, lon: 77.45214 };
 export const INGENUITY_MISSION: MissionDef = {
   id: 'ingenuity',
   areaId: 'landing',
-  /** The rover's position on sols 29–30, where it dropped the debris shield (21 March 2021). */
+  /** The rover's position on sols 29–30 (21 March 2021), about 90 m from the airfield. */
   start: { lat: 18.445164, lon: 77.451822, headingDeg: 250 },
   chapters: [
     {
-      // Sol 30: the shield that protected the helicopter during landing comes off; then the drive
-      // to the airfield the team had chosen (sols 31–34).
-      id: 'shield',
-      sols: [30, 34],
-      objectives: [
-        { id: 'drop-shield', kind: 'step', step: 'shield', at: 'shield-spot' },
-        { id: 'reach-field', kind: 'reach', target: 'wright-field' },
-      ],
-    },
-    {
-      // Sols 34–44: turned upright, legs unfolded, released; the rover drives clear within a day.
+      // Sols 30–43 in one press at the airfield: the shield comes off, the helicopter is turned
+      // upright with its legs out and released, and the rover drives clear. (The shield really
+      // came off on sol 30 where the mission starts; here it falls at the field, and the rover
+      // rolls off it before the helicopter is set down.)
       id: 'deploy',
-      sols: [34, 44],
+      sols: [30, 43],
       objectives: [
-        { id: 'rotate-heli', kind: 'step', step: 'rotate', at: 'field' },
-        { id: 'drop-heli', kind: 'step', step: 'drop', at: 'field' },
-        { id: 'drive-away', kind: 'step', step: 'away' },
+        { id: 'deploy-heli', kind: 'step', step: 'shield', at: 'field' },
+        { id: 'clear-shield', kind: 'step', step: 'clear', run: 'chain' },
+        { id: 'rotate-heli', kind: 'step', step: 'rotate', at: 'field', run: 'chain' },
+        { id: 'drop-heli', kind: 'step', step: 'drop', at: 'field', run: 'chain' },
+        { id: 'drive-away', kind: 'step', step: 'away', run: 'chain' },
       ],
     },
     {
-      // Sols 44–58: to Van Zyl Overlook, then the first flight, filmed by Mastcam-Z.
+      // Sols 44–58: to Van Zyl Overlook, where Mastcam-Z filmed the first flight (NASA's video).
       id: 'firstFlight',
       sols: [44, 58],
-      objectives: [
-        { id: 'reach-overlook', kind: 'reach', target: 'van-zyl' },
-        { id: 'film-flight', kind: 'step', step: 'film', at: 'overlook' },
-      ],
+      objectives: [{ id: 'film-flight', kind: 'step', step: 'film', at: 'overlook', run: 'arrive' }],
     },
   ],
-  reach: [
-    { id: 'wright-field', name: 'Wright Brothers Field', ...WRIGHT_FIELD, radiusM: 3 },
-    { id: 'van-zyl', name: 'Van Zyl Overlook', ...VAN_ZYL, radiusM: 9 },
-  ],
+  reach: [],
   panoramas: [],
   depot: null,
   flights: [],
   earlierSamples: [],
   routeSols: [29, 58],
+  film: 'firstFlight',
   stations: [
-    { id: 'shield-spot', name: 'Debris shield drop', lat: 18.445164, lon: 77.451822, radiusM: 10, icon: 'depot' },
-    { id: 'field', name: 'Wright Brothers Field', ...WRIGHT_FIELD, radiusM: 3, icon: 'depot' },
+    // The airfield is about 10 × 10 m: park near its centre.
+    { id: 'field', name: 'Wright Brothers Field', ...WRIGHT_FIELD, radiusM: 4, icon: 'depot' },
     { id: 'overlook', name: 'Van Zyl Overlook', ...VAN_ZYL, radiusM: 9, icon: 'panorama' },
   ],
   stowedHelicopter: true,
@@ -375,6 +395,8 @@ export interface ExpeditionState {
   steps?: StepId[];
   /** Where Ingenuity was set down (the rover's position then). */
   dropAt?: { lat: number; lon: number };
+  /** Where the debris shield fell (the rover's position then). */
+  shieldAt?: { lat: number; lon: number };
 }
 
 export interface Find {
@@ -419,10 +441,48 @@ export function objectiveDone(s: ExpeditionState, o: Objective, c: Chapter): boo
       return s.finds.length >= o.count;
     case 'flight':
       return flightsIn(s, c) >= o.count;
-    case 'step':
-      return (s.steps ?? []).includes(o.step);
+    case 'step': {
+      const steps = s.steps ?? [];
+      if (!steps.includes(o.step)) return false;
+      if (o.run === 'chain') return true;
+      // A step with a chain after it is done once the chain is.
+      const i = c.objectives.indexOf(o);
+      for (const n of c.objectives.slice(i + 1)) {
+        if (n.kind !== 'step' || n.run !== 'chain') break;
+        if (!steps.includes(n.step)) return false;
+      }
+      return true;
+    }
   }
 }
+
+/** The objectives a chapter lists (a chain's steps are part of the step before them). */
+export const listedObjectives = (c: Chapter): Objective[] =>
+  c.objectives.filter((o) => !(o.kind === 'step' && o.run === 'chain'));
+
+/** The current chapter's next step (steps are done in order), or null. */
+export function nextStep(s: ExpeditionState): StepObjective | null {
+  const c = missionOf(s).chapters[s.chapter];
+  const done = s.steps ?? [];
+  for (const o of c?.objectives ?? []) if (o.kind === 'step' && !done.includes(o.step)) return o;
+  return null;
+}
+
+/**
+ * The drive under way, when the next step is one: where it is measured from and how far it goes.
+ * The mission drives the rover (straight, slowly) until it is done.
+ */
+export function driveStep(
+  s: ExpeditionState,
+): { step: DriveStep; from: { lat: number; lon: number }; m: number } | null {
+  const o = nextStep(s);
+  if (!o || !isDriveStep(o.step)) return null;
+  const from = (o.step === 'clear' ? s.shieldAt : s.dropAt) ?? WRIGHT_FIELD;
+  return { step: o.step, from, m: DRIVE_STEP_M[o.step] };
+}
+
+/** The mission has the wheel: a chain is under way (the player only watches). */
+export const chainUnderWay = (s: ExpeditionState): boolean => nextStep(s)?.run === 'chain';
 
 /** Progress of a counted objective (laser analyses, flights), for the HUD. */
 export function objectiveCount(
@@ -522,19 +582,21 @@ export function isDone(s: ExpeditionState, t: Target): boolean {
   if (t.kind === 'reach') return s.reached.includes(t.id.slice('reach-'.length));
   if (t.kind === 'sample') return s.samples.includes(t.site?.sampleNumber ?? '');
   if (t.kind === 'panorama') return s.panoramas.includes(t.panoramaId ?? '');
-  if (t.kind === 'station') return stationStep(s, t) === null;
+  if (t.kind === 'station') {
+    // Done once the chapter has no step left there.
+    const c = missionOf(s).chapters[s.chapter];
+    const at = t.id.slice('station-'.length);
+    return !c?.objectives.some(
+      (o) => o.kind === 'step' && o.at === at && !(s.steps ?? []).includes(o.step),
+    );
+  }
   return s.deposited;
 }
 
-/** The next step to do at a station in the current chapter (in order), or null. */
-export function stationStep(s: ExpeditionState, t: Target): Exclude<StepId, 'away'> | null {
-  const c = missionOf(s).chapters[s.chapter];
-  if (!c) return null;
-  const at = t.id.slice('station-'.length);
-  for (const o of c.objectives)
-    if (o.kind === 'step' && o.at === at && !(s.steps ?? []).includes(o.step))
-      return o.step as Exclude<StepId, 'away'>;
-  return null;
+/** The step to do at a station now (the chapter's next step, when it is done there), or null. */
+export function stationStep(s: ExpeditionState, t: Target): StepObjective | null {
+  const o = nextStep(s);
+  return o && o.at === t.id.slice('station-'.length) ? o : null;
 }
 
 /**
@@ -589,7 +651,7 @@ export function targetHere(rover: RoverState, open: Target[]): Target | null {
   return best;
 }
 
-export type ActionKind = 'core' | 'deposit' | 'panorama' | Exclude<StepId, 'away'>;
+export type ActionKind = 'core' | 'deposit' | 'panorama' | TimedStep;
 export interface Action {
   targetId: string;
   kind: ActionKind;
@@ -617,7 +679,9 @@ export type ExpeditionEvent =
 /**
  * One step: reaching a place is enough for a 'reach' target; elsewhere, pressing the action key
  * stopped in a target's ring starts its sequence (core, panorama, drop), which then runs to its
- * end. A chapter whose main objectives are all done opens the next one.
+ * end. Mission steps run in order: a chain's steps start by themselves (its drives end at their
+ * distance), an 'arrive' step when the rover stops in its zone. A chapter whose main objectives
+ * are all done opens the next one.
  */
 export function stepExpedition(
   s: ExpeditionState,
@@ -635,38 +699,48 @@ export function stepExpedition(
       state = { ...state, reached: [...state.reached, t.id.slice('reach-'.length)] };
       events.push({ kind: 'reached', target: t });
     }
-  // Driving clear of the helicopter once it is down (the 'away' step of the current chapter).
-  const steps = state.steps ?? [];
-  const chapter = missionOf(state).chapters[state.chapter];
-  if (
-    steps.includes('drop') &&
-    !steps.includes('away') &&
-    chapter?.objectives.some((o) => o.kind === 'step' && o.step === 'away') &&
-    groundDistanceM(rover, s.dropAt ?? WRIGHT_FIELD) >= AWAY_M
-  ) {
-    state = { ...state, steps: [...steps, 'away'] };
-    events.push({ kind: 'step', step: 'away', target: null });
+  // A drive of a chain (off the shield, clear of the helicopter): done at its distance.
+  const drive = driveStep(state);
+  if (drive && groundDistanceM(rover, drive.from) >= drive.m) {
+    state = { ...state, steps: [...(state.steps ?? []), drive.step] };
+    events.push({ kind: 'step', step: drive.step, target: null });
   }
   const running = action && targets.find((t) => t.id === action.targetId);
+  const stopped = Math.abs(rover.speed) <= STOPPED_MPS && !rover.recharging;
+  // A step that starts by itself: the next of a chain, or one the rover has stopped at.
+  const due = nextStep(state);
+  const dueAt = due?.run && due.at && !isDriveStep(due.step) ? targetOf(due, targets) : undefined;
+  const auto =
+    !running &&
+    stopped &&
+    dueAt &&
+    (due!.run === 'chain' || groundDistanceM(rover, dueAt) <= dueAt.radiusM)
+      ? dueAt
+      : null;
   const here =
     running ||
+    auto ||
     targetHere(
       rover,
       open.filter((t) => t.kind !== 'reach'),
     );
   let next: Action | null = action;
-  if (running || (pressed && here && Math.abs(rover.speed) <= STOPPED_MPS && !rover.recharging)) {
+  if (running || auto || (pressed && here && stopped)) {
     const t = here!;
-    const kind: ActionKind | null =
-      t.kind === 'depot'
-        ? 'deposit'
-        : t.kind === 'panorama'
-          ? 'panorama'
-          : t.kind === 'station'
-            ? running
-              ? (action!.kind as ActionKind)
-              : stationStep(state, t)
-            : 'core';
+    const pressStep = t.kind === 'station' ? stationStep(state, t) : null;
+    const kind: ActionKind | null = running
+      ? action!.kind
+      : auto
+        ? (due!.step as TimedStep)
+        : t.kind === 'depot'
+          ? 'deposit'
+          : t.kind === 'panorama'
+            ? 'panorama'
+            : t.kind === 'station'
+              ? pressStep && !pressStep.run && !isDriveStep(pressStep.step)
+                ? pressStep.step
+                : null
+              : 'core';
     if (!kind) {
       const adv = advance(state, s, events);
       return { state: adv.state, action: null, events: adv.events };
@@ -683,11 +757,14 @@ export function stepExpedition(
         events.push({ kind: 'panorama', target: t });
       } else if (t.kind === 'station') {
         const step = kind as StepId;
+        const where = { lat: rover.lat, lon: rover.lon };
         state = {
           ...state,
           steps: [...(state.steps ?? []), step],
-          // Where the helicopter was set down (under the rover), for driving clear of it.
-          ...(step === 'drop' ? { dropAt: { lat: rover.lat, lon: rover.lon } } : {}),
+          // Where the shield fell and the helicopter was set down (under the rover), for the
+          // drives off and clear of them.
+          ...(step === 'shield' ? { shieldAt: where } : {}),
+          ...(step === 'drop' ? { dropAt: where } : {}),
         };
         events.push({ kind: 'step', step, target: t });
       } else {

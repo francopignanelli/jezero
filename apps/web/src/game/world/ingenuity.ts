@@ -23,8 +23,8 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
  * 0.49 m tall with two coaxial counter-rotating rotors 1.21 m across; a box-and-cylinder stand-in
  * of the same size is drawn until it loads (or if it cannot). Its flights follow the real ones in
  * outline: spin-up, climb to about 10 m, a straight leg to the next airfield, descent, spin-down,
- * shortened to under half a minute (the real ones lasted about two). The first flight is flown as
- * it was: up to 3 m, a 30 s hover, down (39.1 s in the air).
+ * shortened to under half a minute (the real ones lasted about two). The first flight is not
+ * flown: the deployment mission shows NASA's video of it instead.
  */
 
 /** Real rotor speed (2,537 rpm) and the game's flight profile. */
@@ -39,9 +39,6 @@ const FLY = {
   descendMps: 1.6,
   hoverS: 0.8,
 };
-
-/** Flight 1, 19 April 2021 (NASA): climb to 3 m, hover 30 s, land; 39.1 s from takeoff. */
-const FIRST = { peakM: 3, climbMps: 1, hoverS: 30, descendMps: 0.5 };
 
 type Phase = 'spinup' | 'climb' | 'cruise' | 'hover' | 'descend' | 'spindown';
 
@@ -283,23 +280,6 @@ export class Ingenuity {
       descendMps: FLY.descendMps,
     };
     if (!hop) this.headingRad = Math.atan2(to.x - this.pos.x, -(to.z - this.pos.z));
-  }
-
-  /** The first flight, from where it stands: up to 3 m, a 30 s hover, down. */
-  flyFirst(): void {
-    this.carried = false;
-    this.flight = {
-      from: this.pos.clone(),
-      to: this.pos.clone(),
-      phase: 'spinup',
-      t: 0,
-      altM: 0,
-      groundM: this.pos.y,
-      peakM: FIRST.peakM,
-      climbMps: FIRST.climbMps,
-      hoverS: FIRST.hoverS,
-      descendMps: FIRST.descendMps,
-    };
   }
 
   update(dt: number, groundY: (x: number, z: number) => number): FlightStatus {
