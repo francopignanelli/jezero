@@ -29,7 +29,7 @@ const SAVE_KEY = 'copernico.game.expedition.v1';
 const SAVE_PREFIX = 'copernico.game.mission.';
 const BEST_PREFIX = 'copernico.game.best.';
 /** A mission's save format: bumped when its chapters change (older saves are then left unread). */
-const SAVE_VERSION: Partial<Record<MissionId, number>> = { ingenuity: 2 };
+const SAVE_VERSION: Partial<Record<MissionId, number>> = { ingenuity: 3 };
 const saveKey = (m: MissionId) =>
   m === 'delta' ? SAVE_KEY : `${SAVE_PREFIX}${m}.v${SAVE_VERSION[m] ?? 1}`;
 const bestKey = (m: MissionId) => `${BEST_PREFIX}${m === 'delta' ? 'expedition' : m}`;

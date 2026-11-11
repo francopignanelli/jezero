@@ -44,9 +44,7 @@ import { RockField, type Rock } from './rocks';
 import { SunShadows, receiveSunShadow } from './sunShadow';
 import { LandingSite, type HardwareKind } from './landing';
 import { loadTube } from './tube';
-import { DeployRig, type DeployView } from './deploy';
 
-export type { DeployView } from './deploy';
 
 import { DepotTubes, RouteLine } from './route';
 import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
@@ -1061,7 +1059,6 @@ export class World {
       }
     }
     this.updateLaser();
-    this.updateDeploy();
     this.updateIngenuity(dt);
     this.route.update(this.time, pose.x, -pose.z);
     this.dust.update(
@@ -1098,53 +1095,6 @@ export class World {
   }
   /** Set when a flight ends (read and cleared by the session). */
   ingenuityLanded = false;
-
-  // ---------- Ingenuity's deployment (the helicopter under the rover, the debris shield) ----------
-
-  /** What the deployment shows now (null: nothing under the rover), and how it is drawn. */
-  private deploy: DeployView | null = null;
-  private deployRig: DeployRig | null = null;
-
-  /**
-   * The helicopter and its debris shield for the deployment mission (null: none). Stages: stowed
-   * on its side under the belly behind the shield; lying there once the shield is off; upright with
-   * legs out; down on the ground. `anim`, `p` and `seconds`: the step under way.
-   */
-  setDeploy(d: DeployView | null): void {
-    this.deploy = d;
-    if (!d) {
-      this.deployRig?.hide();
-      return;
-    }
-    if (!this.deployRig) {
-      this.deployRig = new DeployRig();
-      for (const m of this.deployRig.materials) receiveSunShadow(m, this.sunShadows);
-      for (const o of this.deployRig.objects) this.scene.add(o);
-    }
-  }
-
-  /**
-   * The deployment's camera now (world): sets `from` and `at`, returns the field of view (°), or
-   * null when there is no deployment. `driving`: the rover is rolling off the shield.
-   */
-  deployShot(driving: boolean, from: Vector3, at: Vector3): number | null {
-    if (!this.deployRig || !this.rover) return null;
-    const s = this.deployRig.shot(this.deploy, driving);
-    const R = this.rover.root.matrixWorld;
-    from.copy(s.from).applyMatrix4(R);
-    at.copy(s.at).applyMatrix4(R);
-    // Never below the ground (on a slope the rover's frame tilts).
-    from.y = Math.max(from.y, this.groundY(from.x, from.z) + 0.15);
-    return s.fovDeg;
-  }
-
-  /** Each frame, after the rover's pose: the helicopter carried, set down, and the shield. */
-  private updateDeploy(): void {
-    const d = this.deploy;
-    const rover = this.rover;
-    if (!d || !rover || !this.deployRig) return;
-    this.deployRig.update(d, rover.root.matrixWorld, this.ingenuity, this.groundY, this.dust);
-  }
 
   /**
    * A camera shot over the rig: looking at `target` from `from` (world; by default Mastcam-Z on the
@@ -1383,7 +1333,6 @@ export class World {
   dispose(): void {
     this.unloadArea();
     this.ingenuity.dispose();
-    this.deployRig?.dispose();
     this.sunShadows.dispose();
     this.route.dispose();
     this.depotTubes.dispose();

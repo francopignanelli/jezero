@@ -26,6 +26,8 @@ import {
   INGENUITY_MISSION,
   LANDING,
   LANDING_HARDWARE,
+  DEPLOY_SLIDES,
+  DEPLOY_SLIDE_S,
   DRIVE_STEP_M,
   STEP_S,
   VAN_ZYL,
@@ -776,24 +778,18 @@ describe('the Ingenuity deployment mission', () => {
     return { s, events };
   };
 
-  /** A point `m` metres north of the field (the rover driving straight on). */
-  const north = (m: number) => ({ lat: WRIGHT_FIELD.lat + m / 59_274, lon: WRIGHT_FIELD.lon });
-
   it('one press at the field runs the whole deployment; stopping at the overlook films the flight', () => {
     const s = newExpedition('ingenuity');
     const deploy = INGENUITY_MISSION.chapters[0]!;
     expect(listedObjectives(deploy).map((o) => o.id)).toEqual(['deploy-heli']);
     // Away from the field, the key does nothing.
     expect(doStep(s, INGENUITY_MISSION.start, 1).s.steps).toEqual([]);
-    // At the field: the shield falls where the rover stands…
+    // At the field: the shield comes off…
     let r = doStep(s, WRIGHT_FIELD, STEP_S.shield);
     expect(r.s.steps).toEqual(['shield']);
-    expect(r.s.shieldAt).toEqual({ lat: WRIGHT_FIELD.lat, lon: WRIGHT_FIELD.lon });
     expect(objectiveDone(r.s, deploy.objectives[0]!, deploy)).toBe(false); // its chain is under way
-    // …nothing more until the rover has rolled off it (the session drives it)…
-    expect(doStep(r.s, WRIGHT_FIELD, 1).s.steps).toEqual(['shield']);
     // …then the helicopter turns upright and is set down by itself, without the key.
-    const off = north(DRIVE_STEP_M.clear + 0.1);
+    const off = WRIGHT_FIELD;
     let state = r.s;
     let action: Action | null = null;
     for (let k = 0; k < (STEP_S.rotate + STEP_S.drop) / 0.1 + 3; k++) {
@@ -801,9 +797,11 @@ describe('the Ingenuity deployment mission', () => {
       state = x.state;
       action = x.action;
     }
-    expect(state.steps).toEqual(['shield', 'clear', 'rotate', 'drop']);
-    expect(groundDistanceM(at(state.dropAt!), state.shieldAt!)).toBeGreaterThan(1.5);
+    expect(state.steps).toEqual(['shield', 'rotate', 'drop']);
+    expect(state.dropAt).toEqual({ lat: WRIGHT_FIELD.lat, lon: WRIGHT_FIELD.lon });
     expect(state.chapter).toBe(0);
+    // The slides: one every DEPLOY_SLIDE_S over the three steps.
+    expect(STEP_S.shield + STEP_S.rotate + STEP_S.drop).toBe(DEPLOY_SLIDE_S * DEPLOY_SLIDES.length);
     // Not facing the overlook: the turn in place is still under way.
     expect(stepExpedition(state, null, at(off), all, false, 0.1).state.steps).not.toContain('aim');
     // Facing it (within 2°): done.
@@ -813,12 +811,13 @@ describe('the Ingenuity deployment mission', () => {
     // 12 m on towards the overlook from where it was set down: clear, the chapter is done.
     const k = (DRIVE_STEP_M.away + 0.3) / groundDistanceM(at(off), VAN_ZYL);
     const on = { lat: off.lat + (VAN_ZYL.lat - off.lat) * k, lon: off.lon + (VAN_ZYL.lon - off.lon) * k };
-    expect(stepExpedition(aimed.state, null, at(north(DRIVE_STEP_M.clear + 5)), all, false, 0.1).state.steps).not.toContain('away');
+    const half = { lat: off.lat + (VAN_ZYL.lat - off.lat) * k * 0.5, lon: off.lon + (VAN_ZYL.lon - off.lon) * k * 0.5 };
+    expect(stepExpedition(aimed.state, null, at(half), all, false, 0.1).state.steps).not.toContain('away');
     const away = stepExpedition(aimed.state, null, { ...at(on), headingRad: facing.headingRad }, all, false, 0.1);
     expect(away.state.steps).toContain('away');
     expect(away.state.chapter).toBe(1);
     expect(objectiveDone(away.state, deploy.objectives[0]!, deploy)).toBe(true);
-    // At Van Zyl Overlook, stopped: Mastcam-Z turns to it and the film step is done (no key).
+    // At Van Zyl Overlook, stopped: the film step is done (no key), and NASA's video follows.
     r = doStep(away.state, VAN_ZYL, STEP_S.film + 0.2);
     const film = r.events.find((e) => e.kind === 'step');
     expect(film && film.kind === 'step' && film.step).toBe('film');
@@ -827,7 +826,7 @@ describe('the Ingenuity deployment mission', () => {
   });
 
   it('the film waits for the rover to stop in the overlook zone', () => {
-    const s = { ...newExpedition('ingenuity'), chapter: 1, steps: ['shield', 'clear', 'rotate', 'drop', 'away'] } as ExpeditionState;
+    const s = { ...newExpedition('ingenuity'), chapter: 1, steps: ['shield', 'rotate', 'drop', 'aim', 'away'] } as ExpeditionState;
     const moving = { ...at(VAN_ZYL), speed: 2 };
     expect(stepExpedition(s, null, moving, all, false, 0.1).action).toBeNull();
     expect(stepExpedition(s, null, at(VAN_ZYL), all, false, 0.1).action?.kind).toBe('film');

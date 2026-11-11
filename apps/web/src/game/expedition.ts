@@ -9,7 +9,8 @@ import type { RockType } from './science';
  * - landing: Octavia E. Butler Landing, 18 Feb 2021, and the landing hardware where HiRISE saw it
  *   the next day (data/catalog/landing-hardware.json). Opens with NASA's landing video.
  * - ingenuity: Wright Brothers Field, March–April 2021: one press there runs the deployment by
- *   itself (debris shield off, helicopter upright, set down, the rover driving clear), then NASA's
+ *   itself (debris shield off, helicopter upright, set down: NASA's images), the rover then turning
+ *   towards the overlook and driving clear; then NASA's
  *   video of the first flight from Van Zyl Overlook (data/catalog/ingenuity-deploy.json).
  * - delta: the delta front of Jezero, driven as Perseverance did between sols 408 and 693 (April
  *   2022 – February 2023): arrival at the front, the climb up Hawksbill Gap, back down to Amalik,
@@ -47,30 +48,32 @@ export type TargetKind = 'sample' | 'depot' | 'panorama' | 'reach' | 'station';
  * move the mission makes itself: a short drive (DRIVE_STEP_M), or turning in place to face a
  * station ('aim').
  */
-export type StepId = 'shield' | 'clear' | 'rotate' | 'drop' | 'aim' | 'away' | 'film';
-export type DriveStep = 'clear' | 'aim' | 'away';
+export type StepId = 'shield' | 'rotate' | 'drop' | 'aim' | 'away' | 'film';
+export type DriveStep = 'aim' | 'away';
 export type TimedStep = Exclude<StepId, DriveStep>;
-export const isDriveStep = (s: StepId): s is DriveStep => s === 'clear' || s === 'aim' || s === 'away';
+export const isDriveStep = (s: StepId): s is DriveStep => s === 'aim' || s === 'away';
+/**
+ * The deployment is shown as NASA's images of its stages, one every DEPLOY_SLIDE_S (GameApp's
+ * DeployPanel): the shield (one), the helicopter stowed, unlocked, swinging down, upright and with
+ * four legs out (four), and set down (two, the last one on the ground).
+ */
+export const DEPLOY_SLIDE_S = 3;
+export const DEPLOY_SLIDES = ['shield', 'stowed', 'lock', 'swing', 'upright', 'legs', 'down'] as const;
 /** Seconds each step's sequence runs (the film: a moment stopped before NASA's video). */
 export const STEP_S: Record<TimedStep, number> = {
-  // The tray lets go once the camera is on it (world/deploy.ts trayPose).
-  shield: 3.5,
-  // world/deploy.ts ROTATE_STAGES: lock, swing, two legs, upright, two legs.
-  rotate: 10,
-  drop: 3,
+  shield: DEPLOY_SLIDE_S,
+  rotate: 4 * DEPLOY_SLIDE_S,
+  drop: 2 * DEPLOY_SLIDE_S,
   film: 1,
 };
 /**
- * The drives (m), from where the shield fell and from where the helicopter was set down: clear of
- * the shield (a tray 1.3 m long under the middle of the rover), far enough that the rover can turn
- * in place without its wheels touching it; and away from the helicopter,
- * towards the overlook, so its solar panel gets the Sun (the rover drove 4.6 m on sol 43; here
- * further, to leave the helicopter well behind).
+ * The drive (m) from where the helicopter was set down, towards the overlook, so its solar panel
+ * gets the Sun (the rover drove 4.6 m on sol 43; here further, to leave the helicopter well behind).
  */
-export const DRIVE_STEP_M: Record<'clear' | 'away', number> = { clear: 3, away: 12 };
+export const DRIVE_STEP_M: Record<'away', number> = { away: 12 };
 export const AWAY_M = DRIVE_STEP_M.away;
 /** How fast the mission drives the rover (a share of its cruise speed). */
-export const DRIVE_STEP_SPEED: Record<DriveStep, number> = { clear: 0.15, aim: 0, away: 0.25 };
+export const DRIVE_STEP_SPEED: Record<DriveStep, number> = { aim: 0, away: 0.25 };
 /** Turning in place ends once the rover points at its station this closely (rad). */
 export const AIM_TOLERANCE_RAD = (2 * Math.PI) / 180;
 
@@ -335,14 +338,12 @@ export const INGENUITY_MISSION: MissionDef = {
   chapters: [
     {
       // Sols 30–43 in one press at the airfield: the shield comes off, the helicopter is turned
-      // upright with its legs out and released, and the rover drives clear. (The shield really
-      // came off on sol 30 where the mission starts; here it falls at the field, and the rover
-      // rolls off it before the helicopter is set down.)
+      // upright with its legs out and released (shown as NASA's images), and the rover turns
+      // towards the overlook and drives clear.
       id: 'deploy',
       sols: [30, 43],
       objectives: [
         { id: 'deploy-heli', kind: 'step', step: 'shield', at: 'field' },
-        { id: 'clear-shield', kind: 'step', step: 'clear', run: 'chain' },
         { id: 'rotate-heli', kind: 'step', step: 'rotate', at: 'field', run: 'chain' },
         { id: 'drop-heli', kind: 'step', step: 'drop', at: 'field', run: 'chain' },
         // Turning in place over it (its wheels clear it all round), then away towards the overlook.
@@ -410,8 +411,6 @@ export interface ExpeditionState {
   steps?: StepId[];
   /** Where Ingenuity was set down (the rover's position then). */
   dropAt?: { lat: number; lon: number };
-  /** Where the debris shield fell (the rover's position then). */
-  shieldAt?: { lat: number; lon: number };
 }
 
 export interface Find {
@@ -495,7 +494,7 @@ export function driveStep(s: ExpeditionState): {
 } | null {
   const o = nextStep(s);
   if (!o || !isDriveStep(o.step)) return null;
-  const from = (o.step === 'clear' ? s.shieldAt : s.dropAt) ?? WRIGHT_FIELD;
+  const from = s.dropAt ?? WRIGHT_FIELD;
   if (o.step === 'aim') {
     const st = missionOf(s).stations?.find((x) => x.id === o.toward);
     return { step: 'aim', from, m: 0, toward: st ? { lat: st.lat, lon: st.lon } : VAN_ZYL };
@@ -732,7 +731,7 @@ export function stepExpedition(
       state = { ...state, reached: [...state.reached, t.id.slice('reach-'.length)] };
       events.push({ kind: 'reached', target: t });
     }
-  // A drive of a chain (off the shield, clear of the helicopter): done at its distance.
+  // A move of a chain (the turn, the drive clear of the helicopter): done when it is.
   const drive = driveStep(state);
   if (drive && driveDone(drive, rover)) {
     state = { ...state, steps: [...(state.steps ?? []), drive.step] };
@@ -794,9 +793,7 @@ export function stepExpedition(
         state = {
           ...state,
           steps: [...(state.steps ?? []), step],
-          // Where the shield fell and the helicopter was set down (under the rover), for the
-          // drives off and clear of them.
-          ...(step === 'shield' ? { shieldAt: where } : {}),
+          // Where the helicopter was set down (under the rover), for the drive clear of it.
           ...(step === 'drop' ? { dropAt: where } : {}),
         };
         events.push({ kind: 'step', step, target: t });

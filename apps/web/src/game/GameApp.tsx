@@ -14,6 +14,7 @@ import { formatClock, formatDegrees, formatDistance } from '../lib/format';
 import { M_PER_DEG } from '../lib/math';
 import { resetProgress } from './career';
 import {
+  DEPLOY_SLIDES,
   MISSIONS,
   isDone,
   listedObjectives,
@@ -685,6 +686,7 @@ function Hud({ session }: { session: GameSession }) {
       </section>
 
       {phase === 'playing' && <Prompt />}
+      {phase === 'playing' && hud.deploy && <DeployPanel session={session} slide={hud.deploy.slide} />}
       {mapOpen && <GameMap session={session} />}
       <TouchPad session={session} />
     </div>
@@ -699,8 +701,12 @@ function Prompt() {
   let hint = false;
   const { here, action } = hud;
   const drive = hud.drive;
-  const fraction = action?.fraction ?? hud.laser?.fraction ?? (drive && !action ? drive.fraction : null);
-  if (action && here) {
+  const fraction = hud.deploy
+    ? hud.deploy.fraction
+    : (action?.fraction ?? hud.laser?.fraction ?? (drive && !action ? drive.fraction : null));
+  if (hud.deploy) {
+    text = t('game.deploy.status');
+  } else if (action && here) {
     text =
       action.kind === 'core'
         ? t('game.prompt.coring', { name: here.name })
@@ -708,9 +714,7 @@ function Prompt() {
           ? t('game.prompt.shooting', { name: here.name })
           : action.kind === 'deposit'
             ? t('game.prompt.dropping')
-            : action.detail
-              ? t(`game.prompt.stage.${action.detail}`)
-              : t(`game.prompt.doing.${action.kind}`);
+            : t(`game.prompt.doing.${action.kind}`);
   } else if (drive) {
     text = t(`game.prompt.doing.${drive.step}`);
   } else if (hud.laser) {
@@ -787,12 +791,50 @@ function Prompt() {
           {text}
         </span>
       )}
-      {fraction !== null && (action || hud.laser || drive) && (
+      {fraction !== null && (action || hud.laser || drive || hud.deploy) && (
         <div className="game-bar game-action-bar" aria-hidden="true">
           <div style={{ width: `${fraction * 100}%` }} />
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Ingenuity's deployment as NASA photographed it: one image per stage, in order, with its sol and
+ * what the delivery system is doing, while the game runs the deployment unseen under the rover.
+ * WATSON's images (sols 30–39, PIA24448 and the frames of PIA24548) and the helicopter on the
+ * ground (sol 43); a button skips to the end.
+ */
+function DeployPanel({ session, slide }: { session: GameSession; slide: number }) {
+  const { t } = useTranslation();
+  const key = DEPLOY_SLIDES[slide] ?? DEPLOY_SLIDES[0];
+  const src = (k: string) => dataUrl(`game/deploy/${k}.webp?v=${DATA_VERSION}`);
+  // All of them fetched at once, so each change is immediate.
+  useEffect(() => {
+    for (const k of DEPLOY_SLIDES) new Image().src = src(k);
+  }, []);
+  return (
+    <aside className="game-panel game-deploy" aria-live="polite" aria-label={t('game.deploy.title')}>
+      <div className="game-deploy-head">
+        <span className="game-panel-title">{t('game.deploy.title')}</span>
+        <button type="button" className="game-deploy-skip" onClick={() => session.skipDeploy()}>
+          {t('game.deploy.skip')}
+        </button>
+      </div>
+      <figure className="game-deploy-frame">
+        <img key={key} src={src(key)} alt={t(`game.deploy.slides.${key}.title`)} />
+        <figcaption>{t('game.deploy.credit')}</figcaption>
+      </figure>
+      <p className="game-deploy-sol">{t(`game.deploy.slides.${key}.sol`)}</p>
+      <h3>{t(`game.deploy.slides.${key}.title`)}</h3>
+      <p className="game-deploy-text">{t(`game.deploy.slides.${key}.text`)}</p>
+      <ol className="game-deploy-dots" aria-hidden="true">
+        {DEPLOY_SLIDES.map((k, i) => (
+          <li key={k} className={i < slide ? 'is-done' : i === slide ? 'is-on' : ''} />
+        ))}
+      </ol>
+    </aside>
   );
 }
 

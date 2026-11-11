@@ -1,5 +1,4 @@
 import type {
-  Matrix4,
   BufferGeometry} from 'three';
 import {
   BoxGeometry,
@@ -30,29 +29,9 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
  * The model keeps NASA's hierarchy (scripts: optimised without flattening or joining): a 'bus'
  * node (the fuselage, its x axis up the mast) holding the four legs (leg_01–04, each with its
  * origin at its hip on the fuselage's top corners), the two rotors (rotors_01 upper, rotors_02
- * lower), the mast parts, the solar panel and the cameras. Legs fold and rotors turn about their
- * own origins, so each moves about its real joint.
+ * lower), the mast parts, the solar panel and the cameras. The rotors turn about their own
+ * origins, on the mast.
  */
-
-/**
- * How the legs ride under the rover: folded up about their hips until each stands along the mast
- * (87° above the horizontal), its foot level with the top of the helicopter, as WATSON saw them on
- * sols 36–38.
- */
-const LEG_TUCK_RAD = (87 * Math.PI) / 180;
-
-/** A leg of NASA's model: its node, its rest pose, the axis it folds about, how far it folds. */
-interface Leg {
-  node: Object3D;
-  base: Quaternion;
-  basePos: Vector3;
-  /** Its hip (the leg's top end, on the fuselage) and the axis it folds about, in the parent's frame. */
-  hip: Vector3;
-  axis: Vector3;
-  foldRad: number;
-  /** Which side of the model it is on (sign of x). */
-  side: 1 | -1;
-}
 
 /** Real rotor speed (2,537 rpm) and the game's flight profile. */
 export const ROTOR_RAD_S = (2537 / 60) * 2 * Math.PI;
@@ -99,13 +78,8 @@ export class Ingenuity {
   private model: {
     /** Each rotor: its node, rest pose, mast axis (parent frame), turning direction, stowed angle. */
     rotors: Array<{ node: Object3D; base: Quaternion; axis: Vector3; dir: number; stowRad: number }>;
-    legs: Leg[];
-    /** Height of the top of the helicopter (m above its feet). */
-    topM: number;
   } | null = null;
   private readonly qSpin = new Quaternion();
-  /** Carried under the rover (the deployment): pose set from outside, no flight, rotors still. */
-  private carried = false;
   private spin = 0;
   private angle = 0;
   private readonly pos = new Vector3();
@@ -208,10 +182,9 @@ export class Ingenuity {
   }
 
   /**
-   * Loads NASA's model in place of the stand-in: its rotors and legs (see above), and the stowed
-   * angle of each rotor: turned about the mast until its blades lie along the model's z axis, as
-   * they were locked for the ride (along the rover's length, so they never sweep as it swings
-   * down). Both rotors lie that way, one above the other.
+   * Loads NASA's model in place of the stand-in, with the stowed angle of each rotor: turned about
+   * the mast until its blades lie along the model's z axis, one above the other, as they stayed
+   * locked after the deployment until the first flight's preparations.
    */
   async load(url: string): Promise<void> {
     const loader = new GLTFLoader();
@@ -232,8 +205,6 @@ export class Ingenuity {
         const pa = m.geometry.getAttribute('position');
         for (let i = 0; i < pa.count; i++) each(v.fromBufferAttribute(pa, i).applyMatrix4(m.matrixWorld));
       });
-    let topM = 0;
-    verts(scene, (p) => (topM = Math.max(topM, p.y)));
 
     const rotors: NonNullable<Ingenuity['model']>['rotors'] = [];
     for (const [name, dir] of [
@@ -260,49 +231,6 @@ export class Ingenuity {
       rotors.push({ node, base: node.quaternion.clone(), axis: up.clone().applyQuaternion(toParent), dir, stowRad });
     }
 
-    const legs: Leg[] = [];
-    for (const name of ['leg_01', 'leg_02', 'leg_03', 'leg_04']) {
-      const node = scene.getObjectByName(name);
-      if (!node) continue;
-      // Its two ends: the hip (the top end, on the fuselage's corner) and the foot.
-      let [yMax, yMin] = [-Infinity, Infinity];
-      verts(node, (p) => {
-        yMax = Math.max(yMax, p.y);
-        yMin = Math.min(yMin, p.y);
-      });
-      const hip = new Vector3();
-      const foot = new Vector3();
-      let [nh, nf] = [0, 0];
-      verts(node, (p) => {
-        if (p.y > yMax - 0.012) {
-          hip.add(p);
-          nh++;
-        }
-        if (p.y < yMin + 0.012) {
-          foot.add(p);
-          nf++;
-        }
-      });
-      hip.multiplyScalar(1 / nh);
-      foot.multiplyScalar(1 / nf);
-      const len = hip.distanceTo(foot);
-      const out = new Vector3(foot.x - hip.x, 0, foot.z - hip.z).normalize();
-      // Folding about out × up lifts the foot towards the mast.
-      const axis = new Vector3().crossVectors(out, up).normalize().applyQuaternion(toParent);
-      const down = Math.asin((foot.y - hip.y) / len);
-      const folded = LEG_TUCK_RAD;
-      const hipLocal = node.parent ? node.parent.worldToLocal(hip.clone()) : hip.clone();
-      legs.push({
-        node,
-        base: node.quaternion.clone(),
-        basePos: node.position.clone(),
-        hip: hipLocal,
-        axis,
-        foldRad: folded - down,
-        side: hip.x > 0 ? 1 : -1,
-      });
-    }
-
     scene.traverse((o) => {
       const m = o as Mesh;
       if (!m.isMesh) return;
@@ -320,7 +248,7 @@ export class Ingenuity {
     });
     for (const o of this.standIn) o.visible = false;
     this.root.add(scene);
-    this.model = { rotors, legs, topM };
+    this.model = { rotors };
   }
 
   /** Sky light and reflections on it (1 in the open; less under the rover's belly). */
@@ -330,24 +258,6 @@ export class Ingenuity {
     for (const m of this.materials) if ('envMapIntensity' in m) (m as MeshStandardMaterial).envMapIntensity = k;
   }
   private skyLight = 1;
-
-  /** Height of the top of the helicopter above its feet (m): where it hangs from the rover. */
-  get topM(): number {
-    return this.model?.topM ?? 0.49;
-  }
-
-  /**
-   * The legs, each turned about its own hip: the pair on the model's +x side and the pair on its
-   * -x side, folded (1) or out (0); `splayRad` opens them a little further (flexing on landing).
-   */
-  setLegs(plusX: number, minusX: number, splayRad = 0): void {
-    for (const l of this.model?.legs ?? []) {
-      const f = l.side > 0 ? plusX : minusX;
-      this.qSpin.setFromAxisAngle(l.axis, f * l.foldRad - splayRad);
-      l.node.quaternion.copy(this.qSpin).multiply(l.base);
-      l.node.position.copy(l.basePos).sub(l.hip).applyQuaternion(this.qSpin).add(l.hip);
-    }
-  }
 
   /** Real materials (for the terrain shadows to be applied to them). */
   get allMaterials(): Material[] {
@@ -366,26 +276,11 @@ export class Ingenuity {
     return this.pos;
   }
 
-  /**
-   * Carried under the rover: the pose comes from `m` (world), the rotors stand still with their
-   * blades stowed (`stowed` 1) or turning to flight position (0).
-   */
-  carry(m: Matrix4, stowed: number): void {
-    this.carried = true;
-    this.flight = null;
-    this.spin = 0;
-    this.root.visible = true;
-    m.decompose(this.root.position, this.root.quaternion, this.root.scale);
-    this.pos.copy(this.root.position);
-    this.stowK = stowed;
-  }
   private stowK = 0;
 
-  /** Parked on the ground at a point (world), or hidden. */
+  /** Parked on the ground at a point (world), or hidden; `stowed` 1: blades locked in line. */
   place(at: Vector3 | null, headingRad = this.headingRad, stowed = 0): void {
-    this.carried = false;
     this.stowK = stowed;
-    this.setLegs(0, 0);
     this.root.scale.set(1, 1, 1);
     this.flight = null;
     this.spin = 0;
@@ -416,10 +311,6 @@ export class Ingenuity {
   }
 
   update(dt: number, groundY: (x: number, z: number) => number): FlightStatus {
-    if (this.carried) {
-      this.spinRotors(0);
-      return { altitudeM: 0, rotor: 0, landed: false };
-    }
     const f = this.flight;
     let landed = false;
     let target = 0;

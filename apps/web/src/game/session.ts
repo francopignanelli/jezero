@@ -24,7 +24,10 @@ import { Controls, type Command } from './controls';
 import {
   CORE_COST_PCT,
   DELTA,
+  DEPLOY_SLIDES,
+  DEPLOY_SLIDE_S,
   DRIVE_STEP_SPEED,
+  STEP_S,
   FLIGHT_TRIGGER_M,
   MISSIONS,
   STOPPED_MPS,
@@ -68,7 +71,6 @@ import { LASER_COST_PCT, LASER_RANGE_M, LASER_S, POINTS, rockKey, rockType } fro
 import { EMPTY_HUD, toast, useGame, type ExpeditionResult, type Hud, type Phase } from './store';
 import { loadManifest, sampleBilinear, type WorldManifest } from './world/heights';
 import type { Rock } from './world/rocks';
-import { deployStage } from './world/deploy';
 import { DRILL_PHASE, World, type PhotoFilter, type Quality } from './world/world';
 
 /**
@@ -430,7 +432,6 @@ export class GameSession {
     this.driving = null;
     this.awayShot = false;
     this.world.setWatch(null);
-    this.world.setDeploy(null);
     this.dropHeadingRad = save?.rover.headingRad ?? 0;
     this.tubesAt = save?.tubesAt ?? null;
     if (this.tubesAt && state.deposited) this.world.layTubesAt(...this.tubesAt, this.depotCount());
@@ -515,7 +516,6 @@ export class GameSession {
     this.running = false;
     this.controls.enabled = false;
     this.world.clearTargets();
-    this.world.setDeploy(null);
     this.world.setWatch(null);
     this.filming = false;
     this.stopAutoNav();
@@ -736,59 +736,20 @@ export class GameSession {
   private filming = false;
 
   /**
-   * The deployment mission: what hangs under the rover and the shots of the chain: low, in front,
-   * while the shield falls and the helicopter turns and drops; from the ground behind the
-   * helicopter while the rover turns towards the overlook and drives away.
+   * The deployment mission. The deployment itself is not drawn: while it runs (the shield, the
+   * helicopter turned upright and set down) the camera stays where the player had it, the rover's
+   * body hiding its belly, and a panel shows NASA's images of each stage (GameApp's DeployPanel).
+   * Once the helicopter is down: a shot from the ground behind it while the rover turns in place
+   * towards the overlook and drives away, leaving it standing there.
    */
-  private stepDeploy(dt: number): void {
-    if (!this.mission.stowedHelicopter || !this.running) {
-      this.world.setDeploy(null);
-      return;
-    }
-    const steps = this.exp.steps ?? [];
-    const a = this.action;
-    const anim = a && (a.kind === 'shield' || a.kind === 'rotate' || a.kind === 'drop') ? a.kind : null;
-    const f = this.world.frame;
-    const sh = this.exp.shieldAt;
-    this.world.setDeploy({
-      stage: steps.includes('drop')
-        ? 'down'
-        : steps.includes('rotate')
-          ? 'upright'
-          : steps.includes('shield')
-            ? 'lying'
-            : 'stowed',
-      anim,
-      p: anim && a ? a.heldS / actionSeconds(a.kind) : 0,
-      seconds: anim && a ? actionSeconds(a.kind) : 1,
-      headingRad: this.rover.headingRad,
-      shieldAt: steps.includes('shield') && f && sh ? f.toLocal(sh.lat, sh.lon) : null,
-    });
+  private stepDeploy(): void {
     const drive = driveStep(this.exp);
-    const p = this.world.rover!.root.position;
-    const leaving = drive?.step === 'aim' || drive?.step === 'away';
-    // The chain up to the turn (and the shield's fall before it): low in front of the rover,
-    // looking back under the belly, each stage's framing eased into from the last.
-    if (anim || (chainUnderWay(this.exp) && !leaving)) {
-      const fov = this.world.deployShot(drive?.step === 'clear', this.shotGoalFrom, this.shotGoalAt) ?? 38;
-      if (!this.shooting) {
-        this.shotFrom.copy(this.shotGoalFrom);
-        this.watchAt.copy(this.shotGoalAt);
-      } else {
-        const k = 1 - Math.exp(-dt * 1.8);
-        this.shotFrom.lerp(this.shotGoalFrom, k);
-        this.watchAt.lerp(this.shotGoalAt, k);
-      }
-      this.world.setWatch(this.watchAt, this.shotFrom, fov);
-      this.shooting = true;
-      return;
-    }
-    if (leaving && this.world.ingenuity.root.visible) {
-      // From the ground behind the helicopter and to one side, still: the rover turns over it to
-      // face the overlook and drives off towards it, leaving the helicopter in the foreground.
+    const leaving = this.mission.stowedHelicopter && (drive?.step === 'aim' || drive?.step === 'away');
+    if (this.running && leaving && this.world.ingenuity.root.visible) {
       const hp = this.world.ingenuity.position;
+      const p = this.world.rover!.root.position;
       if (!this.awayShot) {
-        const to = drive!.toward ?? driveStep({ ...this.exp, steps: steps.filter((x) => x !== 'aim') })?.toward;
+        const to = drive.toward ?? driveStep({ ...this.exp, steps: (this.exp.steps ?? []).filter((x) => x !== 'aim') })?.toward;
         const h = to && this.exp.dropAt ? bearingRad(this.exp.dropAt, to) : this.rover.headingRad;
         const [fx, fz, rx, rz] = [Math.sin(h), -Math.cos(h), Math.cos(h), Math.sin(h)];
         this.shotFrom.set(hp.x - fx * 5 + rx * 2.4, 0, hp.z - fz * 5 + rz * 2.4);
@@ -801,11 +762,38 @@ export class GameSession {
       return;
     }
     this.awayShot = false;
-    if (this.shooting || this.filming) {
+    if (this.shooting || (this.filming && useGame.getState().phase === 'playing')) {
       this.shooting = false;
       this.filming = false;
       this.world.setWatch(null);
     }
+  }
+
+  /** How far the deployment's slides have got (s) while it runs, or null. */
+  private deployClock(): number | null {
+    if (!this.mission.stowedHelicopter) return null;
+    const steps = this.exp.steps ?? [];
+    let t = 0;
+    for (const k of ['shield', 'rotate', 'drop'] as const) {
+      if (steps.includes(k)) t += STEP_S[k];
+      else if (this.action?.kind === k) return t + this.action.heldS;
+      // Between two steps (the next one starts once the rover is still), or not begun.
+      else return steps.includes('shield') ? t : null;
+    }
+    return null;
+  }
+
+  /** The rest of the deployment's slides skipped: the helicopter is set down at once. */
+  skipDeploy(): void {
+    if (this.deployClock() === null || useGame.getState().phase !== 'playing') return;
+    const before = this.exp;
+    const steps = [...(this.exp.steps ?? [])];
+    for (const k of ['shield', 'rotate', 'drop'] as const) if (!steps.includes(k)) steps.push(k);
+    this.exp = { ...this.exp, steps, dropAt: { lat: this.rover.lat, lon: this.rover.lon } };
+    this.action = null;
+    this.dropHeadingRad = this.rover.headingRad;
+    this.refreshHeli();
+    this.afterProgress([], before);
   }
 
   /** The mission's own drive (off the shield, clear of Ingenuity): straight, reversing if blocked. */
@@ -833,8 +821,6 @@ export class GameSession {
 
   private awayShot = false;
   private readonly watchAt = new Vector3();
-  private readonly shotGoalFrom = new Vector3();
-  private readonly shotGoalAt = new Vector3();
   private readonly shotFrom = new Vector3();
   private shooting = false;
 
@@ -846,8 +832,8 @@ export class GameSession {
       const at = this.exp.dropAt;
       if (!this.running || !f) this.world.placeIngenuity(null);
       else if (at && !this.world.ingenuity.flying)
-        // Facing as the rover did (the rover's model is turned π − heading; see DeployRig).
-        this.world.placeIngenuity(f.toLocal(at.lat, at.lon), this.dropHeadingRad - Math.PI, 1);
+        // Set down under the rover, facing the way it does, its blades still locked.
+        this.world.placeIngenuity(f.toLocal(at.lat, at.lon), this.dropHeadingRad, 1);
       return;
     }
     this.heli = this.running ? ingenuity(this.exp) : null;
@@ -1226,7 +1212,7 @@ export class GameSession {
     );
     this.exp = res.state;
     this.action = res.action;
-    this.stepDeploy(dt);
+    this.stepDeploy();
     this.elapsedS += dt;
     this.sinceHud += dt;
     this.sinceSave += dt;
@@ -1276,7 +1262,8 @@ export class GameSession {
         dialog = { phase: 'film' };
       } else if (e.kind === 'step') {
         this.audio.chime(false);
-        if (e.step !== 'clear' && e.step !== 'aim') toast(`game.toast.step.${e.step}`);
+        // The deployment's own stages are told by its panel; the drive clear gets a notice.
+        if (e.step === 'away') toast('game.toast.step.away');
         // Clear of the helicopter: the rover stops there (the next chapter's page opens).
         if (e.step === 'away') this.rover = { ...this.rover, speed: 0 };
         if (e.step === 'drop') {
@@ -1368,6 +1355,12 @@ export class GameSession {
           step: here.kind === 'station' ? (stationStep(this.exp, here)?.step ?? null) : null,
           run: here.kind === 'station' ? (stationStep(this.exp, here)?.run ?? null) : null,
         },
+        deploy: ((): Hud['deploy'] => {
+          const t = this.deployClock();
+          if (t === null) return null;
+          const total = DEPLOY_SLIDE_S * DEPLOY_SLIDES.length;
+          return { slide: Math.min(DEPLOY_SLIDES.length - 1, Math.floor(t / DEPLOY_SLIDE_S)), fraction: Math.min(1, t / total) };
+        })(),
         drive: ((): Hud['drive'] => {
           const d = driveStep(this.exp);
           if (!d) return null;
@@ -1378,11 +1371,7 @@ export class GameSession {
         })(),
         action:
           this.action && fraction !== null
-            ? {
-                kind: this.action.kind,
-                fraction: Math.min(1, fraction),
-                detail: deployStage(this.action.kind, this.action.heldS),
-              }
+            ? { kind: this.action.kind, fraction: Math.min(1, fraction) }
             : null,
         sand: r.sand,
         slip: r.slip,

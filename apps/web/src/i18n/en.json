@@ -892,26 +892,12 @@
       "holdToStep": "Press Space to {{action}}",
       "stopToStep": "Stop here to {{action}}",
       "doing": {
-        "shield": "Dropping the debris shield…",
-        "rotate": "Turning Ingenuity upright, unfolding its legs…",
-        "drop": "Releasing Ingenuity…",
         "film": "Mastcam-Z films the flight…",
-        "clear": "Rolling off the shield…",
         "away": "Driving clear: the Sun must reach Ingenuity’s solar panel…",
         "aim": "Turning towards Van Zyl Overlook…"
       },
       "arrive": {
         "film": "Van Zyl Overlook: stopping to film the flight…"
-      },
-      "stage": {
-        "shield": "The debris shield’s fittings let go: the tray that covered Ingenuity drops away (sol 30)…",
-        "unlock": "The launch lock is released (sol 36): Ingenuity now hangs from the delivery arm alone…",
-        "swing": "The delivery arm’s motor swings Ingenuity down about a hinge under the belly…",
-        "legsA": "The first two legs spring open on their hinges (sol 37)…",
-        "upright": "The arm brings Ingenuity upright; the last two legs are still folded (sol 38)…",
-        "legsB": "The last two legs open (sol 39): Ingenuity hangs just above the ground…",
-        "release": "The collar at the top of the mast opens (sol 43)…",
-        "down": "Ingenuity drops onto its four legs."
       }
     },
     "touch": {
@@ -1167,7 +1153,6 @@
       "drive-away": "Drive 12 m away, towards the overlook",
       "film-flight": "Stop at Van Zyl Overlook to film the first flight",
       "deploy-heli": "Deploy Ingenuity at Wright Brothers Field",
-      "clear-shield": "Roll off the shield",
       "aim-overlook": "Turn towards Van Zyl Overlook"
     },
     "toast": {
@@ -1386,6 +1371,49 @@
       "rotate": "turn Ingenuity upright",
       "drop": "set Ingenuity down",
       "film": "film the first flight"
+    },
+    "deploy": {
+      "title": "Deploying Ingenuity",
+      "status": "Deploying Ingenuity under the rover…",
+      "skip": "Skip",
+      "credit": "NASA/JPL-Caltech/MSSS · PIA24548, PIA24448",
+      "slides": {
+        "shield": {
+          "sol": "Sol 30 · 21 March 2021",
+          "title": "The debris shield drops",
+          "text": "The tray that protected Ingenuity during landing is released and falls clear."
+        },
+        "stowed": {
+          "sol": "Sol 35 · 25 March 2021",
+          "title": "Stowed under the belly",
+          "text": "Ingenuity rides on its side, legs folded, held by the delivery system."
+        },
+        "lock": {
+          "sol": "Sol 36 · 26 March 2021",
+          "title": "Launch lock released",
+          "text": "The lock that held it in place on the rover lets go."
+        },
+        "swing": {
+          "sol": "Sol 37 · 28 March 2021",
+          "title": "Swinging down",
+          "text": "The delivery arm turns it towards vertical; two of its four legs spring open."
+        },
+        "upright": {
+          "sol": "Sol 38 · 29 March 2021",
+          "title": "Upright",
+          "text": "It hangs from the belly by the top of its mast; two legs are still folded."
+        },
+        "legs": {
+          "sol": "Sol 39 · 30 March 2021",
+          "title": "Four legs out",
+          "text": "The last two legs open: ready to drop, a few centimetres above the ground."
+        },
+        "down": {
+          "sol": "Sol 43 · 3 April 2021",
+          "title": "On Mars",
+          "text": "Released, it drops onto its legs. The rover drives away so the Sun reaches its solar panel."
+        }
+      }
     }
   },
   "modes": {

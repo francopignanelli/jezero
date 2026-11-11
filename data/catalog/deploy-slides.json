@@ -1,0 +1,111 @@
+{
+  "description": "Slides shown while the rover game deploys Ingenuity: NASA’s own images of each stage, in order (the game does not animate the deployment).",
+  "credit": "NASA/JPL-Caltech/MSSS (WATSON); NASA/JPL-Caltech/ASU/MSSS (Mastcam-Z)",
+  "sources": {
+    "PIA24548": {
+      "title": "Ingenuity’s Complete Deployment",
+      "url": "https://assets.science.nasa.gov/content/dam/science/psd/mars/resources/detail_files/2/5/25792_PIA24548-1200.gif",
+      "sha256": "a5bafd024f92b96f32cd8d099f11d6c8a6b79c8129c9f3cd72bbdeff31d44d5a",
+      "page": "https://images.nasa.gov/details/PIA24548"
+    },
+    "PIA24448": {
+      "title": "Perseverance Rover Drops its Debris Shield",
+      "url": "https://images-assets.nasa.gov/image/PIA24448/PIA24448~medium.jpg",
+      "sha256": "2368ce6f233ac874a74241281d71660f4a175092e63a6a10caa5016e6efc5f43",
+      "page": "https://images.nasa.gov/details/PIA24448"
+    }
+  },
+  "slides": [
+    {
+      "key": "shield",
+      "file": "game/deploy/shield.webp",
+      "source": "PIA24448 (https://images-assets.nasa.gov/image/PIA24448/PIA24448~medium.jpg)",
+      "crop": [
+        0.03,
+        0.06,
+        0.94,
+        0.88
+      ],
+      "bytes": 55528,
+      "sha256": "6a80b064981bfe9c3aa04f0f7e2d3c57568ed4db527749d787ad24569371a708"
+    },
+    {
+      "key": "stowed",
+      "file": "game/deploy/stowed.webp",
+      "source": "PIA24548 frame 0",
+      "crop": [
+        0.02,
+        0.02,
+        0.96,
+        0.92
+      ],
+      "bytes": 60072,
+      "sha256": "bde84244355de88cd235d41d65822572d53f94e83d548b10ffbbb49d9fe110d2"
+    },
+    {
+      "key": "lock",
+      "file": "game/deploy/lock.webp",
+      "source": "PIA24548 frame 1",
+      "crop": [
+        0.02,
+        0.02,
+        0.96,
+        0.92
+      ],
+      "bytes": 60454,
+      "sha256": "794fcf79bc22336d8fa3b4911c02d15eb0bf39d4226278cc521575f29a85c010"
+    },
+    {
+      "key": "swing",
+      "file": "game/deploy/swing.webp",
+      "source": "PIA24548 frame 2",
+      "crop": [
+        0.02,
+        0.02,
+        0.96,
+        0.92
+      ],
+      "bytes": 61430,
+      "sha256": "2cbc14c14c85497b60c615c312ee21f5023be8c922c4b1332f588dc696c86a10"
+    },
+    {
+      "key": "upright",
+      "file": "game/deploy/upright.webp",
+      "source": "PIA24548 frame 3",
+      "crop": [
+        0.02,
+        0.02,
+        0.96,
+        0.92
+      ],
+      "bytes": 57770,
+      "sha256": "fafdcff8d33f47680fe96a7464a6a7e1cc336cb96d5724af4387ba64f08f7329"
+    },
+    {
+      "key": "legs",
+      "file": "game/deploy/legs.webp",
+      "source": "PIA24548 frame 4",
+      "crop": [
+        0.02,
+        0.02,
+        0.96,
+        0.92
+      ],
+      "bytes": 60126,
+      "sha256": "49a3b505cc12de16f7f77229c275d5aa5e1967fefb13fc94d3aed0aa7b0b1ad9"
+    },
+    {
+      "key": "down",
+      "file": "game/deploy/down.webp",
+      "source": "PIA24548 frame 5",
+      "crop": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "bytes": 64922,
+      "sha256": "6f6702fff439a8a289b505daf74a5b4ec1f738c507c94371683eb5d4233b74ef"
+    }
+  ]
+}

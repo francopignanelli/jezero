@@ -892,26 +892,12 @@
       "holdToStep": "Pulsa Espacio para {{action}}",
       "stopToStep": "Para aquí para {{action}}",
       "doing": {
-        "shield": "Soltando el escudo protector…",
-        "rotate": "Poniendo a Ingenuity en vertical, desplegando sus patas…",
-        "drop": "Soltando a Ingenuity…",
         "film": "Mastcam-Z filma el vuelo…",
-        "clear": "Apartándose del escudo…",
         "away": "Alejándose: el Sol tiene que llegar al panel solar de Ingenuity…",
         "aim": "Girando hacia Van Zyl Overlook…"
       },
       "arrive": {
         "film": "Van Zyl Overlook: parando para filmar el vuelo…"
-      },
-      "stage": {
-        "shield": "Se sueltan los anclajes del escudo protector: la bandeja que cubría a Ingenuity cae (sol 30)…",
-        "unlock": "Se libera el seguro de lanzamiento (sol 36): Ingenuity cuelga solo del brazo de despliegue…",
-        "swing": "El motor del brazo de despliegue baja a Ingenuity girándolo sobre una bisagra bajo el rover…",
-        "legsA": "Las dos primeras patas se abren empujadas por sus muelles (sol 37)…",
-        "upright": "El brazo deja a Ingenuity en vertical, con las dos últimas patas aún plegadas (sol 38)…",
-        "legsB": "Se abren las dos últimas patas (sol 39): Ingenuity cuelga justo sobre el suelo…",
-        "release": "Se abre la abrazadera de la punta del mástil (sol 43)…",
-        "down": "Ingenuity cae sobre sus cuatro patas."
       }
     },
     "touch": {
@@ -1167,7 +1153,6 @@
       "drive-away": "Aléjate 12 m, hacia el mirador",
       "film-flight": "Para en Van Zyl Overlook para filmar el primer vuelo",
       "deploy-heli": "Despliega a Ingenuity en Wright Brothers Field",
-      "clear-shield": "Apártate del escudo",
       "aim-overlook": "Gira hacia Van Zyl Overlook"
     },
     "toast": {
@@ -1386,6 +1371,49 @@
       "rotate": "poner a Ingenuity en vertical",
       "drop": "dejar a Ingenuity en el suelo",
       "film": "filmar el primer vuelo"
+    },
+    "deploy": {
+      "title": "Desplegando a Ingenuity",
+      "status": "Desplegando a Ingenuity bajo el rover…",
+      "skip": "Saltar",
+      "credit": "NASA/JPL-Caltech/MSSS · PIA24548, PIA24448",
+      "slides": {
+        "shield": {
+          "sol": "Sol 30 · 21 de marzo de 2021",
+          "title": "Cae el escudo protector",
+          "text": "Se suelta la bandeja que protegió a Ingenuity durante el aterrizaje."
+        },
+        "stowed": {
+          "sol": "Sol 35 · 25 de marzo de 2021",
+          "title": "Plegado bajo la panza",
+          "text": "Ingenuity viaja de lado, con las patas plegadas, sujeto por el sistema de despliegue."
+        },
+        "lock": {
+          "sol": "Sol 36 · 26 de marzo de 2021",
+          "title": "Seguro de lanzamiento liberado",
+          "text": "Se suelta el seguro que lo mantenía fijo al rover."
+        },
+        "swing": {
+          "sol": "Sol 37 · 28 de marzo de 2021",
+          "title": "Girando hacia abajo",
+          "text": "El brazo de despliegue lo gira hacia la vertical; dos de sus cuatro patas se abren."
+        },
+        "upright": {
+          "sol": "Sol 38 · 29 de marzo de 2021",
+          "title": "En vertical",
+          "text": "Cuelga de la panza por la punta del mástil; dos patas siguen plegadas."
+        },
+        "legs": {
+          "sol": "Sol 39 · 30 de marzo de 2021",
+          "title": "Cuatro patas abiertas",
+          "text": "Se abren las dos últimas patas: listo para soltarse, a pocos centímetros del suelo."
+        },
+        "down": {
+          "sol": "Sol 43 · 3 de abril de 2021",
+          "title": "En Marte",
+          "text": "Se suelta y cae sobre sus patas. El rover se aleja para que el Sol llegue a su panel solar."
+        }
+      }
     }
   },
   "modes": {

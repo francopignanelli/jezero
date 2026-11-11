@@ -52,6 +52,8 @@ npx tsx scripts/data/fetch-zip-entry.ts && scripts/geospatial/run.sh terrain-rim
 npx tsx scripts/data/fetch-panoramas.ts && scripts/geospatial/run.sh panoramas   # real Mastcam-Z 360° views (~2.4 GB originals): placed by sol, compass/horizon measured
 npx -y @gltf-transform/cli@4 optimize data/raw/models/25042_Perseverance.glb data/build/models/perseverance.glb --texture-compress webp --texture-size 1024 --compress meshopt   # 3D rover
 npx -y @gltf-transform/cli@4 optimize data/raw/models/25043_Ingenuity_v3.glb data/build/models/ingenuity.glb --flatten false --join false --instance false --palette false --simplify false --texture-compress webp --texture-size 1024 --compress false   # Ingenuity (NASA 3D Resources 25043): its node hierarchy (legs, rotors) and pivots kept
+npx tsx scripts/data/fetch-landing-video.ts && npx tsx scripts/data/fetch-first-flight-video.ts   # rover game: NASA's landing video and the first flight (Mastcam-Z), cut
+npx tsx scripts/data/fetch-mission-cards.ts && npx tsx scripts/data/fetch-deploy-slides.ts   # rover game: mission cards, and NASA's images of Ingenuity's deployment
 npx tsx scripts/data/build-sample-tube.ts && npx -y @gltf-transform/cli@4 optimize data/build/models/sample-tube.raw.glb data/build/models/sample-tube.glb --compress meshopt   # sample tube (NASA-3D-Resources STL)
 npx tsx scripts/data/build-sky.ts && scripts/geospatial/run.sh sky   # stars + Milky Way
 scripts/geospatial/run.sh loading-bg   # loading-screen background (needs the sky step); imagery-relief also writes sky/mars_globe_2k.webp
