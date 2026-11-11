@@ -1,6 +1,9 @@
 /**
  * Pictures for the game's mission cards: one real NASA image per mission (NASA Image and Video
  * Library), and for the landing a frame of NASA's landing video (fetch-landing-video.ts first).
+ * Ingenuity's card is two halves: WATSON's image of it hanging under the rover, four legs out, the
+ * day before it was set down (PIA24449), and Mastcam-Z's of it in the air on its second flight
+ * (PIA24595).
  * Each is cropped to 16:9 and saved as a 640 × 360 WebP in data/build/game/cards/, encoded in
  * headless Chrome; sources, credits and SHA-256 in data/catalog/mission-cards.json.
  *
@@ -22,7 +25,6 @@ const H = 360;
 
 /** Card key (GameApp's SLATE) → NASA image, and the part of it to keep (centre, 0–1). */
 const IMAGES: Array<{ key: string; id: string; title: string; focus?: [number, number]; zoom?: number }> = [
-  { key: 'ingenuity', id: 'PIA24542', title: 'Perseverance’s Selfie with Ingenuity', focus: [0.5, 0.55] },
   { key: 'moxie', id: 'PIA24203', title: 'MOXIE All Tucked In' },
   { key: 'firstSample', id: 'PIA24832', title: 'Confirmation of Montdenier Sample in Perseverance’s Drill' },
   { key: 'chute', id: 'PIA25219', title: 'Rover’s Backshell Seen From the Air' },
@@ -35,6 +37,14 @@ const IMAGES: Array<{ key: string; id: string; title: string; focus?: [number, n
   { key: 'aiDrive', id: 'PIA26073', title: 'Perseverance AutoNav Avoids a Boulder' },
   { key: 'record', id: 'PIA26071', title: 'Perseverance’s AutoNav Leads the Way' },
 ];
+/** Ingenuity's card: two images side by side, each cropped (fractions of the image) around it. */
+const SPLIT = {
+  key: 'ingenuity',
+  halves: [
+    { id: 'PIA24449', title: 'Ingenuity Helicopter is Ready to Drop', crop: [0.4375, 0.1866, 0.34375, 0.5434] },
+    { id: 'PIA24595', title: 'Perseverance’s Mastcam-Z Video of Second Flight', crop: [0.405, 0.16, 0.19, 0.38] },
+  ] as Array<{ id: string; title: string; crop: [number, number, number, number] }>,
+};
 /** The landing card: the left (30 % speed) half of the split frame at 18 s, the parachute open. */
 const LANDING_FRAME = { t: 18, crop: [40, 140, 560, 315] as [number, number, number, number] };
 
@@ -44,11 +54,30 @@ mkdirSync(OUT, { recursive: true });
 mkdirSync(RAW, { recursive: true });
 const sources: Array<{ key: string; buf: Buffer; type: string }> = [];
 const entries: Array<Record<string, unknown>> = [];
+async function rendition(id: string): Promise<string> {
+  // The medium rendition (about 640–1000 px), or the large one, or (videos' stills) the original.
+  const files = (await (await fetch(`https://images-assets.nasa.gov/image/${id}/collection.json`, { headers: UA })).json()) as string[];
+  const pick =
+    files.find((u) => u.endsWith('~medium.jpg')) ??
+    files.find((u) => u.endsWith('~large.jpg')) ??
+    files.find((u) => u.endsWith('~orig.jpg'));
+  if (!pick) throw new Error(`${id}: no medium, large or original rendition`);
+  return pick;
+}
+for (const half of SPLIT.halves) {
+  const url = (await rendition(half.id)).replace(/^http:/, 'https:').replace(/ /g, '%20');
+  const raw = join(RAW, `${half.id}.jpg`);
+  if (!existsSync(raw)) {
+    const res = await fetch(url, { headers: UA });
+    if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+    writeFileSync(raw, Buffer.from(await res.arrayBuffer()));
+  }
+  const buf = readFileSync(raw);
+  sources.push({ key: half.id, buf, type: 'image/jpeg' });
+  Object.assign(half, { url, sourceSha256: sha256(buf) });
+}
 for (const im of IMAGES) {
-  // The medium rendition (about 640–1000 px), or the large one where there is none.
-  const files = (await (await fetch(`https://images-assets.nasa.gov/image/${im.id}/collection.json`, { headers: UA })).json()) as string[];
-  const pick = files.find((u) => u.endsWith('~medium.jpg')) ?? files.find((u) => u.endsWith('~large.jpg'));
-  if (!pick) throw new Error(`${im.id}: no medium or large rendition`);
+  const pick = await rendition(im.id);
   const url = pick.replace(/^http:/, 'https:').replace(/ /g, '%20');
   const raw = join(RAW, `${im.id}.jpg`);
   if (!existsSync(raw)) {
@@ -130,6 +159,42 @@ for (const im of IMAGES) {
   e.bytes = buf.length;
   e.sha256 = sha256(buf);
 }
+
+// Ingenuity's two halves, with a thin dark seam between them.
+const split = await page.evaluate(
+  async ({ halves, W, H }) => {
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const g = c.getContext('2d')!;
+    for (const [i, h] of halves.entries()) {
+      const img = new Image();
+      img.src = `/${h.id}.jpg`;
+      await img.decode();
+      const [x, y, w, hh] = h.crop;
+      g.drawImage(img, x * img.width, y * img.height, w * img.width, hh * img.height, (i * W) / 2, 0, W / 2, H);
+    }
+    g.fillStyle = 'rgba(12, 10, 9, 0.9)';
+    g.fillRect(W / 2 - 1.5, 0, 3, H);
+    return c.toDataURL('image/webp', 0.84);
+  },
+  { halves: SPLIT.halves.map(({ id, crop }) => ({ id, crop })), W, H },
+);
+const sbuf = save(SPLIT.key, split);
+entries.unshift({
+  key: SPLIT.key,
+  file: `game/cards/${SPLIT.key}.webp`,
+  halves: SPLIT.halves.map((h) => ({
+    nasaId: h.id,
+    title: h.title,
+    page: `https://images.nasa.gov/details/${h.id}`,
+    crop: h.crop,
+    ...(h as unknown as { url: string; sourceSha256: string }),
+  })),
+  credit: 'NASA/JPL-Caltech/MSSS (WATSON), NASA/JPL-Caltech/ASU/MSSS (Mastcam-Z)',
+  bytes: sbuf.length,
+  sha256: sha256(sbuf),
+});
 
 const frame = await page.evaluate(
   async ({ t, crop, W, H }) => {

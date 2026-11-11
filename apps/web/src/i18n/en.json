@@ -895,12 +895,23 @@
         "shield": "Dropping the debris shield…",
         "rotate": "Turning Ingenuity upright, unfolding its legs…",
         "drop": "Releasing Ingenuity…",
-        "film": "Mastcam-Z zooms in on Ingenuity, 64 m away…",
+        "film": "Mastcam-Z films the flight…",
         "clear": "Rolling off the shield…",
-        "away": "Driving clear: the Sun must reach Ingenuity’s solar panel…"
+        "away": "Driving clear: the Sun must reach Ingenuity’s solar panel…",
+        "aim": "Turning towards Van Zyl Overlook…"
       },
       "arrive": {
         "film": "Van Zyl Overlook: stopping to film the flight…"
+      },
+      "stage": {
+        "shield": "The debris shield’s fittings let go: the tray that covered Ingenuity drops away (sol 30)…",
+        "unlock": "The launch lock is released (sol 36): Ingenuity now hangs from the delivery arm alone…",
+        "swing": "The delivery arm’s motor swings Ingenuity down about a hinge under the belly…",
+        "legsA": "The first two legs spring open on their hinges (sol 37)…",
+        "upright": "The arm brings Ingenuity upright; the last two legs are still folded (sol 38)…",
+        "legsB": "The last two legs open (sol 39): Ingenuity hangs just above the ground…",
+        "release": "The collar at the top of the mast opens (sol 43)…",
+        "down": "Ingenuity drops onto its four legs."
       }
     },
     "touch": {
@@ -1124,7 +1135,7 @@
       },
       "deploy": {
         "title": "Wright Brothers Field",
-        "story": "March–April 2021, sols 30–43. Ingenuity has ridden to Mars on its side under the rover’s belly, behind a shield that protected it during landing. Drive to the airfield the team picked, a flat patch of about 10 × 10 m now called Wright Brothers Field, and stop near its centre. One press does the rest, as the rover did over two weeks: the shield drops, the helicopter turns upright and unfolds its legs, Perseverance lets go of it and drives clear so the Sun reaches its solar panel."
+        "story": "March–April 2021, sols 30–43. Ingenuity has ridden to Mars on its side under the rover’s belly, behind a shield that protected it during landing. Drive to the airfield the team picked, a flat patch of about 10 × 10 m now called Wright Brothers Field, and stop near its centre. One press does the rest, as the rover did over two weeks: the shield drops, the helicopter turns upright and unfolds its legs, Perseverance lets go of it, turns towards Van Zyl Overlook and drives away so the Sun reaches its solar panel."
       },
       "firstFlight": {
         "title": "The first flight",
@@ -1153,10 +1164,11 @@
       "heat-shield": "Reach the heat shield",
       "rotate-heli": "Turn Ingenuity upright and unfold its legs",
       "drop-heli": "Set Ingenuity down on Mars",
-      "drive-away": "Drive at least 5 m away so its solar panel gets the Sun",
+      "drive-away": "Drive 12 m away, towards the overlook",
       "film-flight": "Stop at Van Zyl Overlook to film the first flight",
       "deploy-heli": "Deploy Ingenuity at Wright Brothers Field",
-      "clear-shield": "Roll off the shield"
+      "clear-shield": "Roll off the shield",
+      "aim-overlook": "Turn towards Van Zyl Overlook"
     },
     "toast": {
       "reached": "Reached {{name}}",

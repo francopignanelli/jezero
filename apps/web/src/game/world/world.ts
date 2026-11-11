@@ -1,20 +1,16 @@
 import {
   AdditiveBlending,
-  BoxGeometry,
   Color,
   CylinderGeometry,
   DirectionalLight,
   FogExp2,
   HalfFloatType,
-  Matrix4,
   Mesh,
   MeshBasicMaterial,
-  MeshStandardMaterial,
   NeutralToneMapping,
   PCFShadowMap,
   PerspectiveCamera,
   PointLight,
-  Quaternion,
   Scene,
   SphereGeometry,
   SRGBColorSpace,
@@ -48,15 +44,10 @@ import { RockField, type Rock } from './rocks';
 import { SunShadows, receiveSunShadow } from './sunShadow';
 import { LandingSite, type HardwareKind } from './landing';
 import { loadTube } from './tube';
+import { DeployRig, type DeployView } from './deploy';
 
-/** The deployment as drawn (see World.setDeploy). */
-export interface DeployView {
-  stage: 'stowed' | 'lying' | 'upright' | 'down';
-  anim: 'shield' | 'rotate' | 'drop' | null;
-  p: number;
-  /** Where the shield lies when it was dropped before this session (local x, north). */
-  shieldAt?: [number, number] | null;
-}
+export type { DeployView } from './deploy';
+
 import { DepotTubes, RouteLine } from './route';
 import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
 import { HORIZON_LINEAR, SkyDome, sunDirection } from './sky';
@@ -1083,6 +1074,14 @@ export class World {
   /** Ingenuity's flight, and the dust its rotors raise near the ground. */
   private updateIngenuity(dt: number): void {
     const s = this.ingenuity.update(dt, this.groundY);
+    // Under the rover the belly hides most of the sky: less sky light and reflection on it (its
+    // foil shows the shadowed ground, as in WATSON's images), full in the open.
+    if (this.rover && this.ingenuity.root.visible) {
+      const r = this.rover.root.position;
+      const p = this.ingenuity.position;
+      const d = Math.hypot(p.x - r.x, p.z - r.z);
+      this.ingenuity.setSkyLight(0.42 + 0.58 * Math.min(1, Math.max(0, (d - 1.1) / 1.2)));
+    }
     this.ingenuityLanded ||= s.landed;
     if (s.rotor < 0.5 || s.altitudeM > 4 || !this.ingenuity.root.visible) return;
     const p = this.ingenuity.position;
@@ -1102,81 +1101,49 @@ export class World {
 
   // ---------- Ingenuity's deployment (the helicopter under the rover, the debris shield) ----------
 
-  /** What the deployment shows now (null: nothing under the rover). */
+  /** What the deployment shows now (null: nothing under the rover), and how it is drawn. */
   private deploy: DeployView | null = null;
-  private shield: Mesh | null = null;
-  /** The shield on the ground once dropped (world matrix), and where it fell from. */
-  private shieldDown = false;
-  private readonly mLocal = new Matrix4();
-  private readonly mTmp = new Matrix4();
+  private deployRig: DeployRig | null = null;
 
   /**
    * The helicopter and its debris shield for the deployment mission (null: none). Stages: stowed
    * on its side under the belly behind the shield; lying there once the shield is off; upright with
-   * legs out; down on the ground. `anim` and `p` (0–1): the step under way.
+   * legs out; down on the ground. `anim`, `p` and `seconds`: the step under way.
    */
   setDeploy(d: DeployView | null): void {
     this.deploy = d;
     if (!d) {
-      if (this.shield) this.shield.visible = false;
-      this.shieldDown = false;
+      this.deployRig?.hide();
       return;
     }
-    if (!this.shield) {
-      // The debris shield: a light panel that covered the helicopter (about 0.8 × 0.9 m here).
-      const g = new BoxGeometry(0.78, 0.025, 0.9);
-      const m = new MeshStandardMaterial({ color: new Color(0.78, 0.76, 0.72), roughness: 0.7, metalness: 0.2 });
-      receiveSunShadow(m, this.sunShadows);
-      this.shield = new Mesh(g, m);
-      this.shield.castShadow = true;
-      this.shield.receiveShadow = true;
-      this.shield.matrixAutoUpdate = false;
-      this.scene.add(this.shield);
+    if (!this.deployRig) {
+      this.deployRig = new DeployRig();
+      for (const m of this.deployRig.materials) receiveSunShadow(m, this.sunShadows);
+      for (const o of this.deployRig.objects) this.scene.add(o);
     }
-    // Restored from a save: the shield already lies where it was dropped.
-    if (d.shieldAt && !this.shieldDown) {
-      const [x, n] = d.shieldAt;
-      this.tmp.set(x, this.groundY(x, -n) + 0.012, -n);
-      this.shield.matrix.compose(this.tmp, new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0.6), new Vector3(1, 1, 1));
-      this.shieldDown = true;
-    }
-    if (!d.shieldAt && d.stage === 'stowed' && !d.anim) this.shieldDown = false;
-    this.shield.visible = true;
+  }
+
+  /**
+   * The deployment's camera now (world): sets `from` and `at`, returns the field of view (°), or
+   * null when there is no deployment. `driving`: the rover is rolling off the shield.
+   */
+  deployShot(driving: boolean, from: Vector3, at: Vector3): number | null {
+    if (!this.deployRig || !this.rover) return null;
+    const s = this.deployRig.shot(this.deploy, driving);
+    const R = this.rover.root.matrixWorld;
+    from.copy(s.from).applyMatrix4(R);
+    at.copy(s.at).applyMatrix4(R);
+    // Never below the ground (on a slope the rover's frame tilts).
+    from.y = Math.max(from.y, this.groundY(from.x, from.z) + 0.15);
+    return s.fovDeg;
   }
 
   /** Each frame, after the rover's pose: the helicopter carried, set down, and the shield. */
   private updateDeploy(): void {
     const d = this.deploy;
     const rover = this.rover;
-    if (!d || !rover) return;
-    const R = rover.root.matrixWorld;
-    const ease = (t: number) => {
-      const x = Math.min(1, Math.max(0, t));
-      return x * x * (3 - 2 * x);
-    };
-    // Under the belly: hung from a point 0.58 m up; upright, its feet 0.07 m above the ground.
-    const PIVOT_Y = 0.58;
-    const HANG_M = 0.51;
-    if (d.stage !== 'down') {
-      let tilt = d.stage === 'upright' ? 0 : 1;
-      if (d.anim === 'rotate') tilt = 1 - ease(d.p);
-      let drop = 0;
-      if (d.anim === 'drop') drop = Math.min(1, Math.max(0, (d.p - 0.35) / 0.15)) ** 2 * (PIVOT_Y - HANG_M);
-      this.mLocal.makeTranslation(0, PIVOT_Y - drop, 0);
-      this.mLocal.multiply(this.mTmp.makeRotationX((tilt * Math.PI) / 2));
-      this.mLocal.multiply(this.mTmp.makeTranslation(0, -HANG_M, 0));
-      this.mTmp.multiplyMatrices(R, this.mLocal);
-      this.ingenuity.carry(this.mTmp, d.stage === 'upright' && !d.anim ? 0 : d.anim === 'rotate' ? 1 - ease(d.p) : d.anim === 'drop' ? 0 : 1);
-    }
-    // The shield: under the belly until dropped, then falling and lying on the ground.
-    const sh = this.shield;
-    if (sh && !this.shieldDown) {
-      const fall = d.anim === 'shield' ? ease(d.p * 1.6) : 0;
-      this.mLocal.makeTranslation(0, 0.24 - 0.21 * fall, 0.05 * fall);
-      this.mLocal.multiply(this.mTmp.makeRotationZ(0.12 * fall));
-      sh.matrix.multiplyMatrices(R, this.mLocal);
-      if (d.anim === 'shield' && d.p >= 0.7) this.shieldDown = true;
-    }
+    if (!d || !rover || !this.deployRig) return;
+    this.deployRig.update(d, rover.root.matrixWorld, this.ingenuity, this.groundY, this.dust);
   }
 
   /**
@@ -1198,13 +1165,14 @@ export class World {
   private readonly watchLook = new Vector3();
 
   /** Ingenuity parked at a local point (x, north), or hidden. */
-  placeIngenuity(at: [number, number] | null, headingRad?: number): void {
+  /** `stowed`: its rotor blades still locked in their stowed line (1), as after the deployment. */
+  placeIngenuity(at: [number, number] | null, headingRad?: number, stowed = 0): void {
     if (!at) {
       this.ingenuity.place(null);
       return;
     }
     this.tmp.set(at[0], this.groundY(at[0], -at[1]), -at[1]);
-    this.ingenuity.place(this.tmp, headingRad);
+    this.ingenuity.place(this.tmp, headingRad, stowed);
   }
 
   flyIngenuity(to: [number, number]): void {
@@ -1415,6 +1383,7 @@ export class World {
   dispose(): void {
     this.unloadArea();
     this.ingenuity.dispose();
+    this.deployRig?.dispose();
     this.sunShadows.dispose();
     this.route.dispose();
     this.depotTubes.dispose();

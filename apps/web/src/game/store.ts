@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CameraMode } from './world/cameraRig';
 import type { PhotoFilter } from './world/world';
 import type { VideoId } from '../ui/VideoPlayer';
+import type { DeployStage } from './world/deploy';
 import {
   newExpedition,
   type ActionKind,
@@ -55,7 +56,8 @@ export interface Hud {
     step?: StepId | null;
     run?: 'chain' | 'arrive' | null;
   } | null;
-  action: { kind: ActionKind; fraction: number } | null;
+  /** The sequence under way; `detail`: the stage of a mechanical one (the deployment's). */
+  action: { kind: ActionKind; fraction: number; detail?: DeployStage | null } | null;
   /** A drive the mission does itself (off the shield, clear of Ingenuity): how far along (0–1). */
   drive: { step: DriveStep; fraction: number } | null;
   /** Hazards: sand under the rover (0–1), slip (0–1), stuck; wheel health (%), wearing now. */

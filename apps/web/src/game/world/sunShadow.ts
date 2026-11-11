@@ -234,6 +234,10 @@ export class SunShadows {
  * the baked visibility at the fragment's world position. Chains any onBeforeCompile already set.
  */
 export function receiveSunShadow(material: Material, shadows: SunShadows): void {
+  // Once per material: a material shared by several meshes is often listed more than once, and
+  // patching it twice declares vSunWorld twice (the shader would not compile, nothing drawn).
+  if (material.userData.sunShadow) return;
+  material.userData.sunShadow = true;
   const before = material.onBeforeCompile.bind(material);
   material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms, renderer) => {
     before(shader, renderer);

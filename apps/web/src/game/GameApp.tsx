@@ -708,7 +708,9 @@ function Prompt() {
           ? t('game.prompt.shooting', { name: here.name })
           : action.kind === 'deposit'
             ? t('game.prompt.dropping')
-            : t(`game.prompt.doing.${action.kind}`);
+            : action.detail
+              ? t(`game.prompt.stage.${action.detail}`)
+              : t(`game.prompt.doing.${action.kind}`);
   } else if (drive) {
     text = t(`game.prompt.doing.${drive.step}`);
   } else if (hud.laser) {

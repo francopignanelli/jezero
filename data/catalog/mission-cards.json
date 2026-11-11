@@ -13,14 +13,39 @@
     {
       "key": "ingenuity",
       "file": "game/cards/ingenuity.webp",
-      "nasaId": "PIA24542",
-      "title": "Perseverance’s Selfie with Ingenuity",
-      "page": "https://images.nasa.gov/details/PIA24542",
-      "sourceUrl": "https://images-assets.nasa.gov/image/PIA24542/PIA24542~medium.jpg",
-      "sourceSha256": "66b2959b77823ae28e4247fb4819e7886a7d66af465e15dcd850caf71d2f099d",
-      "credit": "NASA/JPL-Caltech",
-      "bytes": 42038,
-      "sha256": "c3862ba597345a0bdc907058479a95d766f7bddf19399ceb86c5382b33a958bd"
+      "halves": [
+        {
+          "nasaId": "PIA24449",
+          "title": "Ingenuity Helicopter is Ready to Drop",
+          "page": "https://images.nasa.gov/details/PIA24449",
+          "crop": [
+            0.4375,
+            0.1866,
+            0.34375,
+            0.5434
+          ],
+          "id": "PIA24449",
+          "url": "https://images-assets.nasa.gov/image/PIA24449/PIA24449~medium.jpg",
+          "sourceSha256": "6587f2d758b808c33772c3f12dd9d15019f729a7eb4402224fefa80e2e78012f"
+        },
+        {
+          "nasaId": "PIA24595",
+          "title": "Perseverance’s Mastcam-Z Video of Second Flight",
+          "page": "https://images.nasa.gov/details/PIA24595",
+          "crop": [
+            0.405,
+            0.16,
+            0.19,
+            0.38
+          ],
+          "id": "PIA24595",
+          "url": "https://images-assets.nasa.gov/image/PIA24595/PIA24595~orig.jpg",
+          "sourceSha256": "b18d4c0ba46d92ec80f9041e1529817358ec84bdfc19d11ca8cd431458a9e43a"
+        }
+      ],
+      "credit": "NASA/JPL-Caltech/MSSS (WATSON), NASA/JPL-Caltech/ASU/MSSS (Mastcam-Z)",
+      "bytes": 23610,
+      "sha256": "8590a17881c8cf37f156b1331defe4569b81b95e830b8badcfd50225e9ee7754"
     },
     {
       "key": "moxie",
@@ -127,8 +152,8 @@
       "sourceUrl": "https://images-assets.nasa.gov/image/PIA26073/PIA26073~medium.jpg",
       "sourceSha256": "efce4f09f48bb15050c3598f038d87a334ee33c9dfc4b6c6fbb41196c212f8c7",
       "credit": "NASA/JPL-Caltech",
-      "bytes": 38142,
-      "sha256": "448c22d3e65093b51c572f34239df21833b3635aebfe129e58e5598c3ea3d516"
+      "bytes": 38144,
+      "sha256": "8abb8aba239830bf05380ef16eeb96b622efa421b6efe6359bafadb50a321821"
     },
     {
       "key": "record",

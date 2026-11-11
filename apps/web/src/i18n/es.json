@@ -895,12 +895,23 @@
         "shield": "Soltando el escudo protector…",
         "rotate": "Poniendo a Ingenuity en vertical, desplegando sus patas…",
         "drop": "Soltando a Ingenuity…",
-        "film": "Mastcam-Z enfoca a Ingenuity, a 64 m…",
+        "film": "Mastcam-Z filma el vuelo…",
         "clear": "Apartándose del escudo…",
-        "away": "Alejándose: el Sol tiene que llegar al panel solar de Ingenuity…"
+        "away": "Alejándose: el Sol tiene que llegar al panel solar de Ingenuity…",
+        "aim": "Girando hacia Van Zyl Overlook…"
       },
       "arrive": {
         "film": "Van Zyl Overlook: parando para filmar el vuelo…"
+      },
+      "stage": {
+        "shield": "Se sueltan los anclajes del escudo protector: la bandeja que cubría a Ingenuity cae (sol 30)…",
+        "unlock": "Se libera el seguro de lanzamiento (sol 36): Ingenuity cuelga solo del brazo de despliegue…",
+        "swing": "El motor del brazo de despliegue baja a Ingenuity girándolo sobre una bisagra bajo el rover…",
+        "legsA": "Las dos primeras patas se abren empujadas por sus muelles (sol 37)…",
+        "upright": "El brazo deja a Ingenuity en vertical, con las dos últimas patas aún plegadas (sol 38)…",
+        "legsB": "Se abren las dos últimas patas (sol 39): Ingenuity cuelga justo sobre el suelo…",
+        "release": "Se abre la abrazadera de la punta del mástil (sol 43)…",
+        "down": "Ingenuity cae sobre sus cuatro patas."
       }
     },
     "touch": {
@@ -1124,7 +1135,7 @@
       },
       "deploy": {
         "title": "Wright Brothers Field",
-        "story": "Marzo–abril de 2021, soles 30–43. Ingenuity ha viajado a Marte de lado, bajo la panza del rover, detrás de un escudo que lo protegió en el aterrizaje. Conduce hasta el aeródromo que eligió el equipo, un terreno llano de unos 10 × 10 m hoy llamado Wright Brothers Field, y para cerca de su centro. Una pulsación hace el resto, como lo hizo el rover en dos semanas: cae el escudo, el helicóptero se pone en vertical y despliega sus patas, Perseverance lo suelta y se aleja para que el Sol llegue a su panel solar."
+        "story": "Marzo–abril de 2021, soles 30–43. Ingenuity ha viajado a Marte de lado, bajo la panza del rover, detrás de un escudo que lo protegió en el aterrizaje. Conduce hasta el aeródromo que eligió el equipo, un terreno llano de unos 10 × 10 m hoy llamado Wright Brothers Field, y para cerca de su centro. Una pulsación hace el resto, como lo hizo el rover en dos semanas: cae el escudo, el helicóptero se pone en vertical y despliega sus patas, Perseverance lo suelta, gira hacia Van Zyl Overlook y se aleja para que el Sol llegue a su panel solar."
       },
       "firstFlight": {
         "title": "El primer vuelo",
@@ -1153,10 +1164,11 @@
       "heat-shield": "Llega al escudo térmico",
       "rotate-heli": "Pon a Ingenuity en vertical y despliega sus patas",
       "drop-heli": "Deja a Ingenuity en Marte",
-      "drive-away": "Aléjate al menos 5 m para que a su panel solar le dé el Sol",
+      "drive-away": "Aléjate 12 m, hacia el mirador",
       "film-flight": "Para en Van Zyl Overlook para filmar el primer vuelo",
       "deploy-heli": "Despliega a Ingenuity en Wright Brothers Field",
-      "clear-shield": "Apártate del escudo"
+      "clear-shield": "Apártate del escudo",
+      "aim-overlook": "Gira hacia Van Zyl Overlook"
     },
     "toast": {
       "reached": "Llegaste a {{name}}",

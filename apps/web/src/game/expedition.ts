@@ -1,5 +1,6 @@
 import type { SampleSite } from '../data/surfaceData';
-import { groundDistanceM, type RoverState } from './roverSim';
+import { wrapAngle } from '../lib/math';
+import { bearingRad, groundDistanceM, type RoverState } from './roverSim';
 import type { RockType } from './science';
 
 /**
@@ -43,28 +44,35 @@ export type TargetKind = 'sample' | 'depot' | 'panorama' | 'reach' | 'station';
 
 /**
  * Steps of a mission, done in order: at a station, a sequence that runs for a time (STEP_S); or a
- * short drive the mission does itself (DRIVE_STEP_M).
+ * move the mission makes itself: a short drive (DRIVE_STEP_M), or turning in place to face a
+ * station ('aim').
  */
-export type StepId = 'shield' | 'clear' | 'rotate' | 'drop' | 'away' | 'film';
-export type DriveStep = 'clear' | 'away';
+export type StepId = 'shield' | 'clear' | 'rotate' | 'drop' | 'aim' | 'away' | 'film';
+export type DriveStep = 'clear' | 'aim' | 'away';
 export type TimedStep = Exclude<StepId, DriveStep>;
-export const isDriveStep = (s: StepId): s is DriveStep => s === 'clear' || s === 'away';
-/** Seconds each step's sequence runs (the film: Mastcam-Z turning to the helicopter). */
+export const isDriveStep = (s: StepId): s is DriveStep => s === 'clear' || s === 'aim' || s === 'away';
+/** Seconds each step's sequence runs (the film: a moment stopped before NASA's video). */
 export const STEP_S: Record<TimedStep, number> = {
-  shield: 3,
-  rotate: 8,
+  // The tray lets go once the camera is on it (world/deploy.ts trayPose).
+  shield: 3.5,
+  // world/deploy.ts ROTATE_STAGES: lock, swing, two legs, upright, two legs.
+  rotate: 10,
   drop: 3,
-  film: 3,
+  film: 1,
 };
 /**
- * The drives (m), from where the shield fell and from where the helicopter was set down: off the
- * shield (about 0.9 m long) so the helicopter does not land on it; and clear of the helicopter, so
- * its solar panel gets the Sun (the rover drove 4.6 m on sol 43).
+ * The drives (m), from where the shield fell and from where the helicopter was set down: clear of
+ * the shield (a tray 1.3 m long under the middle of the rover), far enough that the rover can turn
+ * in place without its wheels touching it; and away from the helicopter,
+ * towards the overlook, so its solar panel gets the Sun (the rover drove 4.6 m on sol 43; here
+ * further, to leave the helicopter well behind).
  */
-export const DRIVE_STEP_M: Record<DriveStep, number> = { clear: 1.5, away: 5 };
+export const DRIVE_STEP_M: Record<'clear' | 'away', number> = { clear: 3, away: 12 };
 export const AWAY_M = DRIVE_STEP_M.away;
 /** How fast the mission drives the rover (a share of its cruise speed). */
-export const DRIVE_STEP_SPEED = 0.15;
+export const DRIVE_STEP_SPEED: Record<DriveStep, number> = { clear: 0.15, aim: 0, away: 0.25 };
+/** Turning in place ends once the rover points at its station this closely (rad). */
+export const AIM_TOLERANCE_RAD = (2 * Math.PI) / 180;
 
 export interface Target {
   id: string;
@@ -122,6 +130,8 @@ export interface StepObjective {
   step: StepId;
   at?: string;
   run?: 'chain' | 'arrive';
+  /** For 'aim': the station to face. */
+  toward?: string;
   optional?: boolean;
 }
 
@@ -164,6 +174,8 @@ export interface MissionDef {
   stations?: Array<Spot & { icon: 'sample' | 'depot' | 'panorama' | 'reach' }>;
   /** Ingenuity rides under the rover at the start (the deployment mission). */
   stowedHelicopter?: boolean;
+  /** Back to the missions menu when it is complete (no summary page, no driving on). */
+  endToMenu?: boolean;
 }
 
 // ---------- the delta front ----------
@@ -333,6 +345,8 @@ export const INGENUITY_MISSION: MissionDef = {
         { id: 'clear-shield', kind: 'step', step: 'clear', run: 'chain' },
         { id: 'rotate-heli', kind: 'step', step: 'rotate', at: 'field', run: 'chain' },
         { id: 'drop-heli', kind: 'step', step: 'drop', at: 'field', run: 'chain' },
+        // Turning in place over it (its wheels clear it all round), then away towards the overlook.
+        { id: 'aim-overlook', kind: 'step', step: 'aim', run: 'chain', toward: 'overlook' },
         { id: 'drive-away', kind: 'step', step: 'away', run: 'chain' },
       ],
     },
@@ -350,6 +364,7 @@ export const INGENUITY_MISSION: MissionDef = {
   earlierSamples: [],
   routeSols: [29, 58],
   film: 'firstFlight',
+  endToMenu: true,
   stations: [
     // The airfield is about 10 × 10 m: park near its centre.
     { id: 'field', name: 'Wright Brothers Field', ...WRIGHT_FIELD, radiusM: 4, icon: 'depot' },
@@ -469,16 +484,34 @@ export function nextStep(s: ExpeditionState): StepObjective | null {
 }
 
 /**
- * The drive under way, when the next step is one: where it is measured from and how far it goes.
- * The mission drives the rover (straight, slowly) until it is done.
+ * The move under way, when the next step is one: a drive (from where, how far; the mission drives
+ * the rover straight and slowly until it is done) or a turn in place (the place to face).
  */
-export function driveStep(
-  s: ExpeditionState,
-): { step: DriveStep; from: { lat: number; lon: number }; m: number } | null {
+export function driveStep(s: ExpeditionState): {
+  step: DriveStep;
+  from: { lat: number; lon: number };
+  m: number;
+  toward: { lat: number; lon: number } | null;
+} | null {
   const o = nextStep(s);
   if (!o || !isDriveStep(o.step)) return null;
   const from = (o.step === 'clear' ? s.shieldAt : s.dropAt) ?? WRIGHT_FIELD;
-  return { step: o.step, from, m: DRIVE_STEP_M[o.step] };
+  if (o.step === 'aim') {
+    const st = missionOf(s).stations?.find((x) => x.id === o.toward);
+    return { step: 'aim', from, m: 0, toward: st ? { lat: st.lat, lon: st.lon } : VAN_ZYL };
+  }
+  return { step: o.step, from, m: DRIVE_STEP_M[o.step], toward: null };
+}
+
+/** How far the rover still has to turn to face a place (rad, signed: + clockwise). */
+export const aimError = (rover: RoverState, toward: { lat: number; lon: number }): number =>
+  wrapAngle(bearingRad(rover, toward) - rover.headingRad);
+
+/** A move of the mission is done: far enough, or facing its place (and still). */
+function driveDone(d: NonNullable<ReturnType<typeof driveStep>>, rover: RoverState): boolean {
+  if (d.toward)
+    return Math.abs(aimError(rover, d.toward)) <= AIM_TOLERANCE_RAD && Math.abs(rover.speed) <= STOPPED_MPS;
+  return groundDistanceM(rover, d.from) >= d.m;
 }
 
 /** The mission has the wheel: a chain is under way (the player only watches). */
@@ -701,7 +734,7 @@ export function stepExpedition(
     }
   // A drive of a chain (off the shield, clear of the helicopter): done at its distance.
   const drive = driveStep(state);
-  if (drive && groundDistanceM(rover, drive.from) >= drive.m) {
+  if (drive && driveDone(drive, rover)) {
     state = { ...state, steps: [...(state.steps ?? []), drive.step] };
     events.push({ kind: 'step', step: drive.step, target: null });
   }

@@ -804,8 +804,17 @@ describe('the Ingenuity deployment mission', () => {
     expect(state.steps).toEqual(['shield', 'clear', 'rotate', 'drop']);
     expect(groundDistanceM(at(state.dropAt!), state.shieldAt!)).toBeGreaterThan(1.5);
     expect(state.chapter).toBe(0);
-    // 5 m on from where it was set down: clear, the chapter is done.
-    const away = stepExpedition(state, null, at(north(DRIVE_STEP_M.clear + 5.2)), all, false, 0.1);
+    // Not facing the overlook: the turn in place is still under way.
+    expect(stepExpedition(state, null, at(off), all, false, 0.1).state.steps).not.toContain('aim');
+    // Facing it (within 2°): done.
+    const facing = { ...at(off), headingRad: bearingRad(off, VAN_ZYL) + 0.01 };
+    const aimed = stepExpedition(state, null, facing, all, false, 0.1);
+    expect(aimed.state.steps).toContain('aim');
+    // 12 m on towards the overlook from where it was set down: clear, the chapter is done.
+    const k = (DRIVE_STEP_M.away + 0.3) / groundDistanceM(at(off), VAN_ZYL);
+    const on = { lat: off.lat + (VAN_ZYL.lat - off.lat) * k, lon: off.lon + (VAN_ZYL.lon - off.lon) * k };
+    expect(stepExpedition(aimed.state, null, at(north(DRIVE_STEP_M.clear + 5)), all, false, 0.1).state.steps).not.toContain('away');
+    const away = stepExpedition(aimed.state, null, { ...at(on), headingRad: facing.headingRad }, all, false, 0.1);
     expect(away.state.steps).toContain('away');
     expect(away.state.chapter).toBe(1);
     expect(objectiveDone(away.state, deploy.objectives[0]!, deploy)).toBe(true);

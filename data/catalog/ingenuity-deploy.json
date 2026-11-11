@@ -56,7 +56,7 @@
   ],
   "model": {
     "file": "data/raw/models/25043_Ingenuity_v3.glb (NASA 3D Resources, NASA/JPL-Caltech; science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model)",
-    "build": "npx -y @gltf-transform/cli@4 optimize data/raw/models/25043_Ingenuity_v3.glb data/build/models/ingenuity.glb --texture-compress webp --texture-size 512 --compress meshopt (1.81 MB → 225 KB)"
+    "build": "npx -y @gltf-transform/cli@4 optimize data/raw/models/25043_Ingenuity_v3.glb data/build/models/ingenuity.glb --flatten false --join false --instance false --palette false --simplify false --texture-compress webp --texture-size 1024 --compress false (1.81 MB → 665 KB). Not flattened, joined, paletted or quantised: the legs (leg_01–04, origins at their hips) and rotors (rotors_01 upper, rotors_02 lower, origins on the mast) stay separate nodes with their real pivots, and the 10 PBR materials (foil with its normal map, carbon fibre, gunmetal, aluminium, solar cells, gold) stay distinct."
   },
   "sources": [
     "https://www.nasa.gov/news-release/nasas-ingenuity-mars-helicopter-succeeds-in-historic-first-flight/",
@@ -67,6 +67,54 @@
   "game": {
     "deployment": "One press at Wright Brothers Field runs it all: shield off, 1.5 m roll off the shield, upright, released, 5 m drive clear (the real drive away was 4.6 m).",
     "compressed": "The shield really came off on sol 30 at the mission start (shieldDrop, about 90 m from the field); in the game it falls at the field.",
-    "firstFlight": "NASA video, Mastcam-Z from Van Zyl Overlook (data/catalog/first-flight-video.json); the game no longer flies the first flight in 3D."
+    "firstFlight": "NASA video, Mastcam-Z from Van Zyl Overlook (data/catalog/first-flight-video.json); the game no longer flies the first flight in 3D.",
+    "mechanism": "In the rover’s frame (model belly 0.67 m): the delivery arm turns about a fore-and-aft hinge pin 0.615 m up, 8 cm from the middle; the collar holds the top of the mast; stowed, the helicopter lies 0.535 m up (on its side, body to the rover’s right, blades locked along the rover); upright, its feet hang 1.5 cm above the ground. The stages run one after another: lock released (0.8 s), swing to 12° from vertical, upper-side legs open, swing to vertical, last legs open, release and a 1.5 cm drop under Mars gravity.",
+    "compromises": [
+      "The first two legs open at 12° from vertical (about 45° in PIA24442): earlier, their swing would cut into the model’s flat belly (the real rover has room there).",
+      "The final drop is 1.5 cm (NASA: a few centimetres to about 10 cm): with the model’s belly at 0.67 m and its legs folded up along the mast, the helicopter cannot hang higher without its folded legs meeting the belly.",
+      "Folded legs stand at 87° rather than straight up, for the same reason.",
+      "The shield tray’s outline (a bar for the body, a bar across for the rotors) is fitted to the stowed helicopter; PIA24448 shows its depth and walls but not its outline from above.",
+      "The shield really came off on sol 30 at the mission’s start, about 90 m from the field; here it falls at the field, and the rover drives 3 m off it before the helicopter swings down."
+    ]
+  },
+  "watson": {
+    "description": "WATSON (SHERLOC, on the robotic arm) images of each stage, NASA/JPL-Caltech/MSSS; the animation follows them.",
+    "images": [
+      {
+        "id": "PIA24448",
+        "sol": 30,
+        "shows": "The debris shield on the ground: a deep grey tray, open side up, under the middle of the rover"
+      },
+      {
+        "id": "PIA24424",
+        "sol": 35,
+        "shows": "Ingenuity stowed on its side across the belly, legs folded towards the mast"
+      },
+      {
+        "id": "PIA24441",
+        "sol": 36,
+        "shows": "Launch lock released"
+      },
+      {
+        "id": "PIA24442",
+        "sol": 37,
+        "shows": "Swinging down in the rover’s cross-section, the two upper-side legs out"
+      },
+      {
+        "id": "PIA24443",
+        "sol": 38,
+        "shows": "Upright, hanging by the top of its mast; two legs out, two still folded up along the mast"
+      },
+      {
+        "id": "PIA24449",
+        "sol": 39,
+        "shows": "All four legs out, feet a few centimetres above the ground"
+      },
+      {
+        "id": "PIA24548",
+        "sol": "36–43",
+        "shows": "Animation of the whole deployment"
+      }
+    ]
   }
 }
