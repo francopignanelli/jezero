@@ -102,7 +102,7 @@ const QUALITY: Record<
  * shadows strongly (they stay at about 80 % of the lit ground there), and the tone mapping keeps
  * the photos' hues (Khronos PBR Neutral; ACES reddened and darkened them).
  */
-const LIGHT = { sun: 2.9, environment: 1.85, exposure: 1.0, sky: 1.0, haze: 1.1e-4 };
+const LIGHT = { sun: 2.9, environment: 1.85, exposure: 1.0, sky: 1.0, haze: 2.0e-4 };
 
 /**
  * Sun per area (compass azimuth, elevation): late morning in Jezero's southern summer (the sols
@@ -817,7 +817,7 @@ export class World {
     this.storm = Math.min(1, Math.max(0, s));
     const k = this.storm;
     const fog = this.scene.fog as FogExp2;
-    fog.density = this.clearFog * (1 + k * 30);
+    fog.density = this.clearFog * (1 + k * 20);
     fog.color.copy(HORIZON_LINEAR).multiplyScalar(LIGHT.sky * (1 - 0.42 * k));
     this.sun.intensity = LIGHT.sun * (1 - 0.62 * k);
     this.scene.environmentIntensity = this.envBase * (1 - 0.35 * k);

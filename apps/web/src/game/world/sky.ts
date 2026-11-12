@@ -26,6 +26,12 @@ const HORIZON = new Color().setRGB(0.87, 0.68, 0.49, SRGBColorSpace);
 const SKY_15 = new Color().setRGB(0.69, 0.55, 0.4, SRGBColorSpace);
 const ZENITH = new Color().setRGB(0.45, 0.36, 0.27, SRGBColorSpace);
 export const HORIZON_LINEAR = HORIZON.clone();
+/** The sky 15° up relative to the horizon (linear, per channel): the haze darkens with it. */
+export const SKY_15_OVER_HORIZON: [number, number, number] = [
+  SKY_15.r / HORIZON.r,
+  SKY_15.g / HORIZON.g,
+  SKY_15.b / HORIZON.b,
+];
 
 /** World direction (x east, y up, z south) of the Sun at a compass azimuth and elevation (°). */
 export function sunDirection(azimuthDeg: number, elevationDeg: number): Vector3 {
@@ -88,7 +94,7 @@ export class SkyDome {
           float disc = smoothstep(0.999978, 0.999988, c);
           sky += vec3(1.0, 0.97, 0.92) * disc * 40.0 * clear * clear;
           // A brighter band of dust just above the horizon.
-          sky += uHorizon * 0.1 * exp(-h * h * 900.0) * clear;
+          sky += uHorizon * 0.12 * exp(-h * h * 400.0) * clear;
           // Below the horizon (seen only past distant terrain): the haze colour.
           sky = h < 0.0 ? uHorizon * (1.0 + 0.3 * h) : sky;
           // Dust storm: an even, dim, ruddy sky (the Sun a pale glow).
