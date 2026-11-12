@@ -777,6 +777,19 @@ dialog.provenance dd {
     right: 10px;
   }
 }
+/* Phones: the top bar keeps to what fits (the planned EVA's sol; the time is in Conditions). */
+@media (max-width: 480px) {
+  .time-chip .hide-xs {
+    display: none;
+  }
+  .lang-switch button {
+    padding-inline: 6px;
+  }
+  .topbar {
+    gap: 6px;
+    padding: 0 8px;
+  }
+}
 
 /* ---------- Map annotations (decluttered DOM labels) ---------- */
 .annotations {
@@ -3477,5 +3490,14 @@ a.mode-switch-item:focus-visible {
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+}
+
+/* Phones and narrow windows: the compass and 2D/3D under the Layers button, clear of the bottom
+   sheet. (Here at the end: the general .view-control rule comes later than the other media blocks.) */
+@media (max-width: 820px) {
+  .view-control {
+    top: 64px;
+    transform: none;
   }
 }

@@ -178,6 +178,12 @@
   max-width: 260px;
   padding: 12px 14px;
 }
+.game-found {
+  margin: 6px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--rover);
+  font-weight: 600;
+}
 .game-objectives ol {
   margin: 8px 0 0;
   padding: 0;
@@ -1542,6 +1548,105 @@
 .game-mc-badge.is-progress {
   background: var(--rover);
   color: #1b1405;
+}
+/* A mission done: a green tick on its picture, its best time beside the date. */
+.game-mc-badge.is-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgb(46 160 98 / 0.92);
+  color: #04130a;
+}
+.game-mc-badge svg,
+.game-done-badge svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.game-mc.is-done {
+  border-color: rgb(46 160 98 / 0.45);
+}
+.game-mc-best {
+  color: rgb(120 210 150);
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* Free exploration: its two maps as a pair of choices above its one button. */
+.game-mc.is-free {
+  border-color: rgb(242 184 75 / 0.4);
+}
+.game-mc.is-free p {
+  -webkit-line-clamp: 2;
+  min-height: calc(2 * 1.45em);
+}
+.game-mc-areas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.game-mc-area {
+  padding: 5px 8px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.game-mc-area.is-on {
+  border-color: var(--rover);
+  background: rgb(242 184 75 / 0.14);
+  color: var(--text);
+}
+/* The end of a mission: its picture with a tick, then what was done. */
+.game-done {
+  padding-top: 0;
+  overflow: hidden;
+}
+.game-done-img {
+  position: relative;
+  margin: 0 -24px 14px;
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  background: #0b0d11;
+}
+.game-done-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.game-done-badge {
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgb(46 160 98 / 0.95);
+  color: #04130a;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  animation: game-done-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+@keyframes game-done-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-done-badge {
+    animation: none;
+  }
 }
 .game-mc-body {
   display: flex;

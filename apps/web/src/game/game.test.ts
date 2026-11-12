@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { exploreFromHash, exploreLink } from '../data/gameAreas';
 import type { SampleSite } from '../data/surfaceData';
 import { M_PER_DEG } from '../lib/math';
 import {
@@ -27,6 +28,8 @@ import {
   LANDING,
   LANDING_HARDWARE,
   DEPLOY_SLIDES,
+  FREE_DELTA,
+  FREE_LANDING,
   DEPLOY_SLIDE_S,
   DRIVE_STEP_M,
   STEP_S,
@@ -838,5 +841,31 @@ describe('the Ingenuity deployment mission', () => {
     const d = groundDistanceM(at(WRIGHT_FIELD), VAN_ZYL);
     expect(d).toBeGreaterThan(62);
     expect(d).toBeLessThan(66);
+  });
+});
+
+describe('free exploration', () => {
+  it('never ends: every place of the map is an optional discovery', () => {
+    for (const m of [FREE_LANDING, FREE_DELTA]) {
+      const c = m.chapters[0]!;
+      expect(m.chapters).toHaveLength(1);
+      expect(c.objectives.length).toBeGreaterThan(0);
+      expect(c.objectives.every((o) => o.optional)).toBe(true);
+      expect(new Set(c.objectives.map((o) => o.id)).size).toBe(c.objectives.length);
+      const s = newExpedition(m.id);
+      expect(expeditionDone(s)).toBe(false);
+      expect(chapterDone(s)).toBe(false);
+    }
+    // The delta's sample sites can be cored there; the landing site keeps its hardware, no video.
+    expect(FREE_DELTA.chapters[0]!.objectives.some((o) => o.kind === 'sample')).toBe(true);
+    expect(FREE_LANDING.chapters[0]!.objectives.every((o) => o.kind === 'reach')).toBe(true);
+    expect(FREE_LANDING.intro).toBeUndefined();
+  });
+
+  it('reads a place opened from the planner (play.html#explore=lat,lon)', () => {
+    expect(exploreFromHash('#explore=18.453800,77.414100')).toEqual({ lat: 18.4538, lon: 77.4141 });
+    expect(exploreLink(18.4538, 77.4141)).toBe('./play.html#explore=18.453800,77.414100');
+    expect(exploreFromHash('#explore=abc')).toBeNull();
+    expect(exploreFromHash('#m=xyz')).toBeNull();
   });
 });

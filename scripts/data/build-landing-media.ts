@@ -1,96 +1,78 @@
 /**
  * Media for the home page (apps/web/index.html), into data/build/landing/:
- * - hero.webm: a muted loop for the background, cut from NASA's landing video (fetch-landing-video.ts):
- *   the descent-stage camera looking down at Jezero as the ground comes up, cropped to 16:9 and
- *   re-encoded in headless Chrome (MediaRecorder, VP9); hero.webp, its first frame (the poster).
+ * - mars-3840.webp and mars-1920.webp: the background, a still of Jezero's floor with the delta
+ *   beyond ("Perseverance's Office on Mars", PIA24765, Mastcam-Z, NASA/JPL-Caltech/ASU/MSSS,
+ *   14072 × 7021), cropped inside the mosaic's edges to 16:9 and encoded in headless Chrome.
  * - planner.webp, game.webp: screenshots of the two modes, from the running dev server.
  *
  * Run (with `npm run dev` up): npx tsx scripts/data/build-landing-media.ts [http://localhost:5180]
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const OUT = join(ROOT, 'data', 'build', 'landing');
-const VIDEO = join(ROOT, 'data', 'build', 'game', 'media', 'landing.mp4');
+const RAW = join(ROOT, 'data', 'raw', 'mission-cards');
 const BASE = process.argv[2] ?? 'http://localhost:5180';
+const UA = { 'User-Agent': 'Copernico-pipeline/0.1 (NASA Space Apps research prototype)' };
 
-/** The clip: seconds of the NASA video, and the descent camera's picture in its 1280 × 720 frame. */
-const CLIP = { from: 96, seconds: 24, crop: [290, 92, 732, 412] as const, w: 1280, h: 720 };
+/** The background: NASA's original, and the part kept (fractions x, y, width; 16:9). */
+const BACKGROUND = {
+  id: 'PIA24765',
+  url: 'https://images-assets.nasa.gov/image/PIA24765/PIA24765~orig.jpg',
+  crop: [0.11, 0.06, 0.77] as const,
+  sizes: [3840, 1920],
+};
 
 mkdirSync(OUT, { recursive: true });
+mkdirSync(RAW, { recursive: true });
 // tsx keeps function names with a helper (__name) that the page does not have.
 const NAME_SHIM = 'window.__name = (f) => f;';
 const browser = await chromium.launch({
   channel: 'chrome',
-  args: ['--autoplay-policy=no-user-gesture-required', '--use-angle=d3d11', '--ignore-gpu-blocklist'],
+  args: ['--use-angle=d3d11', '--ignore-gpu-blocklist'],
 });
 
-// ---- the hero loop ----
+// ---- the background ----
 {
+  const raw = join(RAW, `${BACKGROUND.id}-orig.jpg`);
+  if (!existsSync(raw)) {
+    const res = await fetch(BACKGROUND.url, { headers: UA });
+    if (!res.ok) throw new Error(`${BACKGROUND.url}: HTTP ${res.status}`);
+    writeFileSync(raw, Buffer.from(await res.arrayBuffer()));
+  }
+  const jpg = readFileSync(raw);
   const page = await browser.newPage();
   await page.addInitScript(NAME_SHIM);
   const ORIGIN = 'http://media.local';
-  let video: Buffer | null = null;
-  await page.route(`${ORIGIN}/**`, async (route) => {
-    const path = new URL(route.request().url()).pathname;
-    if (path === '/') return route.fulfill({ contentType: 'text/html', body: '<body></body>' });
-    const all = video ?? (video = readFileSync(VIDEO));
-    const m = /bytes=(\d+)-(\d*)/.exec(route.request().headers().range ?? '');
-    if (!m) return route.fulfill({ contentType: 'video/mp4', body: all, headers: { 'Accept-Ranges': 'bytes' } });
-    const start = Number(m[1]);
-    const end = m[2] ? Math.min(Number(m[2]), all.length - 1) : all.length - 1;
-    return route.fulfill({
-      status: 206,
-      contentType: 'video/mp4',
-      body: all.subarray(start, end + 1),
-      headers: { 'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${start}-${end}/${all.length}` },
-    });
-  });
+  await page.route(`${ORIGIN}/**`, (route) =>
+    new URL(route.request().url()).pathname === '/'
+      ? route.fulfill({ contentType: 'text/html', body: '<body></body>' })
+      : route.fulfill({ contentType: 'image/jpeg', body: jpg }),
+  );
   await page.goto(`${ORIGIN}/`);
-  const { webm, poster } = await page.evaluate(async ({ from, seconds, crop, w, h }) => {
-    const v = document.createElement('video');
-    v.src = '/landing.mp4';
-    v.muted = true;
-    await new Promise((r) => (v.onloadeddata = r));
-    v.currentTime = from;
-    await new Promise((r) => (v.onseeked = r));
-    const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    const g = c.getContext('2d')!;
-    const draw = () => g.drawImage(v, crop[0], crop[1], crop[2], crop[3], 0, 0, w, h);
-    draw();
-    const poster = c.toDataURL('image/webp', 0.8);
-    const rec = new MediaRecorder(c.captureStream(30), {
-      mimeType: 'video/webm;codecs=vp9',
-      videoBitsPerSecond: 1_800_000,
-    });
-    const parts: Blob[] = [];
-    rec.ondataavailable = (e) => parts.push(e.data);
-    const stopped = new Promise((r) => (rec.onstop = r));
-    rec.start(1000);
-    await v.play();
-    await new Promise<void>((done) => {
-      const tick = () => {
-        draw();
-        if (v.currentTime >= from + seconds || v.ended) return done();
-        requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    });
-    v.pause();
-    rec.stop();
-    await stopped;
-    const buf = await new Blob(parts, { type: 'video/webm' }).arrayBuffer();
-    let bin = '';
-    const bytes = new Uint8Array(buf);
-    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    return { webm: btoa(bin), poster };
-  }, CLIP);
-  writeFileSync(join(OUT, 'hero.webm'), Buffer.from(webm, 'base64'));
-  writeFileSync(join(OUT, 'hero.webp'), Buffer.from(poster.split(',')[1]!, 'base64'));
+  const out = await page.evaluate(
+    async ({ crop, sizes }) => {
+      const img = new Image();
+      img.src = '/bg.jpg';
+      await img.decode();
+      const [x, y, w] = crop;
+      const sw = w * img.naturalWidth;
+      const sh = (sw * 9) / 16;
+      return sizes.map((W) => {
+        const c = document.createElement('canvas');
+        c.width = W;
+        c.height = Math.round((W * 9) / 16);
+        const g = c.getContext('2d')!;
+        g.imageSmoothingQuality = 'high';
+        g.drawImage(img, x * img.naturalWidth, y * img.naturalHeight, sw, sh, 0, 0, c.width, c.height);
+        return c.toDataURL('image/webp', W > 2000 ? 0.78 : 0.8);
+      });
+    },
+    { crop: BACKGROUND.crop, sizes: BACKGROUND.sizes },
+  );
+  BACKGROUND.sizes.forEach((W, i) => writeFileSync(join(OUT, `mars-${W}.webp`), Buffer.from(out[i]!.split(',')[1]!, 'base64')));
   await page.close();
 }
 

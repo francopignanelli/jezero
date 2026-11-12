@@ -2,7 +2,6 @@ import { useApp, type Tab } from '../../app/store';
 import { POIS } from '../../data/catalog';
 import { loadGuidedMarswalk } from '../exploration/guided';
 import { computeRoutes } from '../routes/compute';
-import { flyToRover } from '../science/rover';
 
 /**
  * Guided tour, in chapters that match the tabs. Each step points at one part of the screen (a
@@ -97,7 +96,13 @@ export const TOUR: TourStep[] = [
       calm();
       show('surface');
     },
-    action: () => flyToRover(),
+    // Perseverance's route, its samples and Ingenuity's flights on the map.
+    action: () => {
+      const s = useApp.getState();
+      s.setLayer('rover', true);
+      s.setLayer('samples', true);
+      s.setLayer('ingenuity', true);
+    },
     demoMs: 7000,
   },
   {

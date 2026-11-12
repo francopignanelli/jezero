@@ -64,7 +64,7 @@ const GROUND_LAYERS = [
 useApp.subscribe((s, prev) => {
   if (s.mode === 'jezero') markTried('jezero');
   if (s.panoramaOpen) markTried('panorama');
-  if (s.flyRequest?.model === 'roverModel') markTried('rover');
+  if (s.layers.rover && !prev.layers.rover) markTried('rover');
   if (s.inspected) markTried('inspect');
   if (GROUND_LAYERS.some((id) => s.layers[id] && !prev.layers[id])) markTried('layer');
   if (s.result) markTried('route');

@@ -25,17 +25,14 @@ const H = 360;
 
 /** Card key (GameApp's SLATE) → NASA image, and the part of it to keep (centre, 0–1). */
 const IMAGES: Array<{ key: string; id: string; title: string; focus?: [number, number]; zoom?: number }> = [
-  { key: 'moxie', id: 'PIA24203', title: 'MOXIE All Tucked In' },
   { key: 'firstSample', id: 'PIA24832', title: 'Confirmation of Montdenier Sample in Perseverance’s Drill' },
   { key: 'chute', id: 'PIA25219', title: 'Rover’s Backshell Seen From the Air' },
   // A mosaic: zoomed in past its black, unimaged corners.
   { key: 'delta', id: 'PIA24928', title: 'Sample Collection and Rock Analysis at Wildcat Ridge', zoom: 1.65, focus: [0.46, 0.46] },
-  { key: 'lastFlight', id: 'PIA26243', title: 'Ingenuity Spots the Shadow of Its Damaged Rotor Blade' },
   { key: 'leopard', id: 'PIA26344', title: 'Perseverance’s Selfie With ‘Cheyava Falls’', focus: [0.5, 0.5] },
   { key: 'rim', id: 'PIA26573', title: 'Perseverance Rover Says Goodbye to ‘Witch Hazel Hill’' },
-  { key: 'sparks', id: 'PIA25290', title: 'Perseverance Views Dust Devils Swirling Across Jezero Crater' },
-  { key: 'aiDrive', id: 'PIA26073', title: 'Perseverance AutoNav Avoids a Boulder' },
-  { key: 'record', id: 'PIA26071', title: 'Perseverance’s AutoNav Leads the Way' },
+  // Free exploration: the crater floor and the delta beyond (also the home page's background).
+  { key: 'free', id: 'PIA24765', title: 'Perseverance’s Office on Mars', focus: [0.6, 0.45], zoom: 1.3 },
 ];
 /** Ingenuity's card: two images side by side, each cropped (fractions of the image) around it. */
 const SPLIT = {

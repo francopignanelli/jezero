@@ -44,7 +44,7 @@
     "why": "Un cráter de 45 km que tuvo un lago hace unos 3.500 millones de años; el delta que dejó el río todavía se conserva en su lado oeste. El rover Perseverance de la NASA lo explora desde febrero de 2021 y recoge muestras de roca para un posible regreso a la Tierra.",
     "nextTitle": "Qué podés hacer",
     "next": {
-      "surface": "El rover, sitios científicos y mapas del suelo",
+      "surface": "Por dónde pasó el rover, sitios científicos y mapas del suelo",
       "marswalk": "Planificar una caminata paso a paso y simularla",
       "conditions": "Hora, Sol, estación y clima medido",
       "panoramas": "Parate donde estuvo el rover: panorámicas reales y un recorrido entre ellas"
@@ -241,9 +241,7 @@
   },
   "science": {
     "pois": "Puntos de interés",
-    "rover": "Perseverance",
-    "roverLatest": "Última posición publicada: sol {{sol}} (fuente actualizada el {{date}})",
-    "roverOutside": "Fuera de la cobertura para rutas",
+    "rover": "Por dónde pasó Perseverance",
     "inCoverage": "Dentro de la cobertura",
     "outCoverage": "Fuera de la cobertura",
     "addStop": "Agregar como punto de ruta",
@@ -253,7 +251,9 @@
     "source": "Fuente",
     "sampleMeta": "Muestra {{n}} · sol {{sol}} · {{date}} · {{rock}}",
     "corrected": "Posición corregida a partir del este/norte publicado",
-    "samplesCount": "Muestras de Perseverance ({{n}})"
+    "samplesCount": "Muestras de Perseverance ({{n}})",
+    "roverWhere": "Su ruta desde el aterrizaje hasta el sol {{sol}} (datos de la NASA del {{date}}), las muestras que tomó y los vuelos de Ingenuity. El rover en sí se conduce en el juego.",
+    "driveHere": "Conducir hasta aquí (juego)"
   },
   "environment": {
     "title": "Condiciones y hora",
@@ -466,7 +466,7 @@
       },
       "panels": {
         "title": "Cinco pestañas, una por actividad",
-        "body": "Marte (el planeta), Superficie (Jezero de cerca: el rover, mapas del suelo, sitios científicos), Vistas 360° (panorámicas reales y un recorrido entre ellas), Caminata (planificar y simular una caminata) y Condiciones (hora, Sol y datos del clima). Cada pestaña lleva la cámara a su lugar. Tocá de nuevo la pestaña abierta para ocultar el panel."
+        "body": "Marte (el planeta), Superficie (Jezero de cerca: por dónde pasó el rover, mapas del suelo, sitios científicos), Vistas 360° (panorámicas reales y un recorrido entre ellas), Caminata (planificar y simular una caminata) y Condiciones (hora, Sol y datos del clima). Cada pestaña lleva la cámara a su lugar. Tocá de nuevo la pestaña abierta para ocultar el panel."
       },
       "jezero": {
         "title": "Volá al cráter Jezero",
@@ -529,8 +529,8 @@
         "body": "Arrastrá para mirar alrededor y usá la rueda para acercarte. La barra muestra el sol, la estación marciana y qué hay en cada dirección; el minimapa muestra hacia dónde mirás. El botón rayado muestra qué parte se completó (la cubierta del propio rover, debajo de la cámara). Esc la cierra."
       },
       "rover": {
-        "title": "Perseverance",
-        "body": "El rover en 3D en su última posición publicada. Debajo del botón, los chips muestran en el mapa todo su recorrido, los sitios de muestras y los vuelos del helicóptero Ingenuity."
+        "title": "Por dónde pasó Perseverance",
+        "body": "La ruta de Perseverance desde el aterrizaje, los sitios donde tomó muestras y los vuelos de Ingenuity, como capas del mapa. El rover en 3D está en el juego."
       },
       "ground": {
         "title": "De qué está hecho el suelo",
@@ -757,16 +757,15 @@
   },
   "surface": {
     "title": "Superficie de Jezero",
-    "intro": "Jezero de cerca: el propio rover, mapas de qué está hecho el suelo y los sitios científicos.",
+    "intro": "Jezero de cerca: por dónde pasó Perseverance, mapas de qué está hecho el suelo y los sitios científicos.",
     "panoramas": "Panorámicas 360° ({{count}})",
     "panoramasNote": "Unidas a partir de imágenes de Mastcam-Z y ubicadas donde las tomó el rover, en orden de misión.",
     "panoSol": "Sol {{sol}} · {{date}}",
-    "showOnMap": "Mostrar en el mapa:",
     "groundTitle": "De qué está hecho el suelo",
     "ground": "Mapas orbitales de minerales, arena o roca, pendiente y altura, cada uno con leyenda y nota de fuente (ⓘ en Capas).",
     "inspectTip": "Consejo: tocá cualquier lugar del cráter para ver la altura, la pendiente y el tipo de suelo.",
     "to360": "Panorámicas reales tomadas por Perseverance, y un recorrido que vuela de una a otra",
-    "drive": "Condúcelo (juego)"
+    "drive": "Conducir a Perseverance en el juego →"
   },
   "checklist": {
     "title": "Cosas para probar",
@@ -778,7 +777,7 @@
     "items": {
       "jezero": "Volar al cráter Jezero",
       "panorama": "Mirar alrededor en una panorámica 360° real",
-      "rover": "Visitar a Perseverance de cerca",
+      "rover": "Mostrar la ruta de Perseverance",
       "inspect": "Inspeccionar el suelo en cualquier punto",
       "layer": "Activar un mapa del suelo (minerales, arena, pendiente…)",
       "route": "Calcular una caminata",
@@ -807,7 +806,7 @@
     "listNote": "Cada muestra con la foto de la NASA de donde se perforó (o del núcleo en su tubo). Tocá una foto para agrandarla."
   },
   "game": {
-    "title": "Carrera de muestras en Jezero",
+    "title": "Misiones de Perseverance",
     "tagline": "La misión de Perseverance en Marte, episodio a episodio: el terreno real visto desde la órbita, los lugares reales y las imágenes de la propia NASA.",
     "back": "Volver a Copernico",
     "loading": "Aterrizando Perseverance en Jezero…",
@@ -860,7 +859,8 @@
       "stormSoon": "Se acerca una tormenta",
       "objectives": "Objetivos",
       "autonav": "AutoNav (N)",
-      "inventory": "Inventario (I)"
+      "inventory": "Inventario (I)",
+      "found": "Descubiertos {{n}} de {{total}} lugares"
     },
     "prompt": {
       "stopToCore": "Detente para extraer la muestra de {{name}}",
@@ -956,7 +956,8 @@
       "panoramas": "Panorámicas",
       "flights": "Vuelos de Ingenuity",
       "explore": "Seguir explorando",
-      "menu": "Menú principal"
+      "menu": "Volver a las misiones",
+      "badge": "Misión {{n}} completada"
     },
     "quality": {
       "title": "Gráficos",
@@ -1126,6 +1127,10 @@
       "firstFlight": {
         "title": "El primer vuelo",
         "story": "Soles 44–58. Ingenuity ya depende de su batería y su panel solar. Perseverance va hasta Van Zyl Overlook, a 64,3 m, para observarlo y retransmitir sus datos. El 19 de abril de 2021 subió a 3 m, se mantuvo en el aire y aterrizó: 39,1 s de vuelo, el primer vuelo propulsado y controlado en otro planeta. Conduce hasta el mirador: al parar allí, Mastcam-Z lo filma."
+      },
+      "free": {
+        "title": "Exploración libre",
+        "story": "Sin objetivos ni reloj: conduce por donde quieras. Aquí funciona todo: SuperCam en cualquier roca (F), AutoNav hacia un objetivo o hacia un punto que marques en el mapa (N), avance rápido (T) y modo foto (P). A la izquierda tienes los lugares donde trabajó Perseverance para descubrirlos: llega a ellos, toma muestras en los sitios de muestreo y haz las panorámicas."
       }
     },
     "objectives": {
@@ -1269,25 +1274,15 @@
         "complete": "Primer vuelo filmado",
         "real": "Ingenuity voló 39,1 s el 19 de abril de 2021 (sol 58), el primer vuelo propulsado y controlado en otro planeta. Después voló 72 veces, unos 129 minutos y 17 km en total, hasta que se le rompió una pala en su último vuelo, el 18 de enero de 2024."
       },
-      "moxie": {
-        "title": "Aire fabricado",
-        "when": "2021–2023",
-        "desc": "Pon en marcha MOXIE: una hora a 300 W para sacar oxígeno del aire de CO₂, dentro del presupuesto de energía del sol."
-      },
       "firstSample": {
         "title": "El tubo vacío",
         "when": "ago–sep 2021",
-        "desc": "La primera extracción sale vacía: la roca se deshizo. Encuentra una lo bastante dura y llena el tubo 266."
+        "desc": "El primer muestreo de Perseverance sale vacío: la roca se desmoronó. Encuentra una lo bastante dura para llenar el tubo 266 y pon en marcha MOXIE para producir oxígeno dentro del presupuesto de energía del sol."
       },
       "chute": {
         "title": "De vuelta al paracaídas",
         "when": "abr 2022",
-        "desc": "Vuela el vuelo 26 de Ingenuity sobre el escudo trasero y el paracaídas de 21,5 m, a 8 m del suelo."
-      },
-      "lastFlight": {
-        "title": "El último vuelo de Ingenuity",
-        "when": "ene 2024",
-        "desc": "Un salto corto acaba con una pala del rotor rota. Encuentra el helicóptero y fotografía dónde quedó."
+        "desc": "Toma los mandos de Ingenuity en su vuelo 26, a 8 m sobre el escudo trasero y el paracaídas, y acompaña al helicóptero hasta su vuelo 72, el último."
       },
       "leopard": {
         "title": "Manchas de leopardo",
@@ -1295,30 +1290,29 @@
         "desc": "Cheyava Falls y sus manchas de leopardo: cartografía la roca y extrae Sapphire Canyon, la mejor candidata a señal de vida antigua."
       },
       "rim": {
-        "title": "El borde del cráter",
+        "title": "El borde",
         "when": "2024–2025",
-        "desc": "Sube Witch Hazel Hill hasta el borde del cráter y la meseta de Krokodillen, con algunas de las rocas más antiguas de Marte."
-      },
-      "sparks": {
-        "title": "Minirrayos",
-        "when": "2025",
-        "desc": "Acecha un remolino de polvo con el micrófono encendido: graba el chasquido de las descargas eléctricas."
-      },
-      "aiDrive": {
-        "title": "Planifica la ruta",
-        "when": "dic 2025",
-        "desc": "Planifica puntos de paso entre rocas, como en las primeras rutas planificadas por IA, y compáralos con AutoNav."
-      },
-      "record": {
-        "title": "Récord de distancia",
-        "when": "oct 2026",
-        "desc": "Lleva el cuentakilómetros más allá de 45 km, el récord fuera de la Tierra de Opportunity, sin arriesgar el rover."
+        "desc": "Sube por Witch Hazel Hill hasta el borde del cráter, entre las rocas más antiguas de Marte, y persigue remolinos de polvo con el micrófono encendido."
       },
       "start": "Empezar",
       "continue": "Continuar · capítulo {{chapter}}",
       "soon": "Próximamente",
       "progress": "Capítulo {{chapter}} de {{count}}",
-      "credit": "Imágenes: NASA/JPL-Caltech (NASA Image and Video Library)."
+      "credit": "Imágenes: NASA/JPL-Caltech (NASA Image and Video Library).",
+      "free": {
+        "title": "Exploración libre",
+        "when": "Cualquier sol",
+        "n": "∞",
+        "desc": "Conduce donde quieras con todas las herramientas: SuperCam, AutoNav, panorámicas, muestreo, Ingenuity, avance rápido y fotos. Sin objetivos ni reloj.",
+        "start": "Explorar",
+        "continue": "Seguir explorando",
+        "where": "Mapa",
+        "landing": "Lugar de aterrizaje",
+        "delta": "Frente del delta"
+      },
+      "done": "Completada",
+      "best": "mejor {{time}}",
+      "again": "Jugar otra vez"
     },
     "places": {
       "reach-descent-stage": "Etapa de descenso",

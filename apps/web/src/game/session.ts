@@ -3,6 +3,7 @@ import i18n from 'i18next';
 import { Vector3 } from 'three';
 import { DATA_VERSION, dataUrl } from '../config';
 import { loadRover, loadSamples, type SampleSite } from '../data/surfaceData';
+import { gameAreaAt } from '../data/gameAreas';
 import { formatDistance } from '../lib/format';
 import { wrapAngle } from '../lib/math';
 import { prefersReducedMotion } from '../lib/motion';
@@ -10,6 +11,7 @@ import { GameAudio } from './audio';
 import {
   clearSave,
   isAnalysed,
+  readBest,
   readOptions,
   readSave,
   recordBest,
@@ -106,6 +108,16 @@ function writeLastMission(m: MissionId): void {
 }
 
 /** Each mission's saved chapter (index), for the menu. */
+/** Each completed mission's best time (s): the menu marks them done. */
+export function bestTimes(): Partial<Record<MissionId, number>> {
+  const out: Partial<Record<MissionId, number>> = {};
+  for (const id of Object.keys(MISSIONS) as MissionId[]) {
+    const b = readBest(id);
+    if (b !== null) out[id] = b;
+  }
+  return out;
+}
+
 export function savedChapters(): Partial<Record<MissionId, number>> {
   const out: Partial<Record<MissionId, number>> = {};
   for (const id of Object.keys(MISSIONS) as MissionId[]) {
@@ -324,6 +336,7 @@ export class GameSession {
       camera: 'chase',
       hasSave: !!readSave('delta'),
       saves: savedChapters(),
+      bests: bestTimes(),
       mission: this.mission.id,
       route: null,
     });
@@ -382,6 +395,22 @@ export class GameSession {
     this.filming = false;
     this.world.setWatch(null);
     this.resume();
+  }
+
+  /**
+   * Free exploration at a point (a place opened from the planner): on the map that holds it, where
+   * it was left if there is a save, the rover set down at the point. False when no map holds it.
+   */
+  async exploreAt(lat: number, lon: number): Promise<boolean> {
+    const area = await gameAreaAt(lat, lon);
+    if (!area) return false;
+    const id: MissionId = area === 'landing' ? 'free-landing' : 'free-delta';
+    if (readSave(id)) await this.continueExpedition(id);
+    else await this.newExpedition(id);
+    if (this.mission.id !== id || !this.running) return false;
+    this.teleport(lat, lon);
+    this.save();
+    return true;
   }
 
   /** Continues a mission's saved progress where it was left. */
@@ -1027,16 +1056,12 @@ export class GameSession {
     this.world.setStorm(0);
     this.controls.enabled = false;
     this.audio.chime(true);
-    if (this.mission.endToMenu) {
-      this.quit();
-      useGame.getState().set({ saves: savedChapters() });
-      return;
-    }
     useGame.getState().set({
       phase: 'complete',
       result,
       hasSave: !!readSave('delta'),
       saves: savedChapters(),
+      bests: bestTimes(),
     });
   }
 
@@ -1455,9 +1480,28 @@ export class GameSession {
   private readonly reticleAt = new Vector3();
 
   /** Projects the labels above their places; nearer ones win where two would overlap. */
+  /** Screen boxes of the HUD's panels (labels keep out of them), refreshed every few frames. */
+  private hudBoxes: Array<[number, number, number, number]> = [];
+  private hudBoxesAge = 0;
+
   private updateLabels(): void {
     const f = this.world.frame;
     if (!f || !this.labels.size) return;
+    // A dialog or a screen over the game: no labels (they would show through it).
+    const phase = useGame.getState().phase;
+    const shown = phase === 'playing' || phase === 'photo';
+    this.labelLayer.style.visibility = shown ? '' : 'hidden';
+    if (!shown) return;
+    if (--this.hudBoxesAge <= 0) {
+      this.hudBoxesAge = 10;
+      const host = this.world.host.getBoundingClientRect();
+      this.hudBoxes = [...document.querySelectorAll('.game-hud .game-panel, .game-compass, .game-map, .game-prompt > span, .game-toast, .game-deploy')].map(
+        (e) => {
+          const r = e.getBoundingClientRect();
+          return [r.left - host.left - 6, r.top - host.top - 6, r.right - host.left + 6, r.bottom - host.top + 6];
+        },
+      );
+    }
     const p = this.world.camera.position;
     const w = this.world.host.clientWidth;
     const h = this.world.host.clientHeight;
@@ -1481,7 +1525,8 @@ export class GameSession {
       items.push({ id: 'ingenuity', x: q.x, y: q.y + 1.2, z: q.z, d: q.distanceTo(p) });
     }
     items.sort((a, b) => a.d - b.d);
-    const placed: Array<[number, number, number, number]> = [];
+    // The HUD's panels count as already taken: a label never sits behind one.
+    const placed: Array<[number, number, number, number]> = [...this.hudBoxes];
     for (const it of items) {
       const el = this.labels.get(it.id);
       if (!el) continue;

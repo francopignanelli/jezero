@@ -34,6 +34,7 @@ import { Spectrum } from './Spectrum';
 import { useGame } from './store';
 import { useTip } from './tips';
 import { useTubePicture } from './useTubePicture';
+import { exploreFromHash } from '../data/gameAreas';
 import { ModeSwitch } from '../ui/ModeSwitch';
 import { VideoPlayer } from '../ui/VideoPlayer';
 import { PHOTO_FILTERS, type Quality } from './world/world';
@@ -59,10 +60,20 @@ export function GameApp() {
       return;
     }
     let live = true;
-    void s.load().then((ok) => {
+    void s.load().then(async (ok) => {
       if (!live) return; // React StrictMode's discarded first mount (already destroyed)
-      if (ok) setSession(s);
-      else useGame.getState().set({ phase: 'failed' });
+      if (!ok) {
+        useGame.getState().set({ phase: 'failed' });
+        reveal();
+        return;
+      }
+      setSession(s);
+      // A place opened from the planner (play.html#explore=lat,lon): free exploration there.
+      const at = exploreFromHash(location.hash);
+      if (at) {
+        history.replaceState(null, '', location.pathname + location.search);
+        await s.exploreAt(at.lat, at.lon);
+      }
       reveal();
     });
     return () => {
@@ -204,33 +215,40 @@ function SoundToggle({ session }: { session: GameSession }) {
 }
 
 /**
- * The mission slate, in the order Perseverance lived them (the research brief's twelve episodes).
- * Playable ones have a mission; the others are shown as coming soon. Each has a real NASA picture
- * (scripts/data/fetch-mission-cards.ts).
+ * The mission slate, in the order Perseverance lived them: seven episodes, each with a different
+ * way to play (finding hardware, a deployment and a film, a first coring, piloting Ingenuity, a
+ * sampling campaign, a rock's chemistry, a steep climb). Playable ones have a mission; the others
+ * are shown as coming soon. Each has a real NASA picture (scripts/data/fetch-mission-cards.ts).
+ * The review that cut the first twelve to seven is in docs/decisions.md.
  */
 const SLATE: Array<{ n: number; key: string; mission?: MissionId }> = [
   { n: 1, key: 'landing', mission: 'landing' },
   { n: 2, key: 'ingenuity', mission: 'ingenuity' },
-  { n: 3, key: 'moxie' },
-  { n: 4, key: 'firstSample' },
-  { n: 5, key: 'chute' },
-  { n: 6, key: 'delta', mission: 'delta' },
-  { n: 7, key: 'lastFlight' },
-  { n: 8, key: 'leopard' },
-  { n: 9, key: 'rim' },
-  { n: 10, key: 'sparks' },
-  { n: 11, key: 'aiDrive' },
-  { n: 12, key: 'record' },
+  { n: 3, key: 'firstSample' },
+  { n: 4, key: 'chute' },
+  { n: 5, key: 'delta', mission: 'delta' },
+  { n: 6, key: 'leopard' },
+  { n: 7, key: 'rim' },
+];
+/** The slate entry of a mission (its card picture and number). */
+export const slateOf = (id: MissionId) => SLATE.find((m) => m.mission === id);
+
+/** Free exploration: the maps it can be played on. */
+const FREE_AREAS: Array<{ id: MissionId; key: 'landing' | 'delta' }> = [
+  { id: 'free-landing', key: 'landing' },
+  { id: 'free-delta', key: 'delta' },
 ];
 
 /**
- * The game's home: the two modes of Copernico, the language, and the missions as cards of one
- * size, each with a single button (start, or continue where it was left). Options, photos,
- * restarting and the mission's video are in the pause menu; how to play is taught while playing.
+ * The game's home: the two modes of Copernico, the language, the missions as cards of one size,
+ * each with a single button (start, continue where it was left, or play again once done; a done
+ * mission shows its best time), and free exploration. Options, photos, restarting and the
+ * mission's video are in the pause menu; how to play is taught while playing.
  */
 function MainMenu({ session }: { session: GameSession }) {
   const { t } = useTranslation();
   const saves = useGame((s) => s.saves);
+  const bests = useGame((s) => s.bests);
   return (
     <div className="game-screen game-home">
       <section className="game-home-panel" aria-labelledby="game-title">
@@ -250,10 +268,17 @@ function MainMenu({ session }: { session: GameSession }) {
           {SLATE.map((m) => {
             const id = m.mission;
             const saved = id ? saves[id] : undefined;
+            const best = id ? bests[id] : undefined;
             const chapters = id ? MISSIONS[id].chapters.length : 0;
             const title = t(`game.missions.${m.key}.title`);
+            const label =
+              saved !== undefined
+                ? t('game.missions.continue', { chapter: saved + 1 })
+                : best !== undefined
+                  ? t('game.missions.again')
+                  : t('game.missions.start');
             return (
-              <li key={m.key} className={`game-mc ${id ? '' : 'is-soon'}`}>
+              <li key={m.key} className={`game-mc ${id ? '' : 'is-soon'} ${best !== undefined ? 'is-done' : ''}`}>
                 <div className="game-mc-img">
                   <img
                     src={dataUrl(`game/cards/${m.key}.webp?v=${DATA_VERSION}`)}
@@ -264,30 +289,40 @@ function MainMenu({ session }: { session: GameSession }) {
                   />
                   <span className="game-mc-n">{m.n}</span>
                   {!id && <span className="game-mc-badge">{t('game.missions.soon')}</span>}
-                  {saved !== undefined && (
+                  {saved !== undefined ? (
                     <span className="game-mc-badge is-progress">
                       {t('game.missions.progress', { chapter: saved + 1, count: chapters })}
                     </span>
+                  ) : (
+                    best !== undefined && (
+                      <span className="game-mc-badge is-done">
+                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                          <path d="M3 8.5l3.2 3L13 4.5" />
+                        </svg>
+                        {t('game.missions.done')}
+                      </span>
+                    )
                   )}
                 </div>
                 <div className="game-mc-body">
-                  <span className="game-mc-when">{t(`game.missions.${m.key}.when`)}</span>
+                  <span className="game-mc-when">
+                    {t(`game.missions.${m.key}.when`)}
+                    {best !== undefined && (
+                      <span className="game-mc-best"> · {t('game.missions.best', { time: formatClock(best) })}</span>
+                    )}
+                  </span>
                   <h2>{title}</h2>
                   <p>{t(`game.missions.${m.key}.desc`)}</p>
                   {id ? (
                     <button
                       type="button"
                       className="btn btn-primary"
-                      aria-label={`${saved !== undefined ? t('game.missions.continue', { chapter: saved + 1 }) : t('game.missions.start')}: ${title}`}
+                      aria-label={`${label}: ${title}`}
                       onClick={() =>
-                        void (saved !== undefined
-                          ? session.continueExpedition(id)
-                          : session.newExpedition(id))
+                        void (saved !== undefined ? session.continueExpedition(id) : session.newExpedition(id))
                       }
                     >
-                      {saved !== undefined
-                        ? t('game.missions.continue', { chapter: saved + 1 })
-                        : t('game.missions.start')}
+                      {label}
                     </button>
                   ) : (
                     <button type="button" className="btn" disabled>
@@ -298,10 +333,59 @@ function MainMenu({ session }: { session: GameSession }) {
               </li>
             );
           })}
+          <FreeCard session={session} />
         </ol>
         <p className="meta game-home-credit">{t('game.missions.credit')}</p>
       </section>
     </div>
+  );
+}
+
+/**
+ * Free exploration's card: which map (the landing site or the delta front), and one button.
+ * Everything works there (SuperCam, AutoNav, panoramas, coring at the sample sites, Ingenuity's
+ * flights over the delta, time warp, photo mode), with no objectives and no clock.
+ */
+function FreeCard({ session }: { session: GameSession }) {
+  const { t } = useTranslation();
+  const saves = useGame((s) => s.saves);
+  const [area, setArea] = useState<(typeof FREE_AREAS)[number]>(FREE_AREAS[1]!);
+  const saved = saves[area.id] !== undefined;
+  const title = t('game.missions.free.title');
+  return (
+    <li className="game-mc is-free">
+      <div className="game-mc-img">
+        <img src={dataUrl(`game/cards/free.webp?v=${DATA_VERSION}`)} alt="" loading="lazy" width={640} height={360} />
+        <span className="game-mc-n">{t('game.missions.free.n')}</span>
+      </div>
+      <div className="game-mc-body">
+        <span className="game-mc-when">{t('game.missions.free.when')}</span>
+        <h2>{title}</h2>
+        <p>{t('game.missions.free.desc')}</p>
+        <div className="game-mc-areas" role="radiogroup" aria-label={t('game.missions.free.where')}>
+          {FREE_AREAS.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              role="radio"
+              aria-checked={a.id === area.id}
+              className={`game-mc-area ${a.id === area.id ? 'is-on' : ''}`}
+              onClick={() => setArea(a)}
+            >
+              {t(`game.missions.free.${a.key}`)}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          aria-label={`${saved ? t('game.missions.free.continue') : t('game.missions.free.start')}: ${title}`}
+          onClick={() => void (saved ? session.continueExpedition(area.id) : session.newExpedition(area.id))}
+        >
+          {saved ? t('game.missions.free.continue') : t('game.missions.free.start')}
+        </button>
+      </div>
+    </li>
   );
 }
 
@@ -456,7 +540,9 @@ function ChapterPage({ session }: { session: GameSession }) {
         aria-labelledby="game-chapter-title"
       >
         <div className="game-panel-title">
-          {t('game.chapter.kicker', { n: exp.chapter + 1, first: c.sols[0], last: c.sols[1] })}
+          {missionOf(exp).free
+            ? `${t('game.missions.free.title')} · ${t(`game.missions.free.${missionOf(exp).areaId}`)}`
+            : t('game.chapter.kicker', { n: exp.chapter + 1, first: c.sols[0], last: c.sols[1] })}
         </div>
         <h2 id="game-chapter-title">{t(`game.chapters.${c.id}.title`)}</h2>
         <p>{t(`game.chapters.${c.id}.story`)}</p>
@@ -491,15 +577,23 @@ function Objectives() {
   const { t } = useTranslation();
   const exp = useGame((s) => s.expedition);
   const storm = useGame((s) => s.hud.storm);
-  const c = missionOf(exp).chapters[exp.chapter];
+  const m = missionOf(exp);
+  const c = m.chapters[exp.chapter];
   if (!c) return null;
+  // Free exploration: how much has been found, and the next few places only (not the whole list).
+  const listed = listedObjectives(c);
+  const found = m.free ? listed.filter((o) => objectiveDone(exp, o, c)).length : 0;
+  const shown = m.free ? listed.filter((o) => !objectiveDone(exp, o, c)).slice(0, 4) : listed;
   return (
     <section className="game-panel game-objectives" aria-label={t('game.hud.objectives')}>
       <div className="game-panel-title">
-        {t('game.chapter.short', { n: exp.chapter + 1 })} · {t(`game.chapters.${c.id}.title`)}
+        {m.free
+          ? `${t('game.missions.free.title')} · ${t(`game.missions.free.${m.areaId}`)}`
+          : `${t('game.chapter.short', { n: exp.chapter + 1 })} · ${t(`game.chapters.${c.id}.title`)}`}
       </div>
+      {m.free && <p className="game-found">{t('game.hud.found', { n: found, total: listed.length })}</p>}
       <ol>
-        {listedObjectives(c).map((o) => {
+        {shown.map((o) => {
           const done = objectiveDone(exp, o, c);
           const count = objectiveCount(exp, o, c);
           return (
@@ -1457,15 +1551,27 @@ function Complete({ session }: { session: GameSession }) {
   const first = chapters[0]!.sols[0];
   const last = chapters[chapters.length - 1]!.sols[1];
   const sampling = m.id === 'delta';
+  const card = slateOf(m.id);
   return (
     <div className="game-screen">
       <div
-        className="game-dialog game-small"
+        className="game-dialog game-small game-done"
         role="dialog"
         aria-modal="true"
         aria-labelledby="game-done"
       >
-        <div className="game-panel-title">{t('game.title')}</div>
+        {card && (
+          <figure className="game-done-img">
+            <img src={dataUrl(`game/cards/${card.key}.webp?v=${DATA_VERSION}`)} alt="" width={640} height={360} />
+            <span className="game-done-badge">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 8.5l3.2 3L13 4.5" />
+              </svg>
+              {t('game.complete.badge', { n: card.n })}
+            </span>
+          </figure>
+        )}
+        <div className="game-panel-title">{t(`game.missions.${card?.key ?? m.id}.title`)}</div>
         <h2 id="game-done">{t(`game.missions.${m.id}.complete`)}</h2>
         {result.newBest && <p className="game-best">{t('game.complete.newBest')}</p>}
         <dl className="game-stats">
@@ -1527,19 +1633,14 @@ function Complete({ session }: { session: GameSession }) {
           })}
         </p>
         <div className="btn-stack">
-          <button
-            type="button"
-            className="btn btn-primary"
-            autoFocus
-            onClick={() => session.keepExploring()}
-          >
+          <button type="button" className="btn btn-primary" autoFocus onClick={() => session.quit()}>
+            {t('game.complete.menu')}
+          </button>
+          <button type="button" className="btn" onClick={() => session.keepExploring()}>
             {t('game.complete.explore')}
           </button>
           <button type="button" className="btn" onClick={() => void session.newExpedition()}>
             {t('game.complete.again')}
-          </button>
-          <button type="button" className="btn" onClick={() => session.quit()}>
-            {t('game.complete.menu')}
           </button>
         </div>
       </div>

@@ -227,8 +227,6 @@ export function MarsCanvas() {
       if (!OVERLAYS.includes(id as OverlayKind) && id !== 'reach' && id !== 'crism')
         scene.setLayerVisible(id, visible);
     }
-    scene.setLayerVisible('roverLatest', layers.rover);
-    scene.setLayerVisible('roverModel', layers.rover);
     scene.setLayerVisible('viking-hd', layers.viking);
     scene.setLayerVisible('colour-wash', layers.viking && (layers.ctx || layers.hirise));
     scene.setSkyVisible(layers.sky);
@@ -637,7 +635,10 @@ async function loadSurfaceLayers(scene: MarsScene, shown: Promise<void>): Promis
     .catch((error: unknown) => console.error('[Copernico] surface overlays failed', error));
 }
 
-/** Rover, panoramas, samples, places and Ingenuity flights, on the rendered terrain. */
+/**
+ * Panoramas, samples, places and Ingenuity flights, on the rendered terrain. (Perseverance itself
+ * is not drawn in the planner: its route is, and the rover is driven in the game.)
+ */
 async function placeSurfaceMarkers(
   scene: MarsScene,
   rover: Awaited<ReturnType<typeof loadRover>>,
@@ -648,7 +649,6 @@ async function placeSurfaceMarkers(
   // Every marker in one terrain query: they share tiles, and separate queries would each wait.
   const standalone = PANORAMAS.filter((p) => !p.poiId);
   const points: Array<{ lat: number; lon: number }> = [
-    ...(rover ? [rover.latest] : []),
     ...standalone.map((p) => p.position),
     ...(samples?.samples ?? []),
     ...POIS,
@@ -662,39 +662,6 @@ async function placeSurfaceMarkers(
     const h = heights[k++]!;
     return (Number.isFinite(h) ? h : 0) + 2;
   };
-
-  if (rover) {
-    const heightM = next();
-    // 3D Perseverance at its latest published position, facing along its last drive.
-    const [prev] = rover.waypoints.slice(-2);
-    const heading = prev
-      ? Math.atan2(
-          (rover.latest.lon - prev[2]) * Math.cos((rover.latest.lat * Math.PI) / 180),
-          rover.latest.lat - prev[1],
-        )
-      : 0;
-    void scene.setModel('roverModel', {
-      lat: rover.latest.lat,
-      lon: rover.latest.lon,
-      heightM: heightM - 2, // marker lift removed: wheels on the rendered terrain
-      headingRad: heading,
-      url: dataUrl(`models/perseverance.glb?v=${DATA_VERSION}`),
-    });
-    scene.setAnnotations('rover', [
-      {
-        id: 'perseverance',
-        lat: rover.latest.lat,
-        lon: rover.latest.lon,
-        heightM,
-        text: `Perseverance · sol ${rover.latest.sol}`,
-        kind: 'rover',
-        priority: 95, // above the panorama pin next to it
-        maxCameraDistanceM: 350_000,
-        minCameraDistanceM: 250, // the 3D model takes over up close
-        onClick: () => useApp.getState().setTab('surface'),
-      },
-    ]);
-  }
 
   // Real 360° panoramas, at the rover position where they were taken. One at a POI becomes a "360°"
   // chip on that POI's pin; the others get their own pin.

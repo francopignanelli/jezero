@@ -14,7 +14,7 @@ const hook = (page: Page) =>
     return { odometerM: s.odometerM, batteryPct: s.batteryPct };
   });
 
-test('the planner links to the rover game from the Mars tab and the Perseverance card', async ({
+test('the planner links to the rover game from the Mars tab, the route card and a site the game has', async ({
   page,
 }) => {
   await openApp(page);
@@ -23,10 +23,13 @@ test('the planner links to the rover game from the Mars tab and the Perseverance
     './play.html',
   );
   await page.getByRole('tab', { name: 'Surface' }).click();
-  await expect(page.getByRole('link', { name: 'Drive it (game)' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Drive Perseverance in the game →' })).toHaveAttribute(
     'href',
     './play.html',
   );
+  // A site on one of the game's maps opens there (free exploration at that point).
+  // (Inside closed cards, so found by their address rather than their role.)
+  await expect(page.locator('a[href^="./play.html#explore="]')).not.toHaveCount(0);
 });
 
 test('rover game: the delta-front expedition, a core, the inventory, AutoNav, saving', async ({
@@ -39,7 +42,7 @@ test('rover game: the delta-front expedition, a core, the inventory, AutoNav, sa
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/play.html');
-  await expect(page.getByRole('heading', { name: 'Jezero Sample Run' })).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'Perseverance missions' })).toBeVisible({
     timeout: 90_000,
   });
   await expect(page.locator('.game-boot')).toHaveCount(0);

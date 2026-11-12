@@ -44,7 +44,7 @@
     "why": "A 45 km crater that held a lake about 3.5 billion years ago; the river delta it left is still preserved on its western side. NASA's Perseverance rover has explored it since February 2021, collecting rock samples for possible return to Earth.",
     "nextTitle": "What you can do",
     "next": {
-      "surface": "The rover, science sites and maps of the ground",
+      "surface": "Where the rover went, science sites and maps of the ground",
       "marswalk": "Plan a walk step by step, then simulate it",
       "conditions": "Time, Sun, season and measured weather",
       "panoramas": "Stand where the rover stood: real panoramas and a tour between them"
@@ -241,9 +241,7 @@
   },
   "science": {
     "pois": "Points of interest",
-    "rover": "Perseverance",
-    "roverLatest": "Latest published position: sol {{sol}} (source updated {{date}})",
-    "roverOutside": "Outside route-planning coverage",
+    "rover": "Where Perseverance went",
     "inCoverage": "Inside route coverage",
     "outCoverage": "Outside route coverage",
     "addStop": "Add as waypoint",
@@ -253,7 +251,9 @@
     "source": "Source",
     "sampleMeta": "Sample {{n}} · sol {{sol}} · {{date}} · {{rock}}",
     "corrected": "Position corrected from published easting/northing",
-    "samplesCount": "Perseverance samples ({{n}})"
+    "samplesCount": "Perseverance samples ({{n}})",
+    "roverWhere": "Its route from the landing to sol {{sol}} (NASA data of {{date}}), the samples it cored and Ingenuity’s flights. The rover itself is driven in the game.",
+    "driveHere": "Drive here (game)"
   },
   "environment": {
     "title": "Conditions and time",
@@ -466,7 +466,7 @@
       },
       "panels": {
         "title": "Five tabs, one per activity",
-        "body": "Mars (the planet), Surface (Jezero up close: the rover, maps of the ground, science sites), 360° views (real panoramas and a tour between them), Marswalk (plan and simulate a walk) and Conditions (time, Sun and weather data). Each tab takes the camera to its place. Click the open tab again to hide the panel."
+        "body": "Mars (the planet), Surface (Jezero up close: where the rover went, maps of the ground, science sites), 360° views (real panoramas and a tour between them), Marswalk (plan and simulate a walk) and Conditions (time, Sun and weather data). Each tab takes the camera to its place. Click the open tab again to hide the panel."
       },
       "jezero": {
         "title": "Fly to Jezero Crater",
@@ -529,8 +529,8 @@
         "body": "Drag to look around and scroll to zoom. The bar shows the sol, the Mars season and what lies in each direction; the mini-map shows where you are looking. The hatched button shows which part was filled in (the rover's own deck, below the camera). Esc closes it."
       },
       "rover": {
-        "title": "Perseverance",
-        "body": "The rover in 3D at its latest published position. Below the button, chips put its full drive, the sample sites and the Ingenuity helicopter flights on the map."
+        "title": "Where Perseverance went",
+        "body": "Perseverance’s route since the landing, the sites where it cored samples and Ingenuity’s flights, as map layers. The rover itself, in 3D, is in the game."
       },
       "ground": {
         "title": "What the ground is made of",
@@ -757,16 +757,15 @@
   },
   "surface": {
     "title": "Jezero surface",
-    "intro": "Jezero up close: the rover itself, maps of what the ground is made of, and the science sites.",
+    "intro": "Jezero up close: where Perseverance went, maps of what the ground is made of, and the science sites.",
     "panoramas": "360° panoramas ({{count}})",
     "panoramasNote": "Stitched from Mastcam-Z images and placed where the rover took them, in mission order.",
     "panoSol": "Sol {{sol}} · {{date}}",
-    "showOnMap": "Show on the map:",
     "groundTitle": "What the ground is made of",
     "ground": "Orbital maps of minerals, sand versus rock, slope and height, each with a legend and a source note (ⓘ in Layers).",
     "inspectTip": "Tip: click anywhere in the crater to see the height, slope and ground type there.",
     "to360": "Real panoramas taken by Perseverance, and a tour that flies from one to the next",
-    "drive": "Drive it (game)"
+    "drive": "Drive Perseverance in the game →"
   },
   "checklist": {
     "title": "Things to try",
@@ -778,7 +777,7 @@
     "items": {
       "jezero": "Fly into Jezero Crater",
       "panorama": "Look around a real 360° panorama",
-      "rover": "Visit Perseverance up close",
+      "rover": "Show Perseverance’s route",
       "inspect": "Inspect the ground at any point",
       "layer": "Turn on a map of the ground (minerals, sand, slope…)",
       "route": "Calculate a Marswalk",
@@ -807,7 +806,7 @@
     "listNote": "Each sample with NASA’s photo of where it was drilled (or of the core in its tube). Click a photo to enlarge it."
   },
   "game": {
-    "title": "Jezero Sample Run",
+    "title": "Perseverance missions",
     "tagline": "Perseverance’s mission on Mars, episode by episode: the real terrain from orbit, the real places, NASA’s own images.",
     "back": "Back to Copernico",
     "loading": "Landing Perseverance in Jezero…",
@@ -860,7 +859,8 @@
       "stormSoon": "Dust storm coming",
       "objectives": "Objectives",
       "autonav": "AutoNav (N)",
-      "inventory": "Inventory (I)"
+      "inventory": "Inventory (I)",
+      "found": "Found {{n}} of {{total}} places"
     },
     "prompt": {
       "stopToCore": "Stop to core the sample at {{name}}",
@@ -956,7 +956,8 @@
       "panoramas": "Panoramas",
       "flights": "Ingenuity flights",
       "explore": "Keep exploring",
-      "menu": "Main menu"
+      "menu": "Back to missions",
+      "badge": "Mission {{n}} complete"
     },
     "quality": {
       "title": "Graphics",
@@ -1126,6 +1127,10 @@
       "firstFlight": {
         "title": "The first flight",
         "story": "Sols 44–58. Ingenuity now lives on its own battery and solar panel. Perseverance drives to Van Zyl Overlook, 64.3 m away, to watch it and relay its data. On 19 April 2021 it climbed to 3 m, hovered and landed: 39.1 s in the air, the first powered, controlled flight on another planet. Drive to the overlook: when you stop there, Mastcam-Z films it."
+      },
+      "free": {
+        "title": "Free exploration",
+        "story": "No objectives and no clock: drive where you like. Everything works here: SuperCam on any rock (F), AutoNav to a goal or to a point you click on the map (N), time warp (T) and photo mode (P). The places where Perseverance worked are listed on the left to discover: reach them, core at the sample sites, take the panoramas."
       }
     },
     "objectives": {
@@ -1269,25 +1274,15 @@
         "complete": "First flight filmed",
         "real": "Ingenuity flew 39.1 s on 19 April 2021 (sol 58), the first powered, controlled flight on another planet. It went on to fly 72 times, about 129 minutes and 17 km in all, until a rotor blade broke on its last flight, 18 January 2024."
       },
-      "moxie": {
-        "title": "Air you can make",
-        "when": "2021–2023",
-        "desc": "Run MOXIE: an hour at 300 W to split oxygen from the CO₂ air, inside the sol’s energy budget."
-      },
       "firstSample": {
         "title": "The empty tube",
         "when": "Aug–Sep 2021",
-        "desc": "The first coring comes up empty: the rock crumbled. Find one strong enough and fill tube 266."
+        "desc": "Perseverance’s first coring comes up empty: the rock crumbled. Find one strong enough to fill tube 266, and run MOXIE to make oxygen within the sol’s energy budget."
       },
       "chute": {
         "title": "Back to the chute",
         "when": "Apr 2022",
-        "desc": "Fly Ingenuity’s flight 26 over the backshell and the 21.5 m parachute, 8 m above the ground."
-      },
-      "lastFlight": {
-        "title": "Ingenuity’s last flight",
-        "when": "Jan 2024",
-        "desc": "A short hop ends with a broken rotor blade. Find the helicopter and photograph where it rests."
+        "desc": "Take Ingenuity’s controls for flight 26, 8 m above the backshell and the parachute, then follow the helicopter to its 72nd and last flight."
       },
       "leopard": {
         "title": "Leopard spots",
@@ -1297,28 +1292,27 @@
       "rim": {
         "title": "The rim",
         "when": "2024–2025",
-        "desc": "Climb Witch Hazel Hill to the crater rim and the Krokodillen plateau, among the oldest rocks on Mars."
-      },
-      "sparks": {
-        "title": "Mini-lightning",
-        "when": "2025",
-        "desc": "Stalk a dust devil with the microphone on: it records the crackle of electrical discharges."
-      },
-      "aiDrive": {
-        "title": "Plan the drive",
-        "when": "Dec 2025",
-        "desc": "Plan waypoints through a field of rocks, as in the first drives planned by AI, and compare with AutoNav."
-      },
-      "record": {
-        "title": "Record breaker",
-        "when": "Oct 2026",
-        "desc": "Push the odometer past 45 km, Opportunity’s off-world record, without risking the rover."
+        "desc": "Climb Witch Hazel Hill to the crater rim, among the oldest rocks on Mars, and stalk dust devils with the microphone on."
       },
       "start": "Start",
       "continue": "Continue · chapter {{chapter}}",
       "soon": "Coming soon",
       "progress": "Chapter {{chapter}} of {{count}}",
-      "credit": "Images: NASA/JPL-Caltech (NASA Image and Video Library)."
+      "credit": "Images: NASA/JPL-Caltech (NASA Image and Video Library).",
+      "free": {
+        "title": "Free exploration",
+        "when": "Any sol",
+        "n": "∞",
+        "desc": "Drive where you like with every tool on: SuperCam, AutoNav, panoramas, coring, Ingenuity, time warp and photos. No objectives, no clock.",
+        "start": "Explore",
+        "continue": "Keep exploring",
+        "where": "Map",
+        "landing": "Landing site",
+        "delta": "Delta front"
+      },
+      "done": "Completed",
+      "best": "best {{time}}",
+      "again": "Play again"
     },
     "places": {
       "reach-descent-stage": "Descent stage",

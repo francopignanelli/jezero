@@ -21,7 +21,7 @@ import type { RockType } from './science';
  * Pure: the session feeds it the rover and the player's actions; tested in game.test.ts.
  */
 
-export type MissionId = 'landing' | 'ingenuity' | 'delta';
+export type MissionId = 'landing' | 'ingenuity' | 'delta' | 'free-landing' | 'free-delta';
 
 export const SAMPLE_RADIUS_M = 14;
 export const PANORAMA_RADIUS_M = 12;
@@ -177,8 +177,11 @@ export interface MissionDef {
   stations?: Array<Spot & { icon: 'sample' | 'depot' | 'panorama' | 'reach' }>;
   /** Ingenuity rides under the rover at the start (the deployment mission). */
   stowedHelicopter?: boolean;
-  /** Back to the missions menu when it is complete (no summary page, no driving on). */
-  endToMenu?: boolean;
+  /**
+   * Free exploration: no clock and nothing to finish; its one chapter lists the map's places as
+   * optional discoveries.
+   */
+  free?: boolean;
 }
 
 // ---------- the delta front ----------
@@ -365,7 +368,6 @@ export const INGENUITY_MISSION: MissionDef = {
   earlierSamples: [],
   routeSols: [29, 58],
   film: 'firstFlight',
-  endToMenu: true,
   stations: [
     // The airfield is about 10 × 10 m: park near its centre.
     { id: 'field', name: 'Wright Brothers Field', ...WRIGHT_FIELD, radiusM: 4, icon: 'depot' },
@@ -374,10 +376,55 @@ export const INGENUITY_MISSION: MissionDef = {
   stowedHelicopter: true,
 };
 
+// ---------- free exploration ----------
+
+/** A mission's objectives of some kinds, once each and all optional: free exploration's discoveries. */
+function discoveries(m: MissionDef, kinds: Array<Objective['kind']>): Objective[] {
+  const seen = new Set<string>();
+  const out: Objective[] = [];
+  for (const o of m.chapters.flatMap((c) => c.objectives))
+    if (kinds.includes(o.kind) && !seen.has(o.id)) {
+      seen.add(o.id);
+      out.push({ ...o, optional: true });
+    }
+  return out;
+}
+
+/**
+ * Free exploration of the landing site: every tool, no objectives that must be done; the landing
+ * hardware to find. (No video first.)
+ */
+const { intro: _landingIntro, ...landingMap } = LANDING;
+export const FREE_LANDING: MissionDef = {
+  ...landingMap,
+  id: 'free-landing',
+  chapters: [{ id: 'free', sols: [0, 420], objectives: discoveries(LANDING, ['reach']) }],
+  free: true,
+};
+
+/**
+ * Free exploration of the delta front: the sample sites (coring works there), the panorama spots,
+ * the depot, and Ingenuity flying its flights there as the rover comes near.
+ */
+export const FREE_DELTA: MissionDef = {
+  ...DELTA,
+  id: 'free-delta',
+  chapters: [
+    {
+      id: 'free',
+      sols: [DELTA.chapters[0]!.sols[0], DELTA.chapters[DELTA.chapters.length - 1]!.sols[1]],
+      objectives: discoveries(DELTA, ['reach', 'sample', 'panorama', 'depot']),
+    },
+  ],
+  free: true,
+};
+
 export const MISSIONS: Record<MissionId, MissionDef> = {
   landing: LANDING,
   ingenuity: INGENUITY_MISSION,
   delta: DELTA,
+  'free-landing': FREE_LANDING,
+  'free-delta': FREE_DELTA,
 };
 export const missionOf = (s: { mission?: MissionId }): MissionDef => MISSIONS[s.mission ?? 'delta'];
 
@@ -528,11 +575,14 @@ export function objectiveCount(
 }
 
 export const chapterDone = (s: ExpeditionState, i = s.chapter): boolean => {
-  const c = missionOf(s).chapters[i];
-  return !!c && c.objectives.every((o) => o.optional || objectiveDone(s, o, c));
+  const m = missionOf(s);
+  const c = m.chapters[i];
+  // Free exploration never ends.
+  return !!c && !m.free && c.objectives.every((o) => o.optional || objectiveDone(s, o, c));
 };
 
 export const expeditionDone = (s: ExpeditionState): boolean => {
+  if (missionOf(s).free) return false;
   const n = missionOf(s).chapters.length;
   return s.chapter >= n - 1 && chapterDone(s, n - 1);
 };

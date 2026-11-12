@@ -8,9 +8,9 @@ import {
   type RoverSnapshot,
   type SampleSite,
 } from '../../data/surfaceData';
+import { exploreLink, loadGameAreas } from '../../data/gameAreas';
 import { formatCoordinate } from '../../lib/format';
 import { Icon360 } from '../../ui/icons';
-import { flyToRover } from './rover';
 import { SamplePhotos } from './SamplePhotos';
 
 /** Route-planning coverage of the operational region (see data/build/regions/jezero/grid.json). */
@@ -65,6 +65,20 @@ export function SurfacePanel() {
       ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, [selectedPoiId]);
 
+  // Places that are on one of the game's maps: they can be driven to there.
+  const [inGame, setInGame] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    void loadGameAreas().then((areas) =>
+      setInGame(
+        new Set(
+          POIS.filter((p) => areas.some((b) => p.lat >= b.south && p.lat <= b.north && p.lon >= b.west && p.lon <= b.east)).map(
+            (p) => p.id,
+          ),
+        ),
+      ),
+    );
+  }, []);
+
   useEffect(() => {
     void loadRover().then(setRover);
     void loadSamples().then((s) => setSamples(s?.samples ?? []));
@@ -94,33 +108,13 @@ export function SurfacePanel() {
 
       {rover && (
         <div className="card" data-tour="rover">
-          <div className="card-title">
-            {t('science.rover')}
-            <span
-              className={`tag ${inCoverage(rover.latest.lat, rover.latest.lon) ? '' : 'tag-out'}`}
-            >
-              {inCoverage(rover.latest.lat, rover.latest.lon)
-                ? t('science.inCoverage')
-                : t('science.roverOutside')}
-            </span>
-          </div>
-          <p className="lede">
-            {t('science.roverLatest', { sol: rover.latest.sol, date: updated })}
-          </p>
-          <p className="coord">
-            {formatCoordinate(rover.latest.lat, rover.latest.lon, i18n.language)}
-          </p>
-          <p className="meta">{rover.provenance}</p>
-          <div className="btn-stack">
-            <button type="button" className="btn" onClick={() => void flyToRover()}>
-              {t('science.flyTo')}
-            </button>
-            <a className="btn" href="./play.html">
-              {t('surface.drive')}
-            </a>
-          </div>
-          <p className="meta">{t('surface.showOnMap')}</p>
+          <div className="card-title">{t('science.rover')}</div>
+          <p className="lede">{t('science.roverWhere', { sol: rover.latest.sol, date: updated })}</p>
           <LayerChips ids={MISSION_LAYERS} />
+          <p className="meta">{rover.provenance}</p>
+          <a className="btn" href="./play.html">
+            {t('surface.drive')}
+          </a>
         </div>
       )}
 
@@ -188,6 +182,11 @@ export function SurfacePanel() {
                 >
                   {t('science.addStop')}
                 </button>
+                {inGame.has(p.id) && (
+                  <a className="btn" href={exploreLink(p.lat, p.lon)}>
+                    {t('science.driveHere')}
+                  </a>
+                )}
               </div>
             </details>
           );

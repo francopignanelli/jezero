@@ -48,18 +48,6 @@
       "sha256": "8590a17881c8cf37f156b1331defe4569b81b95e830b8badcfd50225e9ee7754"
     },
     {
-      "key": "moxie",
-      "file": "game/cards/moxie.webp",
-      "nasaId": "PIA24203",
-      "title": "MOXIE All Tucked In",
-      "page": "https://images.nasa.gov/details/PIA24203",
-      "sourceUrl": "https://images-assets.nasa.gov/image/PIA24203/PIA24203~medium.jpg",
-      "sourceSha256": "dc4d399c1148eaee02d83a08ae6f350b53e31040fe085dd3f6b239feeba2f750",
-      "credit": "NASA/JPL-Caltech",
-      "bytes": 58682,
-      "sha256": "4bcddd537fd7949c56d9b2fad014e8f16263591725618c0727a884bae4ae9db0"
-    },
-    {
       "key": "firstSample",
       "file": "game/cards/firstSample.webp",
       "nasaId": "PIA24832",
@@ -96,18 +84,6 @@
       "sha256": "1afbdbc5da047a84b794c353bed5ae7dbeef77afa2c9c77e15f51aa1131dedc9"
     },
     {
-      "key": "lastFlight",
-      "file": "game/cards/lastFlight.webp",
-      "nasaId": "PIA26243",
-      "title": "Ingenuity Spots the Shadow of Its Damaged Rotor Blade",
-      "page": "https://images.nasa.gov/details/PIA26243",
-      "sourceUrl": "https://images-assets.nasa.gov/image/PIA26243/PIA26243~medium.jpg",
-      "sourceSha256": "2513fa3c931f3b35c37c3b9c393c7205befb403e892562d3e9213983fa2c80f4",
-      "credit": "NASA/JPL-Caltech",
-      "bytes": 45228,
-      "sha256": "372c47d8120e804b9ae79ad6780aa12d01a6731baa3164682464e0aff8901c7b"
-    },
-    {
       "key": "leopard",
       "file": "game/cards/leopard.webp",
       "nasaId": "PIA26344",
@@ -132,40 +108,16 @@
       "sha256": "7e72ddeaac422f5fb775d329231c5b210ef330a834d3e28ac87cfced83df1920"
     },
     {
-      "key": "sparks",
-      "file": "game/cards/sparks.webp",
-      "nasaId": "PIA25290",
-      "title": "Perseverance Views Dust Devils Swirling Across Jezero Crater",
-      "page": "https://images.nasa.gov/details/PIA25290",
-      "sourceUrl": "https://images-assets.nasa.gov/image/PIA25290/PIA25290~medium.jpg",
-      "sourceSha256": "965b775134be339f33f77d3f6952c859286515faeb1a3d55f65248c663fd2068",
+      "key": "free",
+      "file": "game/cards/free.webp",
+      "nasaId": "PIA24765",
+      "title": "Perseverance’s Office on Mars",
+      "page": "https://images.nasa.gov/details/PIA24765",
+      "sourceUrl": "https://images-assets.nasa.gov/image/PIA24765/PIA24765~medium.jpg",
+      "sourceSha256": "4d9105e6062881329ba305d51f3f447fd95dddd04ac9d34b8f516e40d04e1efa",
       "credit": "NASA/JPL-Caltech",
-      "bytes": 21548,
-      "sha256": "ef398136ada320518625b36002b5a4c27ebe309acf1ec0e366332cb6d3c584c9"
-    },
-    {
-      "key": "aiDrive",
-      "file": "game/cards/aiDrive.webp",
-      "nasaId": "PIA26073",
-      "title": "Perseverance AutoNav Avoids a Boulder",
-      "page": "https://images.nasa.gov/details/PIA26073",
-      "sourceUrl": "https://images-assets.nasa.gov/image/PIA26073/PIA26073~medium.jpg",
-      "sourceSha256": "efce4f09f48bb15050c3598f038d87a334ee33c9dfc4b6c6fbb41196c212f8c7",
-      "credit": "NASA/JPL-Caltech",
-      "bytes": 38144,
-      "sha256": "8abb8aba239830bf05380ef16eeb96b622efa421b6efe6359bafadb50a321821"
-    },
-    {
-      "key": "record",
-      "file": "game/cards/record.webp",
-      "nasaId": "PIA26071",
-      "title": "Perseverance’s AutoNav Leads the Way",
-      "page": "https://images.nasa.gov/details/PIA26071",
-      "sourceUrl": "https://images-assets.nasa.gov/image/PIA26071/PIA26071~medium.jpg",
-      "sourceSha256": "8baa9426f5929d9192f655c5af27b94ea22e2716a8798a7a324eb1dfe8a4d9c5",
-      "credit": "NASA/JPL-Caltech",
-      "bytes": 37472,
-      "sha256": "154049213407ae13e16872ccef8cd329b0caa1bcd2e96691b9406e7743839bee"
+      "bytes": 53396,
+      "sha256": "cf9e1d34116a75987028ac06dba15eda8d3b6c18408a5c32480dab21a009fcbf"
     }
   ]
 }

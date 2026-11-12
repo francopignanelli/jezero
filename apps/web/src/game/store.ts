@@ -107,6 +107,8 @@ interface GameUi {
   hasSave: boolean;
   /** Each mission's saved chapter (index), for the menu. */
   saves: Partial<Record<MissionId, number>>;
+  /** Each completed mission's best time (s). */
+  bests: Partial<Record<MissionId, number>>;
   /** The mission being played (or shown behind the menu). */
   mission: MissionId;
   /** A NASA video being watched again (over the menu or the pause menu). */
@@ -168,6 +170,7 @@ export const useGame = create<GameUi>((set) => ({
   expedition: newExpedition(),
   hasSave: false,
   saves: {},
+  bests: {},
   mission: 'delta',
   video: null,
   targets: [],
