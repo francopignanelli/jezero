@@ -3501,3 +3501,9 @@ a.mode-switch-item:focus-visible {
     transform: none;
   }
 }
+
+/* Slope-limit scenarios of the route (route panel). */
+.sensitivity tr.is-current th,
+.sensitivity tr.is-current td {
+  font-weight: 600;
+}

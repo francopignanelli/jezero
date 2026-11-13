@@ -287,8 +287,8 @@ export class SkyRenderer {
   }
 
   /**
-   * Progressive load: resolves once the star catalog and the 4K Milky Way (2.7 MB) are on the GPU,
-   * so the scene can be revealed quickly. If the GPU supports 8K, the HD texture (16.5 MB) then loads
+   * Progressive load: resolves once the star catalog and the light Milky Way (2K, 0.55 MB) are on the GPU,
+   * so the scene can be revealed quickly. If the GPU supports 8K, the sharper texture (4K, or 8K on large screens) then loads
    * in the background once `hdAfter` settles, so it does not compete with the first terrain tiles,
    * and cross-fades in; `onQuality('hd')` reports the upgrade. Positions are identical in both
    * textures; only the detail changes.

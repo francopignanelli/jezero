@@ -1,6 +1,7 @@
 import { cpSync, createReadStream, existsSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
+import { createGzip } from 'node:zlib';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
@@ -27,11 +28,15 @@ const TYPES: Record<string, string> = {
   '.wasm': 'application/wasm',
   '.terrain': 'application/vnd.quantized-mesh',
   '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.glb': 'model/gltf-binary',
   '.vtt': 'text/vtt',
 };
+/** Served gzip-compressed when the browser accepts it (CloudFront compresses these types too). */
+const COMPRESSED = new Set(['.json', '.geojson', '.vtt', '.svg']);
 
 function serveDirectory(mount: string, root: string, cache: (file: string) => string): Plugin {
-  return {
+  const plugin: Plugin = {
     name: `copernico-serve-${mount}`,
     configureServer(server) {
       server.middlewares.use(`/${mount}`, (req, res, next) => {
@@ -73,11 +78,22 @@ function serveDirectory(mount: string, root: string, cache: (file: string) => st
           createReadStream(file, { start, end }).on('error', next).pipe(res);
           return;
         }
+        // Text data compressed, as CloudFront does for JSON (so local load measurements match).
+        if (COMPRESSED.has(extname(file)) && /\bgzip\b/.test(String(req.headers['accept-encoding']))) {
+          res.setHeader('Content-Encoding', 'gzip');
+          res.setHeader('Vary', 'Accept-Encoding');
+          createReadStream(file).on('error', next).pipe(createGzip()).pipe(res);
+          return;
+        }
         res.setHeader('Content-Length', String(stat.size));
         createReadStream(file).on('error', next).pipe(res);
       });
     },
   };
+  // `vite preview` (the production build) serves the same files: load times measured locally.
+  plugin.configurePreviewServer = (server) =>
+    (plugin.configureServer as (s: typeof server) => void)(server);
+  return plugin;
 }
 
 /** Copies Cesium's static runtime files next to the production bundle. */
@@ -100,6 +116,9 @@ function copyCesium(): Plugin {
 // planner.html's first-paint loader reads %VITE_DATA_BASE_URL%; default it so the placeholder is
 // always defined (same default as src/config.ts).
 process.env.VITE_DATA_BASE_URL ??= './data';
+// The public site's origin (e.g. https://copernico.example), for the absolute Open Graph image
+// links that link previews need; set at deploy time (docs/deploy.md). Empty: a root-relative path.
+process.env.VITE_SITE_URL ??= '';
 
 export default defineConfig({
   base: './',

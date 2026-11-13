@@ -100,15 +100,18 @@ export function MarsCanvas() {
       if (s.mode === 'jezero') s.setInspected({ lat, lon });
     });
 
-    // The 8K Milky Way waits until the scene is revealed: it must not slow the first tiles.
+    // The first view gets the 2K Milky Way (0.55 MB). The sharper one waits until the scene is
+    // revealed, so it never slows the first tiles: the 4K (2.8 MB), or the 8K (16.5 MB) only where a
+    // screen has the pixels to show it.
     let revealed = () => {};
     const shown = new Promise<void>((r) => (revealed = r));
+    const screenPx = Math.max(window.screen.width, window.screen.height) * (window.devicePixelRatio || 1);
     const sky = scene
       .loadSky(
         dataUrl(`sky/stars.json?v=${DATA_VERSION}`),
         {
-          hd: dataUrl(`sky/milkyway_8k.webp?v=${DATA_VERSION}`),
-          sd: dataUrl(`sky/milkyway_4k.webp?v=${DATA_VERSION}`),
+          hd: dataUrl(`sky/milkyway_${screenPx >= 2800 ? '8k' : '4k'}.webp?v=${DATA_VERSION}`),
+          sd: dataUrl(`sky/milkyway_2k.webp?v=${DATA_VERSION}`),
         },
         (quality) => {
           if (quality === 'hd') setLoading({ sky: 'hd' });

@@ -282,26 +282,52 @@ export class GameSession {
     }
   }
 
-  /** Loads the world and the rover; resolves false if data is missing or the session was destroyed. */
+  /**
+   * The 3D world: the rover and Ingenuity models and the last mission's map, loaded behind the
+   * menu (about 11 MB); a mission waits for it. Resolves false if it failed.
+   */
+  private worldReady: Promise<boolean> = Promise.resolve(false);
+  /** A mission was chosen (the menu's scene is then not set up again when the world arrives). */
+  private chosen = false;
+
+  /**
+   * Loads the small data the menu needs (the places, the samples, the route) and resolves: the menu
+   * shows at once. The 3D world then loads behind it (worldReady). Resolves false if data is missing
+   * or the session was destroyed.
+   */
   async load(): Promise<boolean> {
     try {
-      const [manifest, samples, rover] = await Promise.all([
-        loadManifest(),
-        loadSamples(),
-        loadRover(),
+      const rovers = Promise.all([
         this.world.loadRover(dataUrl(`models/perseverance.glb?v=${DATA_VERSION}`)),
         this.world.loadIngenuity(dataUrl(`models/ingenuity.glb?v=${DATA_VERSION}`)),
       ]);
+      const [manifest, samples, rover] = await Promise.all([loadManifest(), loadSamples(), loadRover()]);
       if (this.destroyed || !samples) return false;
       this.manifest = manifest;
       this.samples = samples.samples;
       this.waypoints = rover?.waypoints ?? [];
       this.useMission(MISSIONS[readLastMission()]);
-      await this.useArea();
-      if (this.destroyed) return false;
-      this.showcase();
-      this.last = performance.now();
-      this.raf = requestAnimationFrame(this.loop);
+      useGame.getState().set({
+        phase: 'briefing',
+        hasSave: !!readSave('delta'),
+        saves: savedChapters(),
+        bests: bestTimes(),
+        mission: this.mission.id,
+      });
+      this.worldReady = (async () => {
+        await rovers;
+        await this.useArea();
+        if (this.destroyed) return false;
+        if (!this.chosen) this.showcase();
+        this.last = performance.now();
+        this.raf = requestAnimationFrame(this.loop);
+        useGame.getState().set({ worldReady: true });
+        return true;
+      })().catch((e: unknown) => {
+        console.error('[Copernico game] world load failed', e);
+        if (!this.destroyed) useGame.getState().set({ phase: 'failed' });
+        return false;
+      });
       if (import.meta.env.DEV)
         (window as unknown as { __copernicoGame?: unknown }).__copernicoGame = this;
       return true;
@@ -389,6 +415,12 @@ export class GameSession {
 
   /** Loads a mission's map (behind a loading screen) when it is not the one shown. */
   private async enterMission(id: MissionId): Promise<boolean> {
+    this.chosen = true;
+    if (!useGame.getState().worldReady) {
+      // Chosen before the world finished loading behind the menu: wait for it.
+      useGame.getState().set({ phase: 'loading' });
+      if (!(await this.worldReady) || this.destroyed) return false;
+    }
     if (this.mission.id === id && this.areaLoaded === this.mission.areaId) return true;
     useGame.getState().set({ phase: 'loading' });
     this.useMission(MISSIONS[id]);

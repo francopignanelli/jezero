@@ -176,7 +176,7 @@
     "unresolved": "Peligros que los datos no pueden resolver",
     "unresolvedList": "Rocas menores a ~1,5 m, relieve menor a ~0,5 m, artefactos del modelo de elevación, huecos sueltos o cubiertos de polvo, resistencia del suelo y límites del traje en la gravedad marciana.",
     "assumptions": "Supuestos",
-    "assumptionsNote": "El límite de pendiente, las velocidades y los límites de EVA provienen de fuentes lunares (Apolo/Artemis) y son supuestos para Marte. S = con fuente, A = supuesto.",
+    "assumptionsNote": "El límite de pendiente, las velocidades y los límites de EVA provienen de fuentes lunares (Apolo/Artemis) y son supuestos para Marte. S = con fuente, A = supuesto. Pendientes: modelo HiRISE de 1 m (precisión vertical ~0,2 m; error típico de la pendiente de 1,8–2,8° a 1 m de base, Kirk et al. 2008), resumido en celdas de 5 m.",
     "algorithm": "Calculado con {{algorithm}} · parámetros {{params}} · datos {{data}}",
     "profileCursor": "Perfil de elevación: posición a lo largo de la ruta",
     "profileReadout": "{{distance}} · {{elevation}} · pendiente {{slope}} · {{elapsed}} caminando",
@@ -198,6 +198,20 @@
       "simulateHint": "Cuando haya una ruta: una caminata cinematográfica con reloj de EVA y la pendiente bajo los pies.",
       "save": "Guardá y compartí",
       "saveHint": "Cuando haya una ruta: guardala en este navegador, copiá un enlace para compartir, exportá GeoJSON o CSV, o imprimí un informe."
+    },
+    "sensitivity": {
+      "title": "Si el límite de pendiente fuera otro",
+      "intro": "El límite de {{deg}}° viene de estudios lunares y no se midió para una caminata con traje en la gravedad de Marte. La misma caminata, planificada con otros límites:",
+      "limit": "Pendiente máx.",
+      "current": "el usado",
+      "ok": "Dentro del límite",
+      "tooLong": "Supera el tiempo de regreso",
+      "none": "No hay ruta con este límite",
+      "computing": "Planificándola con otros límites…",
+      "failed": "No se pudo calcular la comparación.",
+      "robust": "La ruta casi no depende de este supuesto: la distancia cambia menos de un 10 %.",
+      "depends": "La ruta depende de este supuesto: la distancia cambia hasta un {{pct}} %.",
+      "needsSteep": "Con {{deg}}° no hay ruta: esta caminata necesita pendientes que el límite más prudente no permitiría."
     }
   },
   "metrics": {
@@ -334,8 +348,8 @@
       "tiles": "Renderizando la primera vista",
       "surface": "Datos de Perseverance y ciencia"
     },
-    "hd": "8K",
-    "sd": "4K",
+    "hd": "alta resolución",
+    "sd": "2K",
     "status": {
       "pending": "cargando",
       "done": "listo",

@@ -1,6 +1,12 @@
 import type { PointInspection, RouteComparison, RouteProfile, Waypoint } from '@copernico/domain';
 import type { OverlayKind } from './overlays';
-import type { DetourCandidate, GridSummary, WorkerRequest, WorkerResponse } from './routing.worker';
+import type {
+  DetourCandidate,
+  GridSummary,
+  SlopeScenario,
+  WorkerRequest,
+  WorkerResponse,
+} from './routing.worker';
 
 type Pending = { resolve: (v: WorkerResponse) => void; reject: (e: Error) => void };
 
@@ -75,6 +81,13 @@ class RoutingClient {
     const msg = await this.request({ type: 'reach', id: 0, lat, lon, bandsH });
     if (msg.type !== 'reach') throw new Error('unexpected worker response');
     return msg;
+  }
+
+  /** The lower-risk route again under other maximum slopes (the default one is an assumption). */
+  async scenarios(waypoints: Waypoint[], returnToStart: boolean, slopesDeg: number[]): Promise<SlopeScenario[]> {
+    const msg = await this.request({ type: 'scenarios', id: 0, waypoints, returnToStart, slopesDeg });
+    if (msg.type !== 'scenarios') throw new Error('unexpected worker response');
+    return msg.scenarios;
   }
 
   /** True once the grid is loaded (inspection and detours need it). */

@@ -96,6 +96,24 @@ export const EVA_PARAMS_BASIS: Readonly<Record<keyof EvaParams, ParameterNote>> 
   gainHysteresisM: { basis: 'assumption', note: 'gainHysteresis', refs: [] },
 };
 
+/**
+ * The maximum slope a suited walker may take is the least certain of these values (lunar-derived,
+ * applied to Mars's 0.38 g). The route is recomputed under other limits to show how much it depends
+ * on it: these are the scenarios shown.
+ */
+export const SLOPE_SCENARIOS_DEG = [15, 25] as const;
+
+/**
+ * The same parameters with another maximum slope; the steepest band reaches up to it, so slopes
+ * above the default limit keep that band's penalty rather than becoming impassable.
+ */
+export function withMaxSlope(base: EvaParams, maxSlopeDeg: number): EvaParams {
+  const bands = base.slopeBands.map((b, i, all) =>
+    i === all.length - 1 ? { ...b, upToDeg: Math.max(b.upToDeg, maxSlopeDeg) } : b,
+  );
+  return { ...base, maxSlopeDeg, slopeBands: bands };
+}
+
 /** Stable FNV-1a (32-bit) fingerprint of a JSON-serializable value, used to version parameter sets. */
 export function fingerprint(value: unknown): string {
   const text = canonicalJson(value);

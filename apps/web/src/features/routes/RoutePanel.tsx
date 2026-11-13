@@ -22,6 +22,7 @@ import { IconCheck, IconPin, IconUp, IconX } from '../../ui/icons';
 import { Term } from '../guide/Glossary';
 import { MissionActions, SavedMissions } from '../missions/MissionControls';
 import { ElevationProfile } from './ElevationProfile';
+import { SlopeSensitivity } from './SlopeSensitivity';
 import { Timeline } from './Timeline';
 import { computeRoutes } from './compute';
 import { StopsNearRoute } from '../science/StopsNearRoute';
@@ -457,6 +458,8 @@ function RouteResults({
               </li>
             ))}
           </ul>
+
+          {s.profile === 'lower-risk' && <SlopeSensitivity metrics={m} />}
 
           <ElevationProfile profile={m.profile} />
 

@@ -16,6 +16,7 @@ and dated environmental context.
 - Decisions log: [docs/decisions.md](docs/decisions.md)
 - Update plan v2 (current work order): [docs/UPDATE_PLAN.md](docs/UPDATE_PLAN.md)
 - Performance measurements: [docs/performance.md](docs/performance.md)
+- Deployment readiness (sizes, headers, cost; not deployed): [docs/deploy.md](docs/deploy.md)
 
 ## NASA missions used
 
@@ -59,6 +60,7 @@ npx tsx scripts/data/fetch-zip-entry.ts images individual_images/Orthoimages/1_E
 scripts/geospatial/run.sh game-world --only floor && scripts/geospatial/run.sh game-world --only neretva && scripts/geospatial/run.sh game-world --only rim   # rover game maps of missions 3, 6 and 7 (landing and delta: --only landing / delta)
 npx tsx scripts/data/build-sample-tube.ts && npx -y @gltf-transform/cli@4 optimize data/build/models/sample-tube.raw.glb data/build/models/sample-tube.glb --compress meshopt   # sample tube (NASA-3D-Resources STL)
 npx tsx scripts/data/build-sky.ts && scripts/geospatial/run.sh sky   # stars + Milky Way
+npx tsx scripts/data/build-sky-2k.ts   # light 2K Milky Way for the planner's first view
 scripts/geospatial/run.sh loading-bg   # loading-screen background (needs the sky step); imagery-relief also writes sky/mars_globe_2k.webp
 npx tsx scripts/data/validate-grid.ts    # grid vs PDS PLACES + guided-route check
 ```

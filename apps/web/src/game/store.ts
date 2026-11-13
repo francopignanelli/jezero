@@ -147,6 +147,8 @@ interface GameUi {
   result: ExpeditionResult | null;
   /** The last laser analysis (a panel for a few seconds). */
   finding: Find | null;
+  /** The 3D world (models, the map behind the menu) has loaded. */
+  worldReady: boolean;
   /** The story card shown (phase 'story'): its key (game.story.<key>, game/story/<key>.webp). */
   story: string | null;
   toast: Toast | null;
@@ -204,6 +206,7 @@ export const useGame = create<GameUi>((set) => ({
   camera: 'chase',
   mapOpen: true,
   story: null,
+  worldReady: false,
   hud: EMPTY_HUD,
   card: null,
   panorama: null,

@@ -45,3 +45,28 @@ imagery 1,470 → first view complete 1,850 (reveal) → 8K sky 2,996.
    an iPhone 12.
 3. Memory on mobile (target ≤ 500 MB). The 8K sky alone uses about 180 MB of GPU memory with its mip
    chain. If a device is over budget, the plan is to cap mobile at the 4K sky (about 45 MB).
+
+## Cold loads of the production build, throttled (2026-11-13)
+
+`npm run build`, served by `vite preview` with the data (JSON gzip-compressed, as CloudFront will),
+cache disabled, Chrome with its real GPU at 1366 × 768. Throttling: "Fast 4G" = 9 Mb/s down, 1.5 Mb/s
+up, 60 ms; "Slow 4G" = 1.6 Mb/s, 0.75 Mb/s, 150 ms. Script: the scratch `loadtime.mjs` (bytes from
+the DevTools protocol, time to the page's own ready signal).
+
+| Page (ready when) | Fast 4G before → after | Slow 4G before → after | MB before ready (after) |
+|---|---|---|---|
+| Home page (title shown) | 0.7 s | 3.6 s | 0.6 |
+| Planner (loading screen gone, globe interactive) | 10.2 s → **7.1 s** | 41.9 s → **28.1 s** | 8.2 → 4.9 |
+| Rover game (missions menu shown) | 13.0 s → **1.5 s** | 56.7 s → **4.6 s** | 11.0 → 0.7 |
+
+What changed:
+- **Game:** the menu no longer waits for the 3D world. The models and the last mission's map
+  (~11 MB) load behind it, over the home page's Jezero photo; a mission chosen before they arrive
+  waits for them behind its loading veil.
+- **Planner:** the first view takes a 2K Milky Way (0.55 MB, `scripts/data/build-sky-2k.ts`)
+  instead of the 4K (2.8 MB); the sharper one loads after the reveal: the 4K, or the 8K (16.5 MB)
+  only on screens of ≥ 2,800 device pixels. The rover's route (0.86 MB of GeoJSON) is now measured
+  compressed (0.18 MB), as it will be served.
+
+The planner meets the PLAN §8.3 desktop target (≤ 8 s on Fast 4G); on Slow 4G the rest is its
+1.1 MB of JavaScript (Cesium) and the first ~350 terrain and imagery tiles.

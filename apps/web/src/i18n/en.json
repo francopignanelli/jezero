@@ -176,7 +176,7 @@
     "unresolved": "Hazards the data cannot resolve",
     "unresolvedList": "Rocks smaller than ~1.5 m, relief below ~0.5 m, DTM artifacts, loose or dust-covered voids, soil strength, and suit limits at Mars gravity.",
     "assumptions": "Assumptions",
-    "assumptionsNote": "Slope limit, speeds and EVA limits come from lunar (Apollo/Artemis) sources and are assumptions for Mars. S = sourced, A = assumption.",
+    "assumptionsNote": "Slope limit, speeds and EVA limits come from lunar (Apollo/Artemis) sources and are assumptions for Mars. S = sourced, A = assumption. Slopes: 1 m HiRISE terrain model (vertical precision ~0.2 m; typical slope error 1.8–2.8° at a 1 m baseline, Kirk et al. 2008), summarised in 5 m cells.",
     "algorithm": "Computed with {{algorithm}} · parameters {{params}} · data {{data}}",
     "profileCursor": "Elevation profile: position along the route",
     "profileReadout": "{{distance}} · {{elevation}} · slope {{slope}} · {{elapsed}} walking",
@@ -198,6 +198,20 @@
       "simulateHint": "Once a route is ready: a cinematic walk with an EVA clock and the slope underfoot.",
       "save": "Save and share",
       "saveHint": "Once a route is ready: save it in this browser, copy a share link, export GeoJSON or CSV, or print a briefing."
+    },
+    "sensitivity": {
+      "title": "If the slope limit were different",
+      "intro": "The {{deg}}° limit comes from lunar studies and has not been measured for a suited walk in Mars gravity. The same Marswalk, planned with other limits:",
+      "limit": "Max slope",
+      "current": "used",
+      "ok": "Within limit",
+      "tooLong": "Exceeds the return time",
+      "none": "No route under this limit",
+      "computing": "Planning it with other limits…",
+      "failed": "The comparison could not be computed.",
+      "robust": "The route barely depends on this assumption: the distance changes by less than 10%.",
+      "depends": "The route depends on this assumption: the distance changes by up to {{pct}}%.",
+      "needsSteep": "With {{deg}}° there is no route: this Marswalk needs slopes the most cautious limit would not allow."
     }
   },
   "metrics": {
@@ -334,8 +348,8 @@
       "tiles": "Rendering the first view",
       "surface": "Perseverance and science data"
     },
-    "hd": "8K",
-    "sd": "4K",
+    "hd": "high resolution",
+    "sd": "2K",
     "status": {
       "pending": "loading",
       "done": "ready",

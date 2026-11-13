@@ -47,6 +47,7 @@ export function GameApp() {
   const host = useRef<HTMLDivElement>(null);
   const [session, setSession] = useState<GameSession | null>(null);
   const phase = useGame((s) => s.phase);
+  const worldReady = useGame((s) => s.worldReady);
 
   useEffect(() => {
     if (!host.current) return;
@@ -85,7 +86,18 @@ export function GameApp() {
 
   return (
     <div className="game" data-phase={phase}>
-      <div ref={host} className="game-canvas" />
+      {/* The home page's Jezero photo while the 3D world loads behind the menu. */}
+      <div
+        ref={host}
+        className="game-canvas"
+        style={
+          worldReady
+            ? undefined
+            : {
+                background: `#1a0f0a url(${dataUrl(`landing/mars-1920.webp?v=${DATA_VERSION}`)}) center / cover`,
+              }
+        }
+      />
       {phase === 'failed' && (
         <div className="game-screen">
           <div className="game-dialog" role="alert">

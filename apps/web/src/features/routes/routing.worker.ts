@@ -11,7 +11,9 @@ import {
   eqcInverse,
   locateCell,
   planAlternatives,
+  planRoute,
   prepareTerrain,
+  withMaxSlope,
   sampleBilinear,
   eqcForward,
   type PreparedTerrain,
@@ -28,7 +30,24 @@ export type WorkerRequest =
   | { type: 'sample'; id: number; points: Array<{ lat: number; lon: number }> }
   | { type: 'inspect'; id: number; lat: number; lon: number }
   | { type: 'detours'; id: number; profile: RouteProfile; candidates: DetourCandidate[] }
-  | { type: 'reach'; id: number; lat: number; lon: number; bandsH: number[] };
+  | { type: 'reach'; id: number; lat: number; lon: number; bandsH: number[] }
+  | {
+      type: 'scenarios';
+      id: number;
+      waypoints: Waypoint[];
+      returnToStart: boolean;
+      slopesDeg: number[];
+    };
+
+/** The lower-risk route under another maximum slope: found or not, and its main figures. */
+export interface SlopeScenario {
+  maxSlopeDeg: number;
+  found: boolean;
+  distanceM: number | null;
+  durationS: number | null;
+  maxSlopeOnRouteDeg: number | null;
+  walkbackOk: boolean | null;
+}
 
 /** A science stop to price between two consecutive waypoints of the current route. */
 export interface DetourCandidate {
@@ -69,10 +88,13 @@ export type WorkerResponse =
       /** Area (km²) within each band, cumulative. */
       areaKm2: number[];
       elapsedMs: number;
-    };
+    }
+  | { type: 'scenarios'; id: number; scenarios: SlopeScenario[]; elapsedMs: number };
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 let terrain: PreparedTerrain | null = null;
+/** The grid prepared under other maximum slopes (built once each, on first use). */
+const byMaxSlope = new Map<number, PreparedTerrain>();
 
 scope.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const msg = event.data;
@@ -142,6 +164,31 @@ scope.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         ...detourCost(t, msg.profile, c.from, c.to, c.stop),
       }));
       post({ type: 'detours', id: msg.id, detours });
+    } else if (msg.type === 'scenarios') {
+      const t0 = performance.now();
+      const base = terrain;
+      const scenarios = msg.slopesDeg.map((deg): SlopeScenario => {
+        let t = byMaxSlope.get(deg);
+        if (!t) {
+          t = prepareTerrain(base.layers, withMaxSlope(DEFAULT_EVA_PARAMS, deg));
+          byMaxSlope.set(deg, t);
+        }
+        const r = planRoute(t, {
+          waypoints: msg.waypoints,
+          returnToStart: msg.returnToStart,
+          profile: 'lower-risk',
+        });
+        const m = r.status === 'ok' ? r.metrics : null;
+        return {
+          maxSlopeDeg: deg,
+          found: !!m,
+          distanceM: m?.horizontalDistanceM ?? null,
+          durationS: m?.estimatedDurationS ?? null,
+          maxSlopeOnRouteDeg: m?.maxTerrainSlopeDeg ?? null,
+          walkbackOk: m ? m.walkback.ok : null,
+        };
+      });
+      post({ type: 'scenarios', id: msg.id, scenarios, elapsedMs: performance.now() - t0 });
     } else if (msg.type === 'reach') {
       const t0 = performance.now();
       const spec = terrain.layers.spec;

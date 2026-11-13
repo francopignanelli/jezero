@@ -20,17 +20,20 @@ feature listed in `docs/acceptance.md`.
 | 3–7 s | **Explore Jezero**: the camera flies from orbit into the crater | "Copernico layers data from five NASA missions over Jezero Crater." |
 | 7–11 s | **Load guided Marswalk** → **Calculate routes**: the route draws and the camera frames it | "It plans a Marswalk of lower estimated risk on a 1 m HiRISE terrain model…" |
 | 11–14 s | Layers → **Slope classes**, then back to "Why this route" | "…and explains why: 200 m of 15–20° slopes avoided for 30 m extra." |
-| 14–18 s | Science → **Science stops near your route** → **Add stop** (Enchanted Lake) | "Science stops along the way are priced as detours: +25 minutes." |
-| 18–22 s | EVA timeline: walk and stop blocks, Sun curve, "Back 3 h before the Sun drops below 10°" | "The timeline checks daylight and the walk-back limit." |
-| 22–27 s | **▶ Play mission** follow-cam fly-through | "Then the crew can rehearse the walk." |
-| 27–30 s | Map with the reach overlay; end card "Copernico · open NASA data · lower estimated risk, never guaranteed safety" | "Plan it. Understand it. Walk it." |
+| 14–17 s | "If the slope limit were different": the same route at 15°, 20° and 25° | "Its riskiest assumption, the slope limit, is tested: same route at 15° or 25°." |
+| 17–20 s | Science → **Science stops near your route** → **Add stop** (Enchanted Lake) | "Science stops along the way are priced as detours: +25 minutes." |
+| 20–23 s | EVA timeline: walk and stop blocks, Sun curve, "Back 3 h before the Sun drops below 10°" | "The timeline checks daylight and the walk-back limit." |
+| 23–27 s | A site's **Drive here (game)** → the rover game opens on the same 1 m terrain; a cut to Ingenuity's flight 26 over the backshell | "The same ground is a game: seven real episodes of Perseverance." |
+| 27–30 s | End card "Copernico · open NASA data · lower estimated risk, never guaranteed safety" | "Plan it. Understand it. Explore it." |
 
 ## 7-slide deck (backup)
 
 1. **The challenge.** Astronauts need an integrated map for a Marswalk: routes, conditions,
    science. Today that data is spread across missions, frames and formats.
-2. **Copernico.** One screenshot: globe → Jezero → route. It covers plan, understand, carry out
-   and science along the way, works without an account, in English and Spanish.
+2. **Copernico.** Two modes over the same Jezero, each complete on its own and linked: the
+   **planner** (globe → Jezero → route; plan, understand, carry out, science along the way) and the
+   **rover game** (seven real episodes of Perseverance on the same terrain, with NASA's images).
+   Any planner site that lies on a game map opens there. No account; English and Spanish.
 3. **NASA data integration.** A table of 5 missions:
    - MGS/MOLA: global relief.
    - MRO/HiRISE + CTX: 1 m terrain and imagery.
@@ -44,6 +47,7 @@ feature listed in `docs/acceptance.md`.
    - The 5.4 % lat_ts = 0 pitfall, caught and corrected.
    - Slope over a 10 m baseline; 20° limit (lunar source, labelled as an assumption).
    - A* planning with lower-risk vs shortest alternatives.
+   - The lunar slope limit tested: the route recomputed at 15° and 25°.
    - Mars24 time, cross-checked to < 0.1° against the Sun direction.
 5. **Plan and carry out.**
    - Elevation profile linked to the 3D route.
@@ -53,10 +57,11 @@ feature listed in `docs/acceptance.md`.
    - Detour-priced science stops.
    - Saved missions, share links, GeoJSON/CSV and a printable briefing.
 6. **Evidence.**
-   - 141 unit and property tests, plus end-to-end tests.
+   - 215 unit and property tests, plus 19 end-to-end tests in a real browser.
    - An automated WCAG 2.2 AA audit that passes.
    - Deterministic share links (the same route to the millimetre).
-   - Scene reveal in ~2 s and route compute P95 under 0.4 s (`docs/performance.md`).
+   - Production build, cold, throttled to Fast 4G: planner interactive in 7.1 s, game menu in
+     1.5 s; route compute P95 under 0.4 s (`docs/performance.md`).
 7. **Limits and next steps.**
    - Orbital data cannot resolve rocks under ~1.5 m.
    - Walking limits are lunar-derived.
@@ -73,3 +78,4 @@ feature listed in `docs/acceptance.md`.
 | Enchanted Lake stop | +600 m / +25 min (recomputed route: +590 m) | Science → stops |
 | Timeline (10:00 LTST start, 20 min per stop) | Back 14:19 LTST; 3 h 05 min before the Sun drops below 10° | EVA timeline |
 | Reach | 13.3 km² within a 3 h round trip from the landing site | Reach legend |
+| Slope-limit test | Same route (5.64 km, 3 h 45 min, max 15°) at 15°, 20° and 25°: robust | "If the slope limit were different" |
