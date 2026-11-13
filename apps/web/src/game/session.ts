@@ -26,6 +26,14 @@ import { Controls, type Command } from './controls';
 import {
   CORE_COST_PCT,
   DELTA,
+  FLIGHT_26,
+  FREE_OF_AREA,
+  MOXIE_COST_PCT,
+  MOXIE_O2_G,
+  airObjectives,
+  laserSpotAt,
+  newlyDone,
+  sampleLockedBy,
   DEPLOY_SLIDES,
   DEPLOY_SLIDE_S,
   DRIVE_STEP_SPEED,
@@ -44,6 +52,7 @@ import {
   newExpedition,
   nextStep,
   nextTarget,
+  objectiveDone,
   openTargets,
   stationStep,
   stepExpedition,
@@ -57,6 +66,7 @@ import {
   type MissionId,
   type Target,
 } from './expedition';
+import { HELI, newHeli, stepHeli, stepPhoto, timeLeftS, type HeliState } from './heli';
 import { NavGrid, follow, pathLength, type FollowState, type Point } from './navigation';
 import { photoFileName, savePhoto } from './photos';
 import {
@@ -82,6 +92,9 @@ import { DRILL_PHASE, World, type PhotoFilter, type Quality } from './world/worl
 const STORM = { firstS: 55, firstJitterS: 60, warnS: 8, activeS: 32, gapS: 90, gapJitterS: 90 };
 
 const HUD_EVERY_S = 0.1;
+/** A dust devil can be recorded within this distance (m), for this long (s). */
+const DEVIL_RANGE_M = 90;
+const DEVIL_RECORD_S = 5;
 const SAVE_EVERY_S = 5;
 const QUALITY_KEY = 'copernico.game.quality';
 /** The rover keeps this far inside the 1 m terrain model (m), on top of roverSim's margin. */
@@ -188,8 +201,20 @@ export class GameSession {
   private labels = new Map<string, HTMLElement>();
   private readonly labelLayer: HTMLElement;
   private readonly onResize = () => this.world.resize();
-  /** A chapter opened, or the expedition finished, while a dialog was up: shown after it. */
-  private pending = { chapter: false, complete: false };
+  /**
+   * A chapter opened, or the expedition finished, while a dialog was up: shown after it; and the
+   * story cards (NASA's pictures of the moments just done) to show first.
+   */
+  private pending = { chapter: false, complete: false, stories: [] as string[] };
+  /** Ingenuity flown by the player (mission 4), and the camera following it. */
+  private pilot: HeliState | null = null;
+  private pilotSteer = 0;
+  private readonly chase = new Vector3();
+  private readonly chaseLook = new Vector3();
+  private chaseSet = false;
+  /** SuperCam's microphone recording a dust devil (s so far), and when to bring the next one. */
+  private recording: number | null = null;
+  private devilDueS = 0;
   private panoramaFrom: Phase = 'playing';
   private tubesAt: [number, number, number] | null = null;
   /** Perseverance's real route over this mission's map (lat, lon), for the map. */
@@ -328,7 +353,13 @@ export class GameSession {
     this.rover = this.settle(initialRover(at.lat, at.lon, at.headingRad));
     this.world.setCameraMode('far');
     this.world.rig.snap(this.rover.headingRad);
+    this.world.setWatch(null);
+    this.pilot = null;
+    this.world.setRoverVisible(!this.mission.pilot);
     this.world.placeIngenuity(null);
+    const f = this.world.frame;
+    const parked = this.mission.pilot ? { ...st } : this.mission.parkedHelicopter;
+    if (f && parked) this.world.placeIngenuity(f.toLocal(parked.lat, parked.lon), (parked.headingDeg * Math.PI) / 180);
     this.world.setRoute(null);
     this.clearLabels();
     useGame.getState().set({
@@ -404,7 +435,8 @@ export class GameSession {
   async exploreAt(lat: number, lon: number): Promise<boolean> {
     const area = await gameAreaAt(lat, lon);
     if (!area) return false;
-    const id: MissionId = area === 'landing' ? 'free-landing' : 'free-delta';
+    const id = FREE_OF_AREA[area];
+    if (!id) return false;
     if (readSave(id)) await this.continueExpedition(id);
     else await this.newExpedition(id);
     if (this.mission.id !== id || !this.running) return false;
@@ -431,7 +463,7 @@ export class GameSession {
     this.audio.unlock();
     this.exp = state;
     this.action = null;
-    this.pending = { chapter: false, complete: false };
+    this.pending = { chapter: false, complete: false, stories: [] };
     this.elapsedS = save?.elapsedS ?? 0;
     const st = this.mission.start;
     const at = save?.rover ?? {
@@ -444,6 +476,7 @@ export class GameSession {
       energyUsedPct: 0,
     };
     this.rover = this.settle({ ...initialRover(at.lat, at.lon, at.headingRad), ...at });
+    if (this.pilot) this.rover = { ...this.rover, lat: this.pilot.lat, lon: this.pilot.lon, headingRad: this.pilot.headingRad };
     this.laser = null;
     this.world.setLaser(null);
     this.stopAutoNav();
@@ -451,9 +484,19 @@ export class GameSession {
     this.storm = {
       phase: 'clear',
       t: 0,
-      nextS: this.elapsedS + STORM.firstS + Math.random() * STORM.firstJitterS,
+      // Ingenuity flew in calm air: no storm while it does.
+      nextS: this.mission.calm ? Infinity : this.elapsedS + STORM.firstS + Math.random() * STORM.firstJitterS,
       level: 0,
     };
+    this.recording = null;
+    this.devilDueS = this.elapsedS + 6;
+    // Mission 4: the player flies Ingenuity from its airfield (a flight starts there again).
+    this.world.setRoverVisible(!this.mission.pilot);
+    this.pilot = this.mission.pilot
+      ? newHeli(this.mission.start, (this.mission.start.headingDeg * Math.PI) / 180, FLIGHT_26.seconds)
+      : null;
+    this.chaseSet = false;
+    this.world.setWatch(null);
     this.world.setStorm(0);
     this.world.tracks.clear();
     this.world.depotTubes.clear();
@@ -516,6 +559,12 @@ export class GameSession {
 
   /** Back to driving (after a chapter page, a card, the pause menu…), or to what is pending. */
   resume(): void {
+    const story = this.pending.stories.shift();
+    if (story) {
+      this.controls.enabled = false;
+      useGame.getState().set({ phase: 'story', story, card: null, panorama: null });
+      return;
+    }
     if (this.pending.complete) {
       this.pending.complete = false;
       this.finish();
@@ -546,6 +595,8 @@ export class GameSession {
     this.controls.enabled = false;
     this.world.clearTargets();
     this.world.setWatch(null);
+    this.pilot = null;
+    this.recording = null;
     this.filming = false;
     this.stopAutoNav();
     this.laser = null;
@@ -586,6 +637,7 @@ export class GameSession {
       else if (ui.phase === 'paused' || ui.phase === 'inventory' || ui.phase === 'chapter')
         this.resume();
       else if (ui.phase === 'card') this.closeCard();
+      else if (ui.phase === 'story') this.closeStory();
       else if (ui.phase === 'photo') this.exitPhoto();
       else if (ui.phase === 'panorama') this.closePanorama();
     } else if (c === 'laser') this.fireLaser();
@@ -635,6 +687,7 @@ export class GameSession {
    * around steep ground, soft sand and boulders, then drives it.
    */
   startAutoNav(to?: Target | { lat: number; lon: number }): boolean {
+    if (this.pilot) return false;
     const f = this.world.frame;
     if (!f || !this.running) return false;
     const goalT = to ?? nextTarget(this.exp, this.open, this.rover);
@@ -865,6 +918,12 @@ export class GameSession {
         this.world.placeIngenuity(f.toLocal(at.lat, at.lon), this.dropHeadingRad, 1);
       return;
     }
+    if (this.mission.pilot) return; // drawn where the player flies it (drawPilot)
+    const parked = this.mission.parkedHelicopter;
+    if (parked) {
+      if (f) this.world.placeIngenuity(f.toLocal(parked.lat, parked.lon), (parked.headingDeg * Math.PI) / 180);
+      return;
+    }
     this.heli = this.running ? ingenuity(this.exp) : null;
     if (!f || !this.heli) {
       this.world.placeIngenuity(null);
@@ -904,7 +963,7 @@ export class GameSession {
   fireLaser(): void {
     const ui = useGame.getState();
     const rock = this.laserCandidate;
-    if (ui.phase !== 'playing' || !this.running || this.laser || this.action) return;
+    if (ui.phase !== 'playing' || !this.running || this.laser || this.action || this.pilot) return;
     if (!rock || Math.abs(this.rover.speed) > STOPPED_MPS) return;
     const key = `${this.mission.areaId}:${rockKey(rock.x, rock.north)}`;
     if (isAnalysed(key)) return;
@@ -937,7 +996,8 @@ export class GameSession {
     this.laser = null;
     this.world.setLaser(null);
     this.audio.chime(false);
-    const find = { type, key: l.key, points, first };
+    const spot = laserSpotAt(this.exp, this.rover);
+    const find = { type, key: l.key, points, first, ...(spot ? { at: spot } : {}) };
     const before = this.exp;
     this.exp = {
       ...this.exp,
@@ -1075,6 +1135,12 @@ export class GameSession {
     this.resume();
   }
 
+  /** Story card closed: the next one, the chapter's page, the end, or back to the game. */
+  closeStory(): void {
+    useGame.getState().set({ story: null });
+    this.resume();
+  }
+
   private save(): void {
     if (!this.running || expeditionDone(this.exp)) return;
     const r = this.rover;
@@ -1100,9 +1166,15 @@ export class GameSession {
    * State changed (from `before`: an event, a laser find, a flight): next chapter, markers, save.
    * Events of a step (already advanced) come in `events`.
    */
-  private afterProgress(events: ExpeditionEvent[], before: ExpeditionState = this.exp): void {
+  private afterProgress(
+    events: ExpeditionEvent[],
+    before: ExpeditionState = this.exp,
+    /** The state before the step (when `before` is already past it), for the story cards. */
+    storiesFrom: ExpeditionState = before,
+  ): void {
     const adv = advance(this.exp, before, events);
     this.exp = adv.state;
+    for (const o of newlyDone(storiesFrom, this.exp)) if (o.story) this.pending.stories.push(o.story);
     for (const e of adv.events) {
       if (e.kind === 'chapter') {
         this.pending.chapter = true;
@@ -1111,8 +1183,11 @@ export class GameSession {
     }
     this.refreshTargets();
     this.save();
-    // Nothing else on screen: show the next chapter (or the end) now.
-    if (useGame.getState().phase === 'playing' && (this.pending.chapter || this.pending.complete))
+    // Nothing else on screen: show the story, the next chapter (or the end) now.
+    if (
+      useGame.getState().phase === 'playing' &&
+      (this.pending.stories.length || this.pending.chapter || this.pending.complete)
+    )
       this.resume();
   }
 
@@ -1163,11 +1238,12 @@ export class GameSession {
       busy?.kind === 'core' ? busy.p : null,
       busy?.kind === 'panorama' ? busy.p : null,
     );
+    if (this.pilot) this.drawPilot(dt);
     const rough =
       dt > 0 ? (Math.abs(r.pitchRad - prev.pitchRad) + Math.abs(r.rollRad - prev.rollRad)) / dt : 0;
     const coring = busy?.kind === 'core' ? busy.p : null;
     this.world.render(dt, {
-      at: this.world.rover!.root.position,
+      at: this.pilot ? this.world.ingenuity.position : this.world.rover!.root.position,
       headingRad: r.headingRad,
       speed: live ? r.speed : 0,
       rough: rough * 0.6,
@@ -1190,6 +1266,10 @@ export class GameSession {
 
   /** One simulation step while playing; returns the sequence under way (coring, panorama). */
   private step(dt: number): { kind: 'core' | 'panorama'; p: number } | null {
+    if (this.pilot) {
+      this.stepPilot(dt);
+      return null;
+    }
     let input = this.controls.read();
     if (this.auto) {
       // Taking the wheel cancels AutoNav.
@@ -1227,12 +1307,15 @@ export class GameSession {
     else this.wearShownS = Math.max(0, this.wearShownS - dt);
     this.stepLaser(dt);
     this.stepHeli();
+    // The action key records a dust devil when one is in range (and nothing else is under way).
+    const recordNow = this.stepDevil(dt, input.action && !this.laser && !this.action);
+    const prevExp = this.exp;
     const res = stepExpedition(
       this.exp,
       this.action,
       this.rover,
       this.all,
-      input.action && !this.laser,
+      input.action && !this.laser && !recordNow,
       dt,
     );
     this.exp = res.state;
@@ -1246,7 +1329,7 @@ export class GameSession {
       this.sinceHud = 0;
       this.publish(input.boost && input.throttle > 0, fraction);
     }
-    if (res.events.length) this.handle(res.events);
+    if (res.events.length) this.handle(res.events, prevExp);
     else if (this.sinceSave >= SAVE_EVERY_S) this.save();
     if (!this.action) return null;
     if (this.action.kind === 'core') return { kind: 'core', p: fraction! };
@@ -1254,7 +1337,7 @@ export class GameSession {
     return null;
   }
 
-  private handle(events: ExpeditionEvent[]): void {
+  private handle(events: ExpeditionEvent[], prev: ExpeditionState): void {
     let dialog: Partial<ReturnType<typeof useGame.getState>> | null = null;
     for (const e of events) {
       if (e.kind === 'reached') {
@@ -1295,6 +1378,12 @@ export class GameSession {
           this.dropHeadingRad = this.rover.headingRad;
           this.refreshHeli();
         }
+        if (e.step === 'moxie')
+          this.rover = {
+            ...this.rover,
+            batteryPct: Math.max(0, this.rover.batteryPct - MOXIE_COST_PCT),
+            energyUsedPct: this.rover.energyUsedPct + MOXIE_COST_PCT,
+          };
       }
     }
     if (this.auto && events.some((e) => e.kind !== 'reached')) this.stopAutoNav();
@@ -1302,7 +1391,7 @@ export class GameSession {
       this.controls.enabled = false;
       useGame.getState().set(dialog);
     }
-    this.afterProgress(events);
+    this.afterProgress(events, this.exp, prev);
   }
 
   private publish(boosting: boolean, fraction: number | null): void {
@@ -1339,8 +1428,8 @@ export class GameSession {
         ? ('done' as const)
         : ('ready' as const)
       : null;
-    const camRad = this.world.rig.headingRad;
-    const heliVisible = this.world.ingenuity.root.visible && this.world.frame;
+    const camRad = this.pilot ? this.pilot.headingRad : this.world.rig.headingRad;
+    const heliVisible = this.world.ingenuity.root.visible && this.world.frame && !this.pilot;
     let heliHud: ReturnType<typeof useGame.getState>['hud']['ingenuity'] = null;
     if (heliVisible) {
       const p = this.world.ingenuity.position;
@@ -1379,6 +1468,7 @@ export class GameSession {
           stopped: Math.abs(r.speed) <= STOPPED_MPS,
           step: here.kind === 'station' ? (stationStep(this.exp, here)?.step ?? null) : null,
           run: here.kind === 'station' ? (stationStep(this.exp, here)?.run ?? null) : null,
+          locked: here.kind === 'sample' ? sampleLockedBy(this.exp, here.site?.sampleNumber ?? '') : null,
         },
         deploy: ((): Hud['deploy'] => {
           const t = this.deployClock();
@@ -1422,8 +1512,186 @@ export class GameSession {
             : null,
         warp: this.warp,
         ingenuity: heliHud,
+        pilot: this.pilotHud(),
+        devil: this.devilHud(camRad),
+        moxieG:
+          this.action?.kind === 'moxie' && fraction !== null ? Math.min(1, fraction) * MOXIE_O2_G : null,
       },
     });
+  }
+
+  // ---------- Ingenuity flown by the player (mission 4) ----------
+
+  /** The places it still has to photograph or land on, and whether it may land where it is. */
+  private pilotTargets(h: HeliState) {
+    const air = airObjectives(this.exp, this.all);
+    const landing = air.find((a) => a.o.by === 'landing') ?? null;
+    const photos = air.filter((a) => a.o.by === 'air');
+    const inLanding = !!landing && groundDistanceM(h, landing.t) <= landing.t.radiusM;
+    return { landing, photos, inLanding, canLand: inLanding && photos.length === 0 };
+  }
+
+  private stepPilot(dt: number): void {
+    const input = this.controls.read();
+    this.pilotSteer += (input.steer - this.pilotSteer) * Math.min(1, dt * 4);
+    const before = this.exp;
+    const was = this.pilot!;
+    const { landing, photos, inLanding, canLand } = this.pilotTargets(was);
+    const res = stepHeli(was, input, dt, canLand, this.bounds);
+    let h = res.h;
+    if (res.event === 'takeoff') toast('game.pilot.takeoff', { s: Math.round(timeLeftS(h)) });
+    if (h.phase === 'fly' && input.action && !was.keyWas && inLanding && photos.length)
+      toast('game.pilot.photosFirst');
+    // Aerial photos: hovering slowly over a place.
+    const over = photos.find((a) => groundDistanceM(h, a.t) <= a.t.radiusM)?.t ?? null;
+    const shot = stepPhoto(h, over?.id ?? null, dt);
+    h = shot.h;
+    if (shot.taken) {
+      const t = this.all.find((x) => x.id === shot.taken)!;
+      this.exp = { ...this.exp, reached: [...this.exp.reached, t.id.slice('reach-'.length)] };
+      this.audio.shutter();
+      toast('game.pilot.photo', { name: t.name });
+    }
+    if (res.event === 'down') {
+      if (canLand && landing) {
+        this.exp = { ...this.exp, reached: [...this.exp.reached, landing.t.id.slice('reach-'.length)] };
+        this.audio.chime(false);
+        toast('game.pilot.landed', { s: Math.round(h.airS) });
+      } else if (h.forced) {
+        // Battery spent before the job was done: the team plans the flight again, from the start.
+        this.audio.warn();
+        toast('game.pilot.empty');
+        const st = this.mission.start;
+        const flown = this.mission.chapters[this.exp.chapter]!.objectives.flatMap((o) =>
+          o.kind === 'reach' && o.by ? [o.target] : [],
+        );
+        this.exp = { ...this.exp, reached: this.exp.reached.filter((r) => !flown.includes(r)) };
+        h = newHeli(st, (st.headingDeg * Math.PI) / 180, FLIGHT_26.seconds);
+        this.chaseSet = false;
+      }
+    }
+    if (h.phase === 'fly' && timeLeftS(h) <= 20 && timeLeftS(was) > 20) {
+      this.audio.warn();
+      toast('game.pilot.low', { s: 20 });
+    }
+    this.pilot = h;
+    // The rover's state follows the helicopter over the ground: compass, map and labels use it.
+    this.rover = { ...this.rover, lat: h.lat, lon: h.lon, headingRad: h.headingRad, speed: h.speed };
+    this.elapsedS += dt;
+    this.sinceHud += dt;
+    this.sinceSave += dt;
+    const changed = this.exp !== before;
+    if (this.sinceHud >= HUD_EVERY_S || changed) {
+      this.sinceHud = 0;
+      this.publish(input.boost && input.throttle > 0, null);
+    }
+    if (changed) this.afterProgress([], before);
+    else if (this.sinceSave >= SAVE_EVERY_S) this.save();
+  }
+
+  /** The helicopter where the flight has it, and the camera behind and above it. */
+  private drawPilot(dt: number): void {
+    const h = this.pilot;
+    const f = this.world.frame;
+    if (!h || !f) return;
+    const [x, n] = f.toLocal(h.lat, h.lon);
+    const rotors = h.phase !== 'ground' && !(h.phase === 'down' && h.t > HELI.spinDownS);
+    // Leaning into its motion: forward with speed, sideways into a turn.
+    const pitch = 0.2 * (h.speed / HELI.boostMps);
+    const roll = h.phase === 'fly' ? -0.14 * this.pilotSteer : 0;
+    this.world.pilotIngenuity([x, n], h.altM, h.headingRad, rotors, pitch, roll);
+    const p = this.world.ingenuity.position;
+    const fx = Math.sin(h.headingRad);
+    const fz = -Math.cos(h.headingRad);
+    // Close behind (it is 1.2 m across), a little above; the lag shows its speed.
+    const back = 3.4 + 0.25 * Math.abs(h.speed);
+    const want = this.chaseLook.set(p.x - fx * back, p.y + 1.25, p.z - fz * back);
+    want.y = Math.max(want.y, this.world.groundY(want.x, want.z) + 1.4);
+    if (!this.chaseSet) {
+      this.chase.copy(want);
+      this.chaseSet = true;
+    } else this.chase.lerp(want, Math.min(1, dt * 3.5));
+    this.chaseLook.set(p.x + fx * 2.5, p.y - 0.35, p.z + fz * 2.5);
+    this.world.setWatch(this.chaseLook, this.chase, 46);
+  }
+
+  private pilotHud(): Hud['pilot'] {
+    const h = this.pilot;
+    if (!h) return null;
+    const { photos, inLanding, canLand } = this.pilotTargets(h);
+    return {
+      timeLeftS: timeLeftS(h),
+      altM: h.altM,
+      speedMps: h.speed,
+      phase: h.phase,
+      photo: h.photo ? Math.min(1, h.photo.s / HELI.photoHoldS) : null,
+      canLand,
+      inLanding,
+      photosLeft: photos.length,
+    };
+  }
+
+  // ---------- dust devils and SuperCam's microphone (mission 7) ----------
+
+  /**
+   * While a dust devil objective is open: one is brought upwind now and then (they cross Jezero
+   * often in spring and summer); stopped within range, the action key records it for a few seconds
+   * (SuperCam's microphone heard one pass over the rover on sol 52). Returns true when the key
+   * started a recording.
+   */
+  private stepDevil(dt: number, pressed: boolean): boolean {
+    const c = this.mission.chapters[this.exp.chapter];
+    const open = c?.objectives.some((o) => o.kind === 'devil' && !objectiveDone(this.exp, o, c));
+    if (!open) {
+      this.recording = null;
+      return false;
+    }
+    const p = this.world.rover!.root.position;
+    const near = this.world.nearestDevil(p.x, p.z);
+    if ((!near || near.distanceM > 400) && this.elapsedS >= this.devilDueS) {
+      if (this.world.summonDevil(p.x, p.z, 150 + Math.random() * 60)) this.devilDueS = this.elapsedS + 45;
+    }
+    const inRange = !!near && near.distanceM <= DEVIL_RANGE_M;
+    const still = Math.abs(this.rover.speed) <= STOPPED_MPS;
+    if (this.recording !== null) {
+      if (!inRange || !still) {
+        this.recording = null;
+        toast('game.devil.lost');
+        return false;
+      }
+      this.recording += dt;
+      // Grains hitting the microphone (and, Chide et al. 2025, the crackle of small discharges).
+      if (Math.random() < dt * 6) this.audio.zap();
+      if (this.recording >= DEVIL_RECORD_S) {
+        this.recording = null;
+        const before = this.exp;
+        this.exp = { ...this.exp, recordings: (this.exp.recordings ?? 0) + 1 };
+        this.audio.chime(false);
+        this.afterProgress([], before);
+      }
+      return false;
+    }
+    if (pressed && inRange && still) {
+      this.recording = 0;
+      return true;
+    }
+    return false;
+  }
+
+  private devilHud(camRad: number): Hud['devil'] {
+    const c = this.mission.chapters[this.exp.chapter];
+    if (!c?.objectives.some((o) => o.kind === 'devil' && !objectiveDone(this.exp, o, c))) return null;
+    const p = this.world.rover!.root.position;
+    const near = this.world.nearestDevil(p.x, p.z);
+    const f = this.world.frame;
+    if (!near || !f) return null;
+    const at = f.toLatLon(near.at.x, -near.at.z);
+    return {
+      distanceM: near.distanceM,
+      relDeg: wrapAngle(bearingRad(this.rover, at) - camRad) * RAD_TO_DEG,
+      inRange: near.distanceM <= DEVIL_RANGE_M,
+      recording: this.recording === null ? null : Math.min(1, this.recording / DEVIL_RECORD_S),
+    };
   }
 
   // ---------- target labels (DOM, projected each frame) ----------

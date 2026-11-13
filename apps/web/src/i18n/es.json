@@ -894,11 +894,14 @@
       "doing": {
         "film": "Mastcam-Z filma el vuelo…",
         "away": "Alejándose: el Sol tiene que llegar al panel solar de Ingenuity…",
-        "aim": "Girando hacia Van Zyl Overlook…"
+        "aim": "Girando hacia Van Zyl Overlook…",
+        "moxie": "MOXIE fabricando oxígeno…"
       },
       "arrive": {
         "film": "Van Zyl Overlook: parando para filmar el vuelo…"
-      }
+      },
+      "moxie": "MOXIE: {{g}} g de oxígeno…",
+      "lockedCore": "Antes de perforar, analiza la roca con SuperCam (F)"
     },
     "touch": {
       "forward": "Avanzar",
@@ -937,7 +940,8 @@
         "carbonate": "Carbonato cementado con sílice: minerales que crecen en el agua y pueden atrapar huellas del entorno en que se formaron."
       },
       "inRack": "Sellada y guardada en el portatubos (I: inventario).",
-      "tubeCaption": "Sellada en su propio tubo (el modelo de NASA del tubo de muestras de Mars 2020, 14 cm de largo)"
+      "tubeCaption": "Sellada en su propio tubo (el modelo de NASA del tubo de muestras de Mars 2020, 14 cm de largo)",
+      "emptyTitle": "Tubo sin roca"
     },
     "complete": {
       "title": "Expedición completada",
@@ -1093,7 +1097,10 @@
       "sols": "Soles {{first}}–{{last}}",
       "begin": "Empezar a conducir",
       "continue": "Continuar",
-      "tip": "N: AutoNav al siguiente objetivo · I: inventario · M: mapa · T: tiempo más rápido mientras conduce AutoNav"
+      "tip": "N: AutoNav al siguiente objetivo · I: inventario · M: mapa · T: tiempo más rápido mientras conduce AutoNav",
+      "kickerOne": "Capítulo {{n}} · sol {{sol}}",
+      "tipPilot": "M: mapa · Esc: pausa · El tiempo de vuelo solo corre con Ingenuity en el aire",
+      "beginPilot": "Empezar el vuelo"
     },
     "chapters": {
       "arrival": {
@@ -1131,6 +1138,34 @@
       "free": {
         "title": "Exploración libre",
         "story": "Sin objetivos ni reloj: conduce por donde quieras. Aquí funciona todo: SuperCam en cualquier roca (F), AutoNav hacia un objetivo o hacia un punto que marques en el mapa (N), avance rápido (T) y modo foto (P). A la izquierda tienes los lugares donde trabajó Perseverance para descubrirlos: llega a ellos, toma muestras en los sitios de muestreo y haz las panorámicas."
+      },
+      "roubion": {
+        "title": "Roubion",
+        "story": "Agosto de 2021. Perseverance ha dejado el lugar de aterrizaje rumbo al sur, por el fondo del cráter. Antes de su primera muestra, el equipo enciende MOXIE, el experimento que fabrica oxígeno con el CO₂ del aire: para y enciéndelo (gasta batería). Después conduce hasta Roubion, una roca plana del fondo del cráter, y extrae la primera muestra de la misión."
+      },
+      "citadelle": {
+        "title": "Citadelle",
+        "story": "El tubo de Roubion salió vacío: la roca, muy alterada, se deshizo en polvo. El equipo busca una más dura en Citadelle, una cresta junto a Séítah. Antes de perforar, analiza la roca Rochette con el láser de SuperCam (F, a menos de 7 m); después extrae Montdenier y Montagnac, dos núcleos de la misma roca."
+      },
+      "flight26": {
+        "title": "Vuelo 26",
+        "story": "19 de abril de 2022. Los ingenieros de Mars Sample Return quieren ver desde el aire el escudo trasero y el paracaídas que frenaron a Perseverance. Pilota a Ingenuity a 8 m de altura: pasa despacio por encima de cada pieza para fotografiarla y aterriza en el siguiente aeródromo antes de que se acaben los 159 s de batería."
+      },
+      "neretva": {
+        "title": "Neretva Vallis",
+        "story": "Junio–julio de 2024. Perseverance recorre Neretva Vallis, el antiguo cauce por el que un río entraba en Jezero, hacia Cheyava Falls, una roca con forma de punta de flecha en la zona de Bright Angel. Al este, en Valinor Hills, sigue Ingenuity, que no volvió a volar después de su vuelo 72."
+      },
+      "cheyava": {
+        "title": "Cheyava Falls",
+        "story": "Cheyava Falls tiene vetas blancas de sulfato de calcio y, entre ellas, manchas claras rodeadas de anillos oscuros, como las de un leopardo. Cartografía la roca con tres análisis de SuperCam (F) y después extrae Sapphire Canyon."
+      },
+      "climb": {
+        "title": "La subida",
+        "story": "Agosto–diciembre de 2024. Perseverance sube por la pared interior de Jezero, a veces marcha atrás para no clavar las ruedas en la arena suelta. Llega a Lookout Hill, en lo alto del borde, vigilando la inclinación y el patinaje."
+      },
+      "witchHazel": {
+        "title": "Witch Hazel Hill",
+        "story": "Al otro lado de la cresta, Witch Hazel Hill guarda rocas más antiguas que el propio cráter, arrancadas de la corteza por el impacto que lo formó. Extrae Silver Mountain y Main River. El borde es tierra de remolinos de polvo: para cerca de uno y grábalo con el micrófono de SuperCam."
       }
     },
     "objectives": {
@@ -1158,7 +1193,28 @@
       "drive-away": "Aléjate 12 m, hacia el mirador",
       "film-flight": "Para en Van Zyl Overlook para filmar el primer vuelo",
       "deploy-heli": "Despliega a Ingenuity en Wright Brothers Field",
-      "aim-overlook": "Gira hacia Van Zyl Overlook"
+      "aim-overlook": "Gira hacia Van Zyl Overlook",
+      "moxie": "Enciende MOXIE y produce oxígeno",
+      "roubion": "Extrae una muestra en Roubion",
+      "rochette-laser": "Analiza Rochette con SuperCam (F)",
+      "montdenier": "Extrae Montdenier + Montagnac (Rochette)",
+      "pano-seitah": "Panorámica de 360° de Séítah desde Artuby Ridge",
+      "air-backshell": "Fotografía el escudo trasero desde el aire",
+      "air-parachute": "Fotografía el paracaídas desde el aire",
+      "land-26": "Aterriza en el aeródromo del vuelo 26",
+      "reach-cheyava": "Llega a Cheyava Falls",
+      "neretva-laser": "Analiza 2 rocas por el camino",
+      "valinor": "Visita a Ingenuity en Valinor Hills",
+      "leopard-laser": "Cartografía Cheyava Falls con SuperCam (3 análisis)",
+      "sapphire": "Extrae Sapphire Canyon",
+      "pano-bright-angel": "Panorámica de 360° en Bright Angel",
+      "lookout": "Sube a Lookout Hill, en el borde del cráter",
+      "rim-laser": "Analiza 2 rocas del borde",
+      "silver-mountain": "Extrae Silver Mountain",
+      "main-river": "Extrae Main River",
+      "devil": "Graba un remolino de polvo con el micrófono de SuperCam",
+      "green-gardens": "Extrae Green Gardens",
+      "pano-witch-hazel": "Panorámica de 360° en Witch Hazel Hill"
     },
     "toast": {
       "reached": "Llegaste a {{name}}",
@@ -1277,22 +1333,34 @@
       "firstSample": {
         "title": "El tubo vacío",
         "when": "ago–sep 2021",
-        "desc": "El primer muestreo de Perseverance sale vacío: la roca se desmoronó. Encuentra una lo bastante dura para llenar el tubo 266 y pon en marcha MOXIE para producir oxígeno dentro del presupuesto de energía del sol."
+        "desc": "El primer muestreo de Perseverance sale vacío: la roca se desmoronó. Encuentra una lo bastante dura para llenar el tubo 266 y pon en marcha MOXIE para producir oxígeno dentro del presupuesto de energía del sol.",
+        "start": "Empezar",
+        "complete": "Primeras muestras selladas",
+        "real": "El primer intento, en Roubion (sol 164), salió vacío. El 1 de septiembre de 2021 (sol 190) Perseverance selló Montdenier, su primera muestra de roca, y el 8 de septiembre Montagnac, de la misma roca. MOXIE produjo 122 g de oxígeno en 16 encendidos hasta agosto de 2023."
       },
       "chute": {
         "title": "De vuelta al paracaídas",
         "when": "abr 2022",
-        "desc": "Toma los mandos de Ingenuity en su vuelo 26, a 8 m sobre el escudo trasero y el paracaídas, y acompaña al helicóptero hasta su vuelo 72, el último."
+        "desc": "Toma los mandos de Ingenuity en su vuelo 26, a 8 m sobre el escudo trasero y el paracaídas, y acompaña al helicóptero hasta su vuelo 72, el último.",
+        "start": "Empezar",
+        "complete": "Vuelo 26 completado",
+        "real": "Ingenuity voló 159 s el 19 de abril de 2022 sobre el escudo trasero y el paracaídas. Siguió volando casi dos años más, hasta su vuelo 72."
       },
       "leopard": {
         "title": "Manchas de leopardo",
         "when": "jul 2024",
-        "desc": "Cheyava Falls y sus manchas de leopardo: cartografía la roca y extrae Sapphire Canyon, la mejor candidata a señal de vida antigua."
+        "desc": "Cheyava Falls y sus manchas de leopardo: cartografía la roca y extrae Sapphire Canyon, la mejor candidata a señal de vida antigua.",
+        "start": "Empezar",
+        "complete": "Sapphire Canyon a bordo",
+        "real": "Perseverance extrajo Sapphire Canyon el 21 de julio de 2024 (sol 1215). En 2025 su equipo describió las manchas como una posible biofirma: minerales que en la Tierra suelen formarse con ayuda de microbios, aunque también pueden tener otro origen. Confirmarlo requiere estudiar la muestra en un laboratorio."
       },
       "rim": {
         "title": "El borde",
         "when": "2024–2025",
-        "desc": "Sube por Witch Hazel Hill hasta el borde del cráter, entre las rocas más antiguas de Marte, y persigue remolinos de polvo con el micrófono encendido."
+        "desc": "Sube por Witch Hazel Hill hasta el borde del cráter, entre las rocas más antiguas de Marte, y persigue remolinos de polvo con el micrófono encendido.",
+        "start": "Empezar",
+        "complete": "En el borde de Jezero",
+        "real": "Tras unos 3,5 meses y unos 500 m de desnivel, Perseverance llegó a Lookout Hill el 10 de diciembre de 2024 (sol 1354) y exploró Witch Hazel Hill hasta mayo de 2025."
       },
       "start": "Empezar",
       "continue": "Continuar · capítulo {{chapter}}",
@@ -1308,7 +1376,10 @@
         "continue": "Seguir explorando",
         "where": "Mapa",
         "landing": "Lugar de aterrizaje",
-        "delta": "Frente del delta"
+        "delta": "Frente del delta",
+        "floor": "Fondo del cráter",
+        "neretva": "Neretva Vallis",
+        "rim": "Borde del cráter"
       },
       "done": "Completada",
       "best": "mejor {{time}}",
@@ -1319,7 +1390,12 @@
       "reach-parachute": "Paracaídas y escudo trasero",
       "reach-heat-shield": "Escudo térmico",
       "station-field": "Wright Brothers Field",
-      "station-overlook": "Van Zyl Overlook"
+      "station-overlook": "Van Zyl Overlook",
+      "station-moxie": "MOXIE",
+      "reach-backshell": "Escudo trasero",
+      "reach-airfield-26": "Aeródromo del vuelo 26",
+      "reach-valinor": "Valinor Hills (Ingenuity)",
+      "reach-chute": "Paracaídas"
     },
     "video": {
       "back": "Volver a las misiones",
@@ -1364,7 +1440,8 @@
       "shield": "desplegar a Ingenuity",
       "rotate": "poner a Ingenuity en vertical",
       "drop": "dejar a Ingenuity en el suelo",
-      "film": "filmar el primer vuelo"
+      "film": "filmar el primer vuelo",
+      "moxie": "encender MOXIE"
     },
     "deploy": {
       "title": "Desplegando a Ingenuity",
@@ -1407,6 +1484,115 @@
           "title": "En Marte",
           "text": "Se suelta y cae sobre sus patas. El rover se aleja para que el Sol llegue a su panel solar."
         }
+      }
+    },
+    "pilot": {
+      "title": "Ingenuity · vuelo 26",
+      "time": "Vuelo",
+      "alt": "Altura",
+      "photos": "Fotos",
+      "state": "Estado",
+      "keys": "Espacio: despegar o aterrizar · W/S: avanzar o retroceder · A/D: girar · Mayúsculas: más rápido",
+      "phase": {
+        "ground": "En tierra",
+        "spinup": "Rotores",
+        "climb": "Subiendo",
+        "fly": "En vuelo",
+        "descend": "Aterrizando",
+        "down": "En tierra"
+      },
+      "prompt": {
+        "takeoff": "Pulsa Espacio para despegar",
+        "spent": "Sin batería",
+        "spinup": "Los rotores aceleran hasta 2537 rpm…",
+        "climb": "Subiendo a 8 m…",
+        "descend": "Aterrizando…",
+        "photo": "Fotografiando… mantén a Ingenuity encima, despacio",
+        "land": "Pulsa Espacio para aterrizar aquí",
+        "photosFirst": "Antes de aterrizar, fotografía el escudo trasero y el paracaídas",
+        "low": "¡Quedan {{s}} s de vuelo!",
+        "fly": "Vuela hasta {{name}} y pasa despacio por encima"
+      },
+      "takeoff": "Ingenuity despega: {{s}} s de vuelo",
+      "photosFirst": "Primero, las dos fotos",
+      "photo": "Foto tomada: {{name}}",
+      "landed": "Aterrizaje: {{s}} s en el aire",
+      "empty": "Batería agotada: Ingenuity aterriza donde está. El equipo planifica el vuelo otra vez desde el aeródromo",
+      "low": "Quedan {{s}} s de vuelo"
+    },
+    "devil": {
+      "recording": "Grabando con el micrófono de SuperCam… no te muevas",
+      "stop": "Remolino cerca: para el rover para grabarlo",
+      "record": "Pulsa Espacio para grabar el remolino con el micrófono de SuperCam",
+      "near": "Remolino de polvo a {{distance}} m: acércate a menos de 90 m",
+      "lost": "El remolino se alejó: grabación cortada"
+    },
+    "story": {
+      "moxie": {
+        "kicker": "MOXIE · Mars Oxygen ISRU Experiment",
+        "title": "Oxígeno hecho en Marte",
+        "text": "MOXIE separa el oxígeno del dióxido de carbono del aire a unos 800 °C. En su primer encendido, el 20 de abril de 2021, produjo 5,37 g en una hora: lo que respira un astronauta en unos 10 minutos. En 16 encendidos hasta 2023 sumó 122 g. Necesita más potencia de la que da el generador del rover, así que tira de la batería. En la foto, los ingenieros lo instalan en Perseverance.",
+        "credit": "NASA/JPL-Caltech · PIA24176"
+      },
+      "roubion": {
+        "kicker": "Roubion · sol 166",
+        "title": "Un tubo sin roca",
+        "text": "La roca de Roubion, muy alterada, se deshizo en polvo al perforarla, y el tubo subió vacío. Dos días después SuperCam disparó su láser dentro del agujero (los ocho puntos de la imagen) para entender por qué. El tubo quedó sellado con aire de Marte: es la muestra 1.",
+        "credit": "NASA/JPL-Caltech/LANL/CNES/CNRS · PIA24749"
+      },
+      "rochette": {
+        "kicker": "Rochette · sol 185",
+        "title": "Una roca más dura",
+        "text": "El 27 de agosto de 2021 el rover raspó un círculo en Rochette («Bellegarde») y lo examinó con los instrumentos de su brazo. Esta vez el núcleo aguantó: Montdenier quedó sellado el 1 de septiembre, la primera roca de Marte guardada para un posible viaje a la Tierra.",
+        "credit": "NASA/JPL-Caltech · PIA24831"
+      },
+      "backshell": {
+        "kicker": "Vuelo 26 · 19 de abril de 2022",
+        "title": "El escudo trasero, desde 8 m",
+        "text": "Ingenuity fotografió el escudo trasero, de pie en el suelo de Jezero. Los cables que salen de su parte superior son las cuerdas de suspensión que lo unían al paracaídas. Los ingenieros de Mars Sample Return pidieron estas imágenes para estudiar cómo funcionó el aterrizaje.",
+        "credit": "NASA/JPL-Caltech · PIA25219"
+      },
+      "parachute": {
+        "kicker": "Vuelo 26 · 19 de abril de 2022",
+        "title": "El paracaídas",
+        "text": "El paracaídas de 21,5 m frenó a Perseverance a velocidad supersónica. Se soltó con el escudo trasero a unos 2,1 km de altura, y los dos chocaron contra el suelo a unos 126 km/h.",
+        "credit": "NASA/JPL-Caltech · PIA25217"
+      },
+      "debris": {
+        "kicker": "Vuelo 26",
+        "title": "El campo de restos",
+        "text": "Desde el aire se ve todo junto: el escudo trasero a la izquierda y el paracaídas a la derecha. Ingenuity aterrizó tras 159 s en el aire, en el vuelo 26 de los 72 que haría.",
+        "credit": "NASA/JPL-Caltech · PIA25218"
+      },
+      "lastFlight": {
+        "kicker": "Vuelo 72 · 18 de enero de 2024",
+        "title": "El último vuelo",
+        "text": "Tras su vuelo 72, Ingenuity fotografió la sombra de una de sus palas, dañada en un aterrizaje brusco: ya no podría volar. Lo diseñaron para hasta 5 vuelos en 30 días; hizo 72 en casi tres años, unos 129 minutos en el aire y 17 km.",
+        "credit": "NASA/JPL-Caltech · PIA26243"
+      },
+      "leopard": {
+        "kicker": "Cheyava Falls · 18 de julio de 2024",
+        "title": "Manchas de leopardo",
+        "text": "Vetas blancas de sulfato de calcio y, entre ellas, una banda rojiza con manchas claras de milímetros rodeadas de anillos oscuros. En la Tierra, manchas así pueden formarse con reacciones químicas que dan energía a microbios. Es una posible biofirma, no una prueba: confirmarla requiere estudiar la muestra en un laboratorio.",
+        "credit": "NASA/JPL-Caltech · PIA26368"
+      },
+      "valinor": {
+        "kicker": "Valinor Hills · 4 de febrero de 2024",
+        "title": "Ingenuity, en su último aeródromo",
+        "text": "Perseverance fotografió a Ingenuity desde unos 450 m, donde quedó tras dañar sus palas en el vuelo 72. El equipo llamó al lugar Valinor Hills, por la tierra de las novelas de Tolkien.",
+        "credit": "NASA/JPL-Caltech/ASU/MSSS · PIA26236"
+      },
+      "lookout": {
+        "kicker": "Lookout Hill · sol 1354",
+        "title": "Por encima del borde",
+        "text": "El 10 de diciembre de 2024, tras unos 3,5 meses y unos 500 m de subida, Perseverance vio por primera vez lo que hay al otro lado del borde de Jezero. Al oeste esperaba Witch Hazel Hill, con rocas arrancadas de la corteza por el impacto que formó el cráter.",
+        "credit": "NASA/JPL-Caltech · PIA26511"
+      },
+      "devil": {
+        "kicker": "Borde de Jezero · sol 1398",
+        "title": "Remolinos en el borde",
+        "text": "Desde 1 km, las cámaras de navegación vieron un remolino de unos 65 m de ancho y al menos 400 m de alto tragarse a otro más pequeño. En 2021 el micrófono de SuperCam grabó el primer sonido de un remolino en Marte, y en 2025 su equipo describió chispazos eléctricos en el polvo que levantan.",
+        "credit": "NASA/JPL-Caltech · PIA26528"
       }
     }
   },

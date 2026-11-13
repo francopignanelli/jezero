@@ -54,6 +54,9 @@ npx -y @gltf-transform/cli@4 optimize data/raw/models/25042_Perseverance.glb dat
 npx -y @gltf-transform/cli@4 optimize data/raw/models/25043_Ingenuity_v3.glb data/build/models/ingenuity.glb --flatten false --join false --instance false --palette false --simplify false --texture-compress webp --texture-size 1024 --compress false   # Ingenuity (NASA 3D Resources 25043): its node hierarchy (legs, rotors) and pivots kept
 npx tsx scripts/data/fetch-landing-video.ts && npx tsx scripts/data/fetch-first-flight-video.ts   # rover game: NASA's landing video and the first flight (Mastcam-Z), cut
 npx tsx scripts/data/fetch-mission-cards.ts && npx tsx scripts/data/fetch-deploy-slides.ts   # rover game: mission cards, and NASA's images of Ingenuity's deployment
+npx tsx scripts/data/fetch-story-images.ts   # rover game: NASA's pictures for the story cards of missions 3, 4, 6 and 7
+npx tsx scripts/data/fetch-zip-entry.ts images individual_images/Orthoimages/1_ESP_062530_1985_0.25m_stage3_edited_eqc_c0_affine.tif msr-hirise-ortho   # HiRISE 25 cm orthoimage over the rim (479 MB), for the rim map
+scripts/geospatial/run.sh game-world --only floor && scripts/geospatial/run.sh game-world --only neretva && scripts/geospatial/run.sh game-world --only rim   # rover game maps of missions 3, 6 and 7 (landing and delta: --only landing / delta)
 npx tsx scripts/data/build-sample-tube.ts && npx -y @gltf-transform/cli@4 optimize data/build/models/sample-tube.raw.glb data/build/models/sample-tube.glb --compress meshopt   # sample tube (NASA-3D-Resources STL)
 npx tsx scripts/data/build-sky.ts && scripts/geospatial/run.sh sky   # stars + Milky Way
 scripts/geospatial/run.sh loading-bg   # loading-screen background (needs the sky step); imagery-relief also writes sky/mars_globe_2k.webp

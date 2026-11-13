@@ -277,10 +277,23 @@ export class Ingenuity {
   }
 
   private stowK = 0;
+  /** Flown by the player (session's heli.ts): rotors on or off, and its lean (rad). */
+  private piloted: { on: boolean; pitch: number; roll: number } | null = null;
+
+  /** Where the player's flight has it (world position), its heading, rotors and lean. */
+  steer(at: Vector3, headingRad: number, rotorsOn: boolean, pitch: number, roll: number): void {
+    this.flight = null;
+    this.stowK = 0;
+    this.root.visible = true;
+    this.pos.copy(at);
+    this.headingRad = headingRad;
+    this.piloted = { on: rotorsOn, pitch, roll };
+  }
 
   /** Parked on the ground at a point (world), or hidden; `stowed` 1: blades locked in line. */
   place(at: Vector3 | null, headingRad = this.headingRad, stowed = 0): void {
     this.stowK = stowed;
+    this.piloted = null;
     this.root.scale.set(1, 1, 1);
     this.flight = null;
     this.spin = 0;
@@ -294,6 +307,7 @@ export class Ingenuity {
 
   /** Flies from where it is to a point on the ground (a hop when it is the same airfield). */
   fly(to: Vector3): void {
+    this.piloted = null;
     const hop = to.distanceTo(this.pos) < 2;
     this.flight = {
       from: this.pos.clone(),
@@ -358,23 +372,24 @@ export class Ingenuity {
       f.groundM += (ground - f.groundM) * Math.min(1, dt * 2);
       this.pos.y = Math.max(ground, f.groundM + f.altM);
       if (landed) this.pos.y = ground;
-    }
+    } else if (this.piloted) target = this.piloted.on ? 1 : 0;
     // Rotor speed eases up and down; blades drawn at a slow, readable rate, a disc at speed.
     this.spin += (target - this.spin) * Math.min(1, dt * (target > this.spin ? 1.1 : 1.6));
     this.angle += dt * this.spin * 55;
     this.spinRotors(this.angle);
     // A slight forward lean while it travels.
-    const lean = f?.phase === 'cruise' ? 0.12 : 0;
+    const lean = f?.phase === 'cruise' ? 0.12 : (this.piloted?.pitch ?? 0);
     this.root.position.copy(this.pos);
-    this.root.rotation.set(-lean * Math.cos(0), -this.headingRad, 0, 'YXZ');
-    return { altitudeM: f?.altM ?? 0, rotor: this.spin, landed };
+    this.root.rotation.set(-lean, -this.headingRad, this.piloted?.roll ?? 0, 'YXZ');
+    const altitudeM = f ? f.altM : this.piloted ? this.pos.y - groundY(this.pos.x, this.pos.z) : 0;
+    return { altitudeM, rotor: this.spin, landed };
   }
 
   /** Turns the rotors (the stand-in's, or the model's), with a blur disc at speed. */
   private spinRotors(angle: number): void {
     for (const r of this.rotors) {
       r.blades.rotation.y = r.dir * angle;
-      (r.disc.material as MeshBasicMaterial).opacity = 0.22 * Math.max(0, (this.spin - 0.4) / 0.6);
+      (r.disc.material as MeshBasicMaterial).opacity = 0.32 * Math.max(0, (this.spin - 0.4) / 0.6);
       r.blades.visible = this.spin < 0.85 && !this.model;
     }
     for (const r of this.model?.rotors ?? []) {

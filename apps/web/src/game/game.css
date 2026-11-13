@@ -1964,3 +1964,48 @@
     animation: none;
   }
 }
+
+/* ---------- story cards (NASA's picture of a moment), the epilogue, Ingenuity's flight panel ---------- */
+.game-story img {
+  object-fit: contain;
+  background: #000;
+}
+.game-epilogue {
+  margin: 12px 0 4px;
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 12px;
+  align-items: start;
+  font-size: var(--fs-sm);
+}
+.game-epilogue img {
+  width: 132px;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #000;
+}
+.game-epilogue figcaption {
+  line-height: 1.45;
+}
+.game-epilogue .meta {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+}
+.game-pilot .game-panel-title {
+  margin-bottom: 6px;
+}
+.game-pilot-keys {
+  margin: 8px 0 0;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+@media (max-width: 640px) {
+  .game-epilogue {
+    grid-template-columns: 1fr;
+  }
+  .game-epilogue img {
+    width: 100%;
+  }
+}

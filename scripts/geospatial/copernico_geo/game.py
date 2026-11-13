@@ -38,6 +38,9 @@ class Area:
     lon: float
     width_m: int
     height_m: int
+    # Detail heights: the TRN DTM (Jezero's floor and delta), or the MSR DTM (also the crater rim,
+    # west of the TRN mosaic). Imagery: the TRN orthomosaic where it exists, else CTX (5 m).
+    dtm: str = "trn"
 
 
 # The game's maps (centre, size):
@@ -47,10 +50,20 @@ class Area:
 # - landing: Octavia E. Butler Landing and the landing hardware as HiRISE saw it on 19 Feb 2021
 #   (ESP_068294_1985): parachute and backshell 1.15 km WNW, descent stage 0.70 km NW, heat shield
 #   1.47 km ENE of the rover, with a margin (data/catalog/landing-hardware.json).
+# - floor: the crater floor south of the landing site: Roubion (sample 1, the empty tube) and
+#   Citadelle (samples 2 & 3, Montdenier and Montagnac), from the rover's route on sol ~122.
+# - neretva: Neretva Vallis and Bright Angel, from the rover's route on sol 1150 to Cheyava Falls
+#   (sample 25, Sapphire Canyon, July 2024), with Ingenuity's last airfield at Valinor Hills.
+# - rim: the climb of the crater rim (sols ~1280–1363) to Lookout Hill and Witch Hazel Hill
+#   (samples 26–29): the MSR DTM, TRN imagery over CTX.
 AREAS = [
     Area("delta", 18.4537, 77.4063, 1500, 1300),
     Area("landing", 18.4495, 77.4531, 3000, 1300),
+    Area("floor", 18.4362, 77.4469, 1700, 1700),
+    Area("neretva", 18.4945, 77.3130, 2000, 1200),
+    Area("rim", 18.4662, 77.2788, 3000, 1400, dtm="msr"),
 ]
+MSR_NODATA = -32767.0
 MID_M, MID_RES = 12_000, 8.0
 FAR_M, FAR_RES = 64_000, 100.0
 MAX_TEXTURE = 4096
@@ -64,11 +77,14 @@ def local_srs(a: Area) -> str:
     )
 
 
-def _warp(src: str, a: Area, w_m: float, h_m: float, res: float, alg: str, float_out=True) -> np.ndarray:
+def _warp(
+    src: str, a: Area, w_m: float, h_m: float, res: float, alg: str, float_out=True, src_nodata=None
+) -> np.ndarray:
     ds = gdal.Warp(
         "",
         src,
         format="MEM",
+        srcNodata=src_nodata,
         dstSRS=local_srs(a),
         outputBounds=(-w_m / 2, -h_m / 2, w_m / 2, h_m / 2),
         xRes=res,
@@ -156,23 +172,56 @@ def _write_grey(name: str, img: np.ndarray, quality: int = 88) -> dict:
     return {"file": f"game/{name}.webp", "cols": int(out.shape[1]), "rows": int(out.shape[0])}
 
 
+def _merge_imagery(base: np.ndarray, top: np.ndarray, feather_px: int) -> np.ndarray:
+    """`top` (the HiRISE mosaic, 0 where it has no data) over `base` (CTX), with CTX's levels
+    matched to HiRISE's where both have data, feathered over `feather_px`."""
+    valid = top > 0
+    if valid.all():
+        return top
+    if not valid.any():
+        return base
+    both = valid & (base > 0)
+    if both.sum() > 1000:
+        tb, bb = top[both], base[both]
+        base = np.where(base > 0, (base - bb.mean()) / max(bb.std(), 1e-6) * tb.std() + tb.mean(), 0)
+        base = np.clip(base, 1, 255)
+    w = np.clip(_blur(valid.astype(np.float64), feather_px) * 2 - 1, 0, 1) * valid
+    return top * w + base * (1 - w)
+
+
 def build_area(a: Area) -> dict:
     trn_dtm = _src("hirise-dtm-trn")
+    msr_dtm = _src("msr-hirise", "MSR_*_DTM_*.tif")
     ctx_dem = _src("ctx-dem-jpl")
     ctx_ortho = _src("ctx-ortho-jpl")
     trn_ortho = _src("hirise-ortho-trn")
     mola = str(next((RAW / "mola-megdr-32").glob("*.lbl")))
 
     # Detail: 1 m DTM, HiRISE at ≤ 0.75 m (within the GPU texture limit).
-    z = _fill(_warp(trn_dtm, a, a.width_m, a.height_m, 1.0, "cubic"))
+    if a.dtm == "msr":
+        z = _fill(_warp(msr_dtm, a, a.width_m, a.height_m, 1.0, "cubic", src_nodata=MSR_NODATA))
+    else:
+        z = _fill(_warp(trn_dtm, a, a.width_m, a.height_m, 1.0, "cubic"))
     detail = _write_heights(f"{a.id}_detail", z, 0.01, 1.0, (a.width_m, a.height_m))
     res = max(0.5, math.ceil(max(a.width_m, a.height_m) / MAX_TEXTURE * 4) / 4)
-    albedo = _write_grey(f"{a.id}_detail_albedo", _warp(trn_ortho, a, a.width_m, a.height_m, res, "average"))
+    img = _warp(trn_ortho, a, a.width_m, a.height_m, res, "average")
+    if not (img > 0).all():
+        base = _warp(ctx_ortho, a, a.width_m, a.height_m, res, "bilinear")
+        # The MSR release's HiRISE orthoimage over the rim (ESP_062530_1985, 25 cm), where the TRN
+        # mosaic stops (scripts/data/fetch-zip-entry.ts images ...).
+        msr_img = next((RAW / "msr-hirise").glob("*_0.25m_*_affine.tif"), None)
+        if a.dtm == "msr" and msr_img is not None:
+            base = _merge_imagery(base, _warp(str(msr_img), a, a.width_m, a.height_m, res, "average"), int(60 / res))
+        img = _merge_imagery(base, img, int(60 / res))
+    albedo = _write_grey(f"{a.id}_detail_albedo", img)
     albedo["cellM"] = res
 
     # Mid: TRN DTM (block-averaged) over the CTX DEM, feathered over 400 m.
     ctx = _fill(_warp(ctx_dem, a, MID_M, MID_M, MID_RES, "average"))
     trn = _warp(trn_dtm, a, MID_M, MID_M, MID_RES, "average")
+    if a.dtm == "msr":
+        # The same DTM as the detail layer, so the two meet without a step.
+        trn = _warp(msr_dtm, a, MID_M, MID_M, MID_RES, "average", src_nodata=MSR_NODATA)
     zm = _over(ctx, trn, int(400 / MID_RES))
     mid = _write_heights(f"{a.id}_mid", zm, 0.05, MID_RES, (MID_M, MID_M))
     mid_albedo = _write_grey(f"{a.id}_mid_albedo", _warp(ctx_ortho, a, MID_M, MID_M, MID_RES, "average"))

@@ -15,6 +15,7 @@ import { M_PER_DEG } from '../lib/math';
 import { resetProgress } from './career';
 import {
   DEPLOY_SLIDES,
+  FLIGHT_26,
   MISSIONS,
   isDone,
   listedObjectives,
@@ -103,11 +104,12 @@ export function GameApp() {
           {t('game.loadingMission')}
         </div>
       )}
-      {session && ['playing', 'paused', 'card', 'inventory', 'chapter'].includes(phase) && (
+      {session && ['playing', 'paused', 'card', 'story', 'inventory', 'chapter'].includes(phase) && (
         <Hud session={session} />
       )}
       {session && phase === 'playing' && <FindingPanel />}
-      {session && ['playing', 'chapter', 'card', 'panorama'].includes(phase) && <Toasts />}
+      {session && ['playing', 'chapter', 'card', 'story', 'panorama'].includes(phase) && <Toasts />}
+      {session && phase === 'story' && <StoryCard session={session} />}
       {session && phase === 'chapter' && <ChapterPage session={session} />}
       {session && phase === 'paused' && <PauseMenu session={session} />}
       {session && phase === 'card' && <SampleCard session={session} />}
@@ -224,19 +226,22 @@ function SoundToggle({ session }: { session: GameSession }) {
 const SLATE: Array<{ n: number; key: string; mission?: MissionId }> = [
   { n: 1, key: 'landing', mission: 'landing' },
   { n: 2, key: 'ingenuity', mission: 'ingenuity' },
-  { n: 3, key: 'firstSample' },
-  { n: 4, key: 'chute' },
+  { n: 3, key: 'firstSample', mission: 'firstSample' },
+  { n: 4, key: 'chute', mission: 'chute' },
   { n: 5, key: 'delta', mission: 'delta' },
-  { n: 6, key: 'leopard' },
-  { n: 7, key: 'rim' },
+  { n: 6, key: 'leopard', mission: 'leopard' },
+  { n: 7, key: 'rim', mission: 'rim' },
 ];
 /** The slate entry of a mission (its card picture and number). */
 export const slateOf = (id: MissionId) => SLATE.find((m) => m.mission === id);
 
-/** Free exploration: the maps it can be played on. */
-const FREE_AREAS: Array<{ id: MissionId; key: 'landing' | 'delta' }> = [
+/** Free exploration: the maps it can be played on, in the order of the missions. */
+const FREE_AREAS: Array<{ id: MissionId; key: 'landing' | 'floor' | 'delta' | 'neretva' | 'rim' }> = [
   { id: 'free-landing', key: 'landing' },
+  { id: 'free-floor', key: 'floor' },
   { id: 'free-delta', key: 'delta' },
+  { id: 'free-neretva', key: 'neretva' },
+  { id: 'free-rim', key: 'rim' },
 ];
 
 /**
@@ -349,7 +354,7 @@ function MainMenu({ session }: { session: GameSession }) {
 function FreeCard({ session }: { session: GameSession }) {
   const { t } = useTranslation();
   const saves = useGame((s) => s.saves);
-  const [area, setArea] = useState<(typeof FREE_AREAS)[number]>(FREE_AREAS[1]!);
+  const [area, setArea] = useState<(typeof FREE_AREAS)[number]>(FREE_AREAS[2]!);
   const saved = saves[area.id] !== undefined;
   const title = t('game.missions.free.title');
   return (
@@ -542,7 +547,9 @@ function ChapterPage({ session }: { session: GameSession }) {
         <div className="game-panel-title">
           {missionOf(exp).free
             ? `${t('game.missions.free.title')} · ${t(`game.missions.free.${missionOf(exp).areaId}`)}`
-            : t('game.chapter.kicker', { n: exp.chapter + 1, first: c.sols[0], last: c.sols[1] })}
+            : c.sols[0] === c.sols[1]
+              ? t('game.chapter.kickerOne', { n: exp.chapter + 1, sol: c.sols[0] })
+              : t('game.chapter.kicker', { n: exp.chapter + 1, first: c.sols[0], last: c.sols[1] })}
         </div>
         <h2 id="game-chapter-title">{t(`game.chapters.${c.id}.title`)}</h2>
         <p>{t(`game.chapters.${c.id}.story`)}</p>
@@ -555,7 +562,7 @@ function ChapterPage({ session }: { session: GameSession }) {
             </li>
           ))}
         </ul>
-        <p className="meta">{t('game.chapter.tip')}</p>
+        <p className="meta">{t(missionOf(exp).pilot ? 'game.chapter.tipPilot' : 'game.chapter.tip')}</p>
         <button
           type="button"
           className="btn btn-primary"
@@ -563,7 +570,7 @@ function ChapterPage({ session }: { session: GameSession }) {
           onClick={() => session.resume()}
         >
           {exp.chapter === 0 && exp.reached.length === 0
-            ? t('game.chapter.begin')
+            ? t(missionOf(exp).pilot ? 'game.chapter.beginPilot' : 'game.chapter.begin')
             : t('game.chapter.continue')}
         </button>
       </div>
@@ -677,6 +684,8 @@ function Hud({ session }: { session: GameSession }) {
         </div>
       )}
 
+      {hud.pilot && <PilotPanel session={session} />}
+      {!hud.pilot && (
       <section className="game-panel game-gauges" aria-label={t('game.hud.battery')}>
         <div className={`game-battery ${hud.batteryPct < 20 ? 'is-low' : ''}`}>
           <span>{t('game.hud.battery')}</span>
@@ -778,6 +787,7 @@ function Hud({ session }: { session: GameSession }) {
           <SoundToggle session={session} />
         </div>
       </section>
+      )}
 
       {phase === 'playing' && <Prompt />}
       {phase === 'playing' && hud.deploy && <DeployPanel session={session} slide={hud.deploy.slide} />}
@@ -788,7 +798,7 @@ function Hud({ session }: { session: GameSession }) {
 }
 
 function Prompt() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const hud = useGame((s) => s.hud);
   let text: string | null = null;
   let tone = '';
@@ -797,9 +807,39 @@ function Prompt() {
   const drive = hud.drive;
   const fraction = hud.deploy
     ? hud.deploy.fraction
-    : (action?.fraction ?? hud.laser?.fraction ?? (drive && !action ? drive.fraction : null));
-  if (hud.deploy) {
+    : (hud.pilot?.photo ??
+      hud.devil?.recording ??
+      action?.fraction ??
+      hud.laser?.fraction ??
+      (drive && !action ? drive.fraction : null));
+  const pilot = hud.pilot;
+  const devil = hud.devil;
+  if (pilot) {
+    if (pilot.phase === 'ground' || pilot.phase === 'down') {
+      text = pilot.timeLeftS > 0 ? t('game.pilot.prompt.takeoff') : t('game.pilot.prompt.spent');
+      tone = 'is-go';
+    } else if (pilot.phase === 'spinup') text = t('game.pilot.prompt.spinup');
+    else if (pilot.phase === 'climb') text = t('game.pilot.prompt.climb');
+    else if (pilot.phase === 'descend') text = t('game.pilot.prompt.descend');
+    else if (pilot.photo !== null) text = t('game.pilot.prompt.photo');
+    else if (pilot.canLand) {
+      text = t('game.pilot.prompt.land');
+      tone = 'is-go';
+    } else if (pilot.inLanding) {
+      text = t('game.pilot.prompt.photosFirst');
+      tone = 'is-warn';
+    } else if (pilot.timeLeftS < 30) {
+      text = t('game.pilot.prompt.low', { s: Math.ceil(pilot.timeLeftS) });
+      tone = 'is-warn';
+    } else if (hud.next) text = t('game.pilot.prompt.fly', { name: hud.next.name });
+  } else if (hud.deploy) {
     text = t('game.deploy.status');
+  } else if (action?.kind === 'moxie') {
+    text = t('game.prompt.moxie', {
+      g: (hud.moxieG ?? 0).toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    });
+  } else if (devil?.recording !== null && devil?.recording !== undefined) {
+    text = t('game.devil.recording');
   } else if (action && here) {
     text =
       action.kind === 'core'
@@ -848,6 +888,12 @@ function Prompt() {
       action: t(`game.steps.${here.step}`),
     });
     tone = 'is-go';
+  } else if (devil?.inRange) {
+    text = t(hud.speedMps > 0.3 || hud.speedMps < -0.3 ? 'game.devil.stop' : 'game.devil.record');
+    tone = 'is-go';
+  } else if (here?.locked) {
+    text = t('game.prompt.lockedCore', { name: here.name });
+    tone = 'is-warn';
   } else if (here) {
     const key = here.kind === 'depot' ? 'Drop' : here.kind === 'panorama' ? 'Pano' : 'Core';
     text = t(`game.prompt.${here.stopped ? 'hold' : 'stop'}To${key}`, { name: here.name });
@@ -865,6 +911,8 @@ function Prompt() {
     tone = 'is-warn';
   } else if (hud.storm === 'active') {
     text = t('game.prompt.storm');
+  } else if (devil && devil.distanceM < 600) {
+    text = t('game.devil.near', { distance: Math.round(devil.distanceM) });
   } else if (hud.next?.kind === 'depot') {
     text = t('game.prompt.toDepot');
   } else if (hud.next && !hud.autonav && hud.next.distanceM > 60) {
@@ -885,7 +933,8 @@ function Prompt() {
           {text}
         </span>
       )}
-      {fraction !== null && (action || hud.laser || drive || hud.deploy) && (
+      {fraction !== null &&
+        (action || hud.laser || drive || hud.deploy || (hud.pilot?.photo ?? null) !== null || (hud.devil?.recording ?? null) !== null) && (
         <div className="game-bar game-action-bar" aria-hidden="true">
           <div style={{ width: `${fraction * 100}%` }} />
         </div>
@@ -1288,7 +1337,7 @@ const GameMap = memo(function GameMap({ session }: { session: GameSession }) {
         </g>
       </svg>
       <div className="game-map-bar">
-        <span className="meta">{t('game.map.hint')}</span>
+        <span className="meta">{session.missionDef.pilot ? '' : t('game.map.hint')}</span>
         <button
           type="button"
           className="game-map-toggle"
@@ -1495,7 +1544,7 @@ function SampleCard({ session }: { session: GameSession }) {
         )}
         <div className="game-card-body">
           <div className="game-panel-title">
-            {t('game.card.title')} ·{' '}
+            {t(whyKey(site) === 'atmospheric' ? 'game.card.emptyTitle' : 'game.card.title')} ·{' '}
             {t(numbers.length > 1 ? 'game.card.numbers' : 'game.card.number', {
               number: site.sampleNumber,
             })}
@@ -1533,6 +1582,102 @@ function SampleCard({ session }: { session: GameSession }) {
   );
 }
 
+/**
+ * A story card: NASA's own picture of the moment just played (MOXIE's run, the empty tube, the
+ * photos from Ingenuity's flight 26, the leopard spots, Lookout Hill…), what it shows and its
+ * credit (data/catalog/story-images.json).
+ */
+function StoryCard({ session }: { session: GameSession }) {
+  const { t } = useTranslation();
+  const key = useGame((s) => s.story);
+  if (!key) return null;
+  return (
+    <div className="game-screen">
+      <div className="game-dialog game-card game-story" role="dialog" aria-modal="true" aria-labelledby="game-story-title">
+        <figure>
+          <img src={dataUrl(`game/story/${key}.webp?v=${DATA_VERSION}`)} alt={t(`game.story.${key}.title`)} />
+          <figcaption>{t(`game.story.${key}.credit`)}</figcaption>
+        </figure>
+        <div className="game-card-body">
+          <div className="game-panel-title">{t(`game.story.${key}.kicker`)}</div>
+          <h2 id="game-story-title">{t(`game.story.${key}.title`)}</h2>
+          <p>{t(`game.story.${key}.text`)}</p>
+          <button type="button" className="btn btn-primary" autoFocus onClick={() => session.closeStory()}>
+            {t('game.card.continue')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Ingenuity's flight panel (mission 4): time left in the air (its battery), height, speed and the
+ * photos still to take; the controls; the camera, map and pause buttons.
+ */
+function PilotPanel({ session }: { session: GameSession }) {
+  const { t } = useTranslation();
+  const p = useGame((s) => s.hud.pilot);
+  const mapOpen = useGame((s) => s.mapOpen);
+  if (!p) return null;
+  const pct = (p.timeLeftS / FLIGHT_26.seconds) * 100;
+  return (
+    <section className="game-panel game-gauges game-pilot" aria-label={t('game.pilot.title')}>
+      <div className="game-panel-title">{t('game.pilot.title')}</div>
+      <div className={`game-battery ${p.timeLeftS < 30 ? 'is-low' : ''}`}>
+        <span>{t('game.pilot.time')}</span>
+        <div
+          className="game-bar"
+          role="meter"
+          aria-valuemin={0}
+          aria-valuemax={FLIGHT_26.seconds}
+          aria-valuenow={Math.round(p.timeLeftS)}
+          aria-label={t('game.pilot.time')}
+        >
+          <div style={{ width: `${pct}%` }} />
+        </div>
+        <strong>{Math.ceil(p.timeLeftS)} s</strong>
+      </div>
+      <dl>
+        <div>
+          <dt>{t('game.pilot.alt')}</dt>
+          <dd>{p.altM.toFixed(1)} m</dd>
+        </div>
+        <div>
+          <dt>{t('game.hud.speed')}</dt>
+          <dd>{Math.abs(p.speedMps).toFixed(1)} m/s</dd>
+        </div>
+        <div>
+          <dt>{t('game.pilot.photos')}</dt>
+          <dd>{p.photosLeft}</dd>
+        </div>
+        <div>
+          <dt>{t('game.pilot.state')}</dt>
+          <dd>{t(`game.pilot.phase.${p.phase}`)}</dd>
+        </div>
+      </dl>
+      <p className="meta game-pilot-keys">{t('game.pilot.keys')}</p>
+      <div className="game-tools">
+        <button
+          type="button"
+          className="btn btn-icon"
+          aria-pressed={mapOpen}
+          onClick={() => useGame.getState().set({ mapOpen: !mapOpen })}
+        >
+          {t('game.hud.map')}
+        </button>
+        <button type="button" className="btn btn-icon" onClick={() => session.enterPhoto()}>
+          {t('game.hud.photo')}
+        </button>
+        <button type="button" className="btn btn-icon" onClick={() => session.pause()}>
+          {t('game.hud.pause')}
+        </button>
+        <SoundToggle session={session} />
+      </div>
+    </section>
+  );
+}
+
 function PanoramaPhase({ session }: { session: GameSession }) {
   const id = useGame((s) => s.panorama);
   if (!id) return null;
@@ -1551,7 +1696,9 @@ function Complete({ session }: { session: GameSession }) {
   const first = chapters[0]!.sols[0];
   const last = chapters[chapters.length - 1]!.sols[1];
   const sampling = m.id === 'delta';
+  const tubes = result.tubes > 0;
   const card = slateOf(m.id);
+  const flying = !!m.pilot;
   return (
     <div className="game-screen">
       <div
@@ -1579,15 +1726,19 @@ function Complete({ session }: { session: GameSession }) {
             <dt>{t('game.complete.time')}</dt>
             <dd>{formatClock(result.elapsedS)}</dd>
           </div>
-          <div>
-            <dt>{t('game.complete.driven')}</dt>
-            <dd>{formatDistance(result.odometerM, lang)}</dd>
-          </div>
-          <div>
-            <dt>{t('game.complete.energy')}</dt>
-            <dd>{Math.round(result.energyUsedPct)}%</dd>
-          </div>
-          {sampling && (
+          {!flying && (
+            <div>
+              <dt>{t('game.complete.driven')}</dt>
+              <dd>{formatDistance(result.odometerM, lang)}</dd>
+            </div>
+          )}
+          {!flying && (
+            <div>
+              <dt>{t('game.complete.energy')}</dt>
+              <dd>{Math.round(result.energyUsedPct)}%</dd>
+            </div>
+          )}
+          {(sampling || tubes) && (
             <div>
               <dt>{t('game.complete.tubes')}</dt>
               <dd>{result.tubes}</dd>
@@ -1599,14 +1750,18 @@ function Complete({ session }: { session: GameSession }) {
               <dd>{result.depotTubes}</dd>
             </div>
           )}
-          <div>
-            <dt>{t('game.complete.science')}</dt>
-            <dd>{result.science}</dd>
-          </div>
-          <div>
-            <dt>{t('game.complete.rocks')}</dt>
-            <dd>{result.rocks}</dd>
-          </div>
+          {!flying && (
+            <div>
+              <dt>{t('game.complete.science')}</dt>
+              <dd>{result.science}</dd>
+            </div>
+          )}
+          {!flying && (
+            <div>
+              <dt>{t('game.complete.rocks')}</dt>
+              <dd>{result.rocks}</dd>
+            </div>
+          )}
           {sampling && (
             <div>
               <dt>{t('game.complete.panoramas')}</dt>
@@ -1619,10 +1774,12 @@ function Complete({ session }: { session: GameSession }) {
               <dd>{result.flights}</dd>
             </div>
           )}
-          <div>
-            <dt>{t('game.complete.wheels')}</dt>
-            <dd>{Math.round(result.wheelsPct)}%</dd>
-          </div>
+          {!flying && (
+            <div>
+              <dt>{t('game.complete.wheels')}</dt>
+              <dd>{Math.round(result.wheelsPct)}%</dd>
+            </div>
+          )}
         </dl>
         <p>
           {t(`game.missions.${m.id}.real`, {
@@ -1632,6 +1789,15 @@ function Complete({ session }: { session: GameSession }) {
             months: Math.round(((last - first) * 1.0275) / 30.44),
           })}
         </p>
+        {m.epilogue && (
+          <figure className="game-epilogue">
+            <img src={dataUrl(`game/story/${m.epilogue}.webp?v=${DATA_VERSION}`)} alt={t(`game.story.${m.epilogue}.title`)} />
+            <figcaption>
+              <strong>{t(`game.story.${m.epilogue}.title`)}</strong> {t(`game.story.${m.epilogue}.text`)}{' '}
+              <span className="meta">{t(`game.story.${m.epilogue}.credit`)}</span>
+            </figcaption>
+          </figure>
+        )}
         <div className="btn-stack">
           <button type="button" className="btn btn-primary" autoFocus onClick={() => session.quit()}>
             {t('game.complete.menu')}

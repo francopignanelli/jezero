@@ -26,6 +26,8 @@ export type Phase =
   | 'playing'
   | 'paused'
   | 'card'
+  /** A story card: NASA's picture of a moment of the mission (game.story.<key>). */
+  | 'story'
   | 'panorama'
   | 'inventory'
   | 'complete'
@@ -54,6 +56,8 @@ export interface Hud {
     /** At a station: the step done there now, and whether it starts by itself. */
     step?: StepId | null;
     run?: 'chain' | 'arrive' | null;
+    /** A sample site waiting for another objective first (its id: SuperCam before the drill). */
+    locked?: string | null;
   } | null;
   action: { kind: ActionKind; fraction: number } | null;
   /** Ingenuity's deployment under way: the slide shown (NASA's images) and how far along (0–1). */
@@ -76,6 +80,24 @@ export interface Hud {
   warp: number;
   /** Ingenuity, when it is on the map: distance, and whether it is flying or about to. */
   ingenuity: { distanceM: number; relDeg: number; flying: boolean; ready: boolean } | null;
+  /**
+   * Ingenuity flown by the player: time left in the air (s), height (m), speed (m/s), the flight's
+   * phase, an aerial photo being taken (0–1), and whether it may land here / photos are left.
+   */
+  pilot: {
+    timeLeftS: number;
+    altM: number;
+    speedMps: number;
+    phase: 'ground' | 'spinup' | 'climb' | 'fly' | 'descend' | 'down';
+    photo: number | null;
+    canLand: boolean;
+    inLanding: boolean;
+    photosLeft: number;
+  } | null;
+  /** A dust devil to record: its distance (m) and the recording under way (0–1). */
+  devil: { distanceM: number; relDeg: number; inRange: boolean; recording: number | null } | null;
+  /** MOXIE making oxygen (g so far), during its run. */
+  moxieG: number | null;
 }
 
 export interface ExpeditionResult {
@@ -125,6 +147,8 @@ interface GameUi {
   result: ExpeditionResult | null;
   /** The last laser analysis (a panel for a few seconds). */
   finding: Find | null;
+  /** The story card shown (phase 'story'): its key (game.story.<key>, game/story/<key>.webp). */
+  story: string | null;
   toast: Toast | null;
   photoFilter: PhotoFilter;
   /** AutoNav's planned path (lat, lon), for the map. */
@@ -158,6 +182,9 @@ export const EMPTY_HUD: Hud = {
   autonav: null,
   warp: 1,
   ingenuity: null,
+  pilot: null,
+  devil: null,
+  moxieG: null,
 };
 
 let toastId = 0;
@@ -176,6 +203,7 @@ export const useGame = create<GameUi>((set) => ({
   targets: [],
   camera: 'chase',
   mapOpen: true,
+  story: null,
   hud: EMPTY_HUD,
   card: null,
   panorama: null,

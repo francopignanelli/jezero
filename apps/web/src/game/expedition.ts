@@ -16,12 +16,33 @@ import type { RockType } from './science';
  *   2022 – February 2023): arrival at the front, the climb up Hawksbill Gap, back down to Amalik,
  *   Hidden Harbor and Observation Mountain, and the Three Forks sample depot. Sample sites
  *   (MMGIS), the rover's waypoints, the Mastcam-Z panorama spots and Ingenuity's airfields.
+ * - firstSample: the crater floor, August–September 2021: MOXIE makes oxygen, the first coring at
+ *   Roubion comes back empty (the rock crumbled), SuperCam checks Rochette, which gives the first
+ *   two cores (Montdenier and Montagnac).
+ * - chute: Ingenuity's flight 26 (19 April 2022), flown by the player at 8 m over the backshell
+ *   and the parachute to the next airfield within its 159 s; its last flight (72) as the epilogue.
+ * - leopard: Neretva Vallis to Cheyava Falls (July 2024): SuperCam maps the rock with the leopard
+ *   spots before it is cored (Sapphire Canyon); Ingenuity at its last airfield, Valinor Hills.
+ * - rim: the climb of Jezero's rim to Lookout Hill (sol 1354) and Witch Hazel Hill's cores; a dust
+ *   devil recorded with SuperCam's microphone.
  *
  * A progress state names its mission; the rules read the chapters, places and flights from it.
  * Pure: the session feeds it the rover and the player's actions; tested in game.test.ts.
  */
 
-export type MissionId = 'landing' | 'ingenuity' | 'delta' | 'free-landing' | 'free-delta';
+export type MissionId =
+  | 'landing'
+  | 'ingenuity'
+  | 'firstSample'
+  | 'chute'
+  | 'delta'
+  | 'leopard'
+  | 'rim'
+  | 'free-landing'
+  | 'free-delta'
+  | 'free-floor'
+  | 'free-neretva'
+  | 'free-rim';
 
 export const SAMPLE_RADIUS_M = 14;
 export const PANORAMA_RADIUS_M = 12;
@@ -48,7 +69,7 @@ export type TargetKind = 'sample' | 'depot' | 'panorama' | 'reach' | 'station';
  * move the mission makes itself: a short drive (DRIVE_STEP_M), or turning in place to face a
  * station ('aim').
  */
-export type StepId = 'shield' | 'rotate' | 'drop' | 'aim' | 'away' | 'film';
+export type StepId = 'shield' | 'rotate' | 'drop' | 'aim' | 'away' | 'film' | 'moxie';
 export type DriveStep = 'aim' | 'away';
 export type TimedStep = Exclude<StepId, DriveStep>;
 export const isDriveStep = (s: StepId): s is DriveStep => s === 'aim' || s === 'away';
@@ -65,7 +86,14 @@ export const STEP_S: Record<TimedStep, number> = {
   rotate: 4 * DEPLOY_SLIDE_S,
   drop: 2 * DEPLOY_SLIDE_S,
   film: 1,
+  moxie: 8,
 };
+/**
+ * MOXIE: one run, compressed (an hour on Mars). Its first run made 5.37 g of oxygen; it draws about
+ * 300 W, more than the rover's power source gives, so it runs on the batteries.
+ */
+export const MOXIE_O2_G = 5.37;
+export const MOXIE_COST_PCT = 9;
 /**
  * The drive (m) from where the helicopter was set down, towards the overlook, so its solar panel
  * gets the Sun (the rover drove 4.6 m on sol 43; here further, to leave the helicopter well behind).
@@ -112,13 +140,32 @@ export interface Flight {
   lon: number;
 }
 
+/**
+ * Every objective: its id (i18n game.objectives.<id>), whether the chapter needs it, and NASA's
+ * picture of that moment shown once it is done (a story card, game.story.<key>).
+ */
+interface ObjectiveBase {
+  id: string;
+  optional?: boolean;
+  story?: string;
+}
+
 export type Objective =
-  | { id: string; kind: 'reach'; target: string; optional?: boolean }
-  | { id: string; kind: 'sample'; sample: string; optional?: boolean }
-  | { id: string; kind: 'panorama'; panorama: string; optional?: boolean }
-  | { id: string; kind: 'depot'; optional?: boolean }
-  | { id: string; kind: 'laser'; count: number; optional?: boolean }
-  | { id: string; kind: 'flight'; count: number; optional?: boolean }
+  | (ObjectiveBase & {
+      kind: 'reach';
+      target: string;
+      /** Reached by Ingenuity (the player flying it): photographed from the air, or landed on. */
+      by?: 'air' | 'landing';
+    })
+  /** `after`: an objective of the chapter to do first (SuperCam before the drill). */
+  | (ObjectiveBase & { kind: 'sample'; sample: string; after?: string })
+  | (ObjectiveBase & { kind: 'panorama'; panorama: string })
+  | (ObjectiveBase & { kind: 'depot' })
+  /** `at`: analyses made at a spot of the mission (its `spots`), not anywhere. */
+  | (ObjectiveBase & { kind: 'laser'; count: number; at?: string })
+  | (ObjectiveBase & { kind: 'flight'; count: number })
+  /** Dust devils recorded with SuperCam's microphone. */
+  | (ObjectiveBase & { kind: 'devil'; count: number })
   | StepObjective;
 
 /**
@@ -127,15 +174,13 @@ export type Objective =
  * itself when the rover stops in the station's zone (the rover brakes there). Otherwise the
  * action key starts it.
  */
-export interface StepObjective {
-  id: string;
+export interface StepObjective extends ObjectiveBase {
   kind: 'step';
   step: StepId;
   at?: string;
   run?: 'chain' | 'arrive';
   /** For 'aim': the station to face. */
   toward?: string;
-  optional?: boolean;
 }
 
 export interface Chapter {
@@ -182,6 +227,16 @@ export interface MissionDef {
    * optional discoveries.
    */
   free?: boolean;
+  /** The player flies Ingenuity (from `start`); the rover is elsewhere. */
+  pilot?: boolean;
+  /** Ingenuity standing on the map (where it ended its flights). */
+  parkedHelicopter?: { lat: number; lon: number; headingDeg: number };
+  /** Spots without a marker where SuperCam analyses count (laser objectives' `at`). */
+  spots?: Spot[];
+  /** NASA's picture shown on the mission's last page (a story key), with what came after. */
+  epilogue?: string;
+  /** No dust storms (Ingenuity flew in calm air). */
+  calm?: boolean;
 }
 
 // ---------- the delta front ----------
@@ -376,6 +431,182 @@ export const INGENUITY_MISSION: MissionDef = {
   stowedHelicopter: true,
 };
 
+// ---------- the empty tube (the crater floor) ----------
+
+/**
+ * Sols 122–196 on the crater floor south of the landing site (map 'floor'). The rover's position
+ * on sol 122, heading south; Roubion, where the first coring (sol 164) came back empty; Rochette at
+ * Citadelle, where SuperCam and the abrasion checked the rock before the first two cores (sols 190
+ * and 196); the Mastcam-Z panorama of Séítah from Artuby Ridge (sols 181–182) beside it.
+ */
+export const ROCHETTE = { lat: 18.43073, lon: 77.44433 };
+
+export const FIRST_SAMPLE: MissionDef = {
+  id: 'firstSample',
+  areaId: 'floor',
+  start: { lat: 18.439571, lon: 77.449411, headingDeg: 170 },
+  chapters: [
+    {
+      id: 'roubion',
+      sols: [122, 168],
+      objectives: [
+        { id: 'moxie', kind: 'step', step: 'moxie', at: 'moxie', story: 'moxie' },
+        { id: 'roubion', kind: 'sample', sample: '1', story: 'roubion' },
+      ],
+    },
+    {
+      id: 'citadelle',
+      sols: [168, 196],
+      objectives: [
+        { id: 'rochette-laser', kind: 'laser', count: 1, at: 'rochette', story: 'rochette' },
+        { id: 'montdenier', kind: 'sample', sample: '2 & 3', after: 'rochette-laser' },
+        { id: 'pano-seitah', kind: 'panorama', panorama: 'seitah-1', optional: true },
+      ],
+    },
+  ],
+  reach: [],
+  panoramas: [{ id: 'seitah-1', name: 'Artuby Ridge', lat: 18.430739, lon: 77.444366 }],
+  depot: null,
+  flights: [],
+  earlierSamples: [],
+  routeSols: [120, 200],
+  stations: [{ id: 'moxie', name: 'MOXIE', lat: 18.439571, lon: 77.449411, radiusM: 25, icon: 'reach' }],
+  spots: [{ id: 'rochette', name: 'Rochette', ...ROCHETTE, radiusM: 25 }],
+};
+
+// ---------- back to the parachute (Ingenuity's flight 26) ----------
+
+/**
+ * Flight 26, 19 April 2022 (sol 414): from where flight 25 landed (MMGIS ingenuity.json) over the
+ * backshell and the parachute at 8 m (where HiRISE saw them, LANDING_HARDWARE) to the airfield
+ * where it landed; 159 s in the air, the real flight's length.
+ */
+export const FLIGHT_26 = {
+  from: { lat: 18.454774, lon: 77.430596 },
+  to: { lat: 18.451645, lon: 77.43047 },
+  seconds: 159,
+};
+
+export const CHUTE: MissionDef = {
+  id: 'chute',
+  areaId: 'landing',
+  start: { ...FLIGHT_26.from, headingDeg: 160 },
+  chapters: [
+    {
+      id: 'flight26',
+      sols: [414, 414],
+      objectives: [
+        { id: 'air-backshell', kind: 'reach', target: 'backshell', by: 'air', story: 'backshell' },
+        { id: 'air-parachute', kind: 'reach', target: 'chute', by: 'air', story: 'parachute' },
+        { id: 'land-26', kind: 'reach', target: 'airfield-26', by: 'landing', story: 'debris' },
+      ],
+    },
+  ],
+  reach: [
+    { id: 'backshell', name: 'Backshell', lat: 18.451776, lon: 77.431713, radiusM: 9 },
+    { id: 'chute', name: 'Parachute', lat: 18.452209, lon: 77.432098, radiusM: 9 },
+    { id: 'airfield-26', name: 'Airfield (flight 26)', ...FLIGHT_26.to, radiusM: 6 },
+  ],
+  panoramas: [],
+  depot: null,
+  flights: [],
+  earlierSamples: [],
+  routeSols: null,
+  hardware: LANDING_HARDWARE,
+  pilot: true,
+  calm: true,
+  epilogue: 'lastFlight',
+};
+
+// ---------- leopard spots (Neretva Vallis, Cheyava Falls) ----------
+
+/** Cheyava Falls, where Sapphire Canyon was cored (sample 25, sol 1215). */
+export const CHEYAVA = { lat: 18.49747, lon: 77.30515 };
+/** Valinor Hills: Ingenuity's last airfield (flight 72, 18 January 2024). */
+export const VALINOR = { lat: 18.497269, lon: 77.322534 };
+
+const CRATER_FLOOR_AND_DELTA = [
+  '1', '2 & 3', '4 & 5', '6 & 7', '8 & 9', '10 & 11', '12 & 13', '14 & 15', '16', '17 & 18',
+];
+const MARGIN_SAMPLES = ['19', '20', '21', '22', '23', '24'];
+
+export const LEOPARD: MissionDef = {
+  id: 'leopard',
+  areaId: 'neretva',
+  /** The rover's position on sol 1150, on the margin above Neretva Vallis. */
+  start: { lat: 18.490711, lon: 77.31359, headingDeg: 310 },
+  chapters: [
+    {
+      id: 'neretva',
+      sols: [1150, 1174],
+      objectives: [
+        { id: 'reach-cheyava', kind: 'reach', target: 'cheyava' },
+        { id: 'neretva-laser', kind: 'laser', count: 2, optional: true },
+        { id: 'valinor', kind: 'reach', target: 'valinor', optional: true, story: 'valinor' },
+      ],
+    },
+    {
+      id: 'cheyava',
+      sols: [1174, 1216],
+      objectives: [
+        { id: 'leopard-laser', kind: 'laser', count: 3, at: 'cheyava', story: 'leopard' },
+        { id: 'sapphire', kind: 'sample', sample: '25', after: 'leopard-laser' },
+        { id: 'pano-bright-angel', kind: 'panorama', panorama: 'bright-angel', optional: true },
+      ],
+    },
+  ],
+  reach: [
+    { id: 'cheyava', name: 'Cheyava Falls', ...CHEYAVA, radiusM: 25 },
+    { id: 'valinor', name: 'Valinor Hills', ...VALINOR, radiusM: 30 },
+  ],
+  panoramas: [{ id: 'bright-angel', name: 'Bright Angel', lat: 18.496112, lon: 77.303836 }],
+  depot: null,
+  flights: [],
+  earlierSamples: [...CRATER_FLOOR_AND_DELTA, ...MARGIN_SAMPLES],
+  routeSols: [1140, 1240],
+  parkedHelicopter: { ...VALINOR, headingDeg: 40 },
+  spots: [{ id: 'cheyava', name: 'Cheyava Falls', ...CHEYAVA, radiusM: 25 }],
+};
+
+// ---------- the rim ----------
+
+/** Lookout Hill: the end of the climb, sol 1354 (10 December 2024), first view over the rim. */
+export const LOOKOUT = { lat: 18.457528, lon: 77.268527 };
+
+export const RIM: MissionDef = {
+  id: 'rim',
+  areaId: 'rim',
+  /** The rover's position on sol 1280, partway up the inner wall. */
+  start: { lat: 18.473547, lon: 77.299099, headingDeg: 241 },
+  chapters: [
+    {
+      id: 'climb',
+      sols: [1280, 1354],
+      objectives: [
+        { id: 'lookout', kind: 'reach', target: 'lookout', story: 'lookout' },
+        { id: 'rim-laser', kind: 'laser', count: 2, optional: true },
+      ],
+    },
+    {
+      id: 'witchHazel',
+      sols: [1354, 1441],
+      objectives: [
+        { id: 'silver-mountain', kind: 'sample', sample: '26' },
+        { id: 'main-river', kind: 'sample', sample: '28' },
+        { id: 'devil', kind: 'devil', count: 1, story: 'devil' },
+        { id: 'green-gardens', kind: 'sample', sample: '27', optional: true },
+        { id: 'pano-witch-hazel', kind: 'panorama', panorama: 'witch-hazel-hill', optional: true },
+      ],
+    },
+  ],
+  reach: [{ id: 'lookout', name: 'Lookout Hill', ...LOOKOUT, radiusM: 30 }],
+  panoramas: [{ id: 'witch-hazel-hill', name: 'Witch Hazel Hill', lat: 18.460569, lon: 77.264638 }],
+  depot: null,
+  flights: [],
+  earlierSamples: [...CRATER_FLOOR_AND_DELTA, ...MARGIN_SAMPLES, '25'],
+  routeSols: [1270, 1445],
+};
+
 // ---------- free exploration ----------
 
 /** A mission's objectives of some kinds, once each and all optional: free exploration's discoveries. */
@@ -383,9 +614,11 @@ function discoveries(m: MissionDef, kinds: Array<Objective['kind']>): Objective[
   const seen = new Set<string>();
   const out: Objective[] = [];
   for (const o of m.chapters.flatMap((c) => c.objectives))
-    if (kinds.includes(o.kind) && !seen.has(o.id)) {
+    if (kinds.includes(o.kind) && !seen.has(o.id) && !(o.kind === 'reach' && o.by)) {
       seen.add(o.id);
-      out.push({ ...o, optional: true });
+      // No order between them (a core needs no analysis first here).
+      const { after: _after, ...free } = o as Objective & { after?: string };
+      out.push({ ...free, optional: true } as Objective);
     }
   return out;
 }
@@ -419,12 +652,42 @@ export const FREE_DELTA: MissionDef = {
   free: true,
 };
 
+/** Free exploration of the other maps: their places, panoramas and sample sites. */
+const freeOf = (m: MissionDef, id: MissionId): MissionDef => {
+  const { epilogue: _e, stations: _s, ...map } = m;
+  const objectives = discoveries(m, ['reach', 'sample', 'panorama']);
+  return {
+    ...map,
+    id,
+    chapters: [{ id: 'free', sols: [m.chapters[0]!.sols[0], m.chapters[m.chapters.length - 1]!.sols[1]], objectives }],
+    free: true,
+  };
+};
+export const FREE_FLOOR = freeOf(FIRST_SAMPLE, 'free-floor');
+export const FREE_NERETVA = freeOf(LEOPARD, 'free-neretva');
+export const FREE_RIM = freeOf(RIM, 'free-rim');
+
 export const MISSIONS: Record<MissionId, MissionDef> = {
   landing: LANDING,
   ingenuity: INGENUITY_MISSION,
+  firstSample: FIRST_SAMPLE,
+  chute: CHUTE,
   delta: DELTA,
+  leopard: LEOPARD,
+  rim: RIM,
   'free-landing': FREE_LANDING,
   'free-delta': FREE_DELTA,
+  'free-floor': FREE_FLOOR,
+  'free-neretva': FREE_NERETVA,
+  'free-rim': FREE_RIM,
+};
+/** The free-exploration mission of each map. */
+export const FREE_OF_AREA: Record<string, MissionId> = {
+  landing: 'free-landing',
+  delta: 'free-delta',
+  floor: 'free-floor',
+  neretva: 'free-neretva',
+  rim: 'free-rim',
 };
 export const missionOf = (s: { mission?: MissionId }): MissionDef => MISSIONS[s.mission ?? 'delta'];
 
@@ -458,6 +721,8 @@ export interface ExpeditionState {
   steps?: StepId[];
   /** Where Ingenuity was set down (the rover's position then). */
   dropAt?: { lat: number; lon: number };
+  /** Dust devils recorded with SuperCam's microphone. */
+  recordings?: number;
 }
 
 export interface Find {
@@ -466,6 +731,8 @@ export interface Find {
   key: string;
   points: number;
   first: boolean;
+  /** The mission spot it was made at (laser objectives' `at`), if any. */
+  at?: string;
 }
 
 export const newExpedition = (mission: MissionId = 'delta'): ExpeditionState => ({
@@ -488,6 +755,10 @@ const flightsIn = (s: ExpeditionState, c: Chapter) =>
     return !!f && f.sol >= c.sols[0] && f.sol <= c.sols[1];
   }).length;
 
+/** Analyses that count for a laser objective (at its spot, when it names one). */
+const lasersFor = (s: ExpeditionState, o: { at?: string }) =>
+  o.at ? s.finds.filter((f) => f.at === o.at).length : s.finds.length;
+
 export function objectiveDone(s: ExpeditionState, o: Objective, c: Chapter): boolean {
   switch (o.kind) {
     case 'reach':
@@ -499,9 +770,11 @@ export function objectiveDone(s: ExpeditionState, o: Objective, c: Chapter): boo
     case 'depot':
       return s.deposited;
     case 'laser':
-      return s.finds.length >= o.count;
+      return lasersFor(s, o) >= o.count;
     case 'flight':
       return flightsIn(s, c) >= o.count;
+    case 'devil':
+      return (s.recordings ?? 0) >= o.count;
     case 'step': {
       const steps = s.steps ?? [];
       if (!steps.includes(o.step)) return false;
@@ -569,9 +842,59 @@ export function objectiveCount(
   o: Objective,
   c: Chapter,
 ): [number, number] | null {
-  if (o.kind === 'laser') return [Math.min(s.finds.length, o.count), o.count];
+  if (o.kind === 'laser') return [Math.min(lasersFor(s, o), o.count), o.count];
   if (o.kind === 'flight') return [Math.min(flightsIn(s, c), o.count), o.count];
+  if (o.kind === 'devil') return [Math.min(s.recordings ?? 0, o.count), o.count];
   return null;
+}
+
+/** The spot of an open laser objective the rover is at (its analyses count there), or null. */
+export function laserSpotAt(s: ExpeditionState, rover: { lat: number; lon: number }): string | null {
+  const m = missionOf(s);
+  const c = m.chapters[s.chapter];
+  for (const o of c?.objectives ?? []) {
+    if (o.kind !== 'laser' || !o.at || objectiveDone(s, o, c!)) continue;
+    const spot = m.spots?.find((x) => x.id === o.at);
+    if (spot && groundDistanceM(rover, spot) <= (spot.radiusM ?? REACH_RADIUS_M)) return spot.id;
+  }
+  return null;
+}
+
+/** A sample objective waiting for another of its chapter (SuperCam first): that one's id. */
+export function sampleLockedBy(s: ExpeditionState, sampleNumber: string): string | null {
+  const c = missionOf(s).chapters[s.chapter];
+  const o = c?.objectives.find((x) => x.kind === 'sample' && x.sample === sampleNumber);
+  if (!c || o?.kind !== 'sample' || !o.after) return null;
+  const first = c.objectives.find((x) => x.id === o.after);
+  return first && !objectiveDone(s, first, c) ? first.id : null;
+}
+
+/** Objectives done by a change of progress (from `before` to `s`, same chapter or the one left). */
+export function newlyDone(before: ExpeditionState, s: ExpeditionState): Objective[] {
+  const m = missionOf(s);
+  const out: Objective[] = [];
+  for (let i = before.chapter; i <= s.chapter; i++) {
+    const c = m.chapters[i];
+    if (!c) continue;
+    for (const o of c.objectives)
+      if (objectiveDone(s, o, c) && !(i === before.chapter && objectiveDone(before, o, c))) out.push(o);
+  }
+  return out;
+}
+
+/** The open reach objectives Ingenuity does (flying over, or landing), with their places. */
+export function airObjectives(
+  s: ExpeditionState,
+  targets: Target[],
+): Array<{ o: Objective & { kind: 'reach' }; t: Target }> {
+  const c = missionOf(s).chapters[s.chapter];
+  const out: Array<{ o: Objective & { kind: 'reach' }; t: Target }> = [];
+  for (const o of c?.objectives ?? []) {
+    if (o.kind !== 'reach' || !o.by || objectiveDone(s, o, c!)) continue;
+    const t = targets.find((x) => x.id === `reach-${o.target}`);
+    if (t) out.push({ o, t });
+  }
+  return out;
 }
 
 export const chapterDone = (s: ExpeditionState, i = s.chapter): boolean => {
@@ -665,7 +988,7 @@ export function isDone(s: ExpeditionState, t: Target): boolean {
   if (t.kind === 'sample') return s.samples.includes(t.site?.sampleNumber ?? '');
   if (t.kind === 'panorama') return s.panoramas.includes(t.panoramaId ?? '');
   if (t.kind === 'station') {
-    // Done once the chapter has no step left there.
+    // Done once the chapter has nothing left to do there.
     const c = missionOf(s).chapters[s.chapter];
     const at = t.id.slice('station-'.length);
     return !c?.objectives.some(
@@ -776,8 +1099,10 @@ export function stepExpedition(
   const events: ExpeditionEvent[] = [];
   const open = openTargets(s, targets);
   let state = s;
+  // Places Ingenuity reaches are not reached by driving.
+  const byAir = new Set(airObjectives(s, targets).map((a) => a.t.id));
   for (const t of open)
-    if (t.kind === 'reach' && groundDistanceM(rover, t) <= t.radiusM) {
+    if (t.kind === 'reach' && !byAir.has(t.id) && groundDistanceM(rover, t) <= t.radiusM) {
       state = { ...state, reached: [...state.reached, t.id.slice('reach-'.length)] };
       events.push({ kind: 'reached', target: t });
     }
@@ -822,7 +1147,9 @@ export function stepExpedition(
               ? pressStep && !pressStep.run && !isDriveStep(pressStep.step)
                 ? pressStep.step
                 : null
-              : 'core';
+              : sampleLockedBy(state, t.site?.sampleNumber ?? '')
+                ? null
+                : 'core';
     if (!kind) {
       const adv = advance(state, s, events);
       return { state: adv.state, action: null, events: adv.events };

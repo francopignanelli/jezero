@@ -983,7 +983,7 @@ export class World {
     const spinM = motion.distanceM / Math.max(0.15, 1 - slip);
     const rover = this.rover;
     const terrain = this.terrain;
-    if (rover && terrain) {
+    if (rover && terrain && rover.root.visible) {
       rover.setPose(pose.x, pose.y, pose.z, pose.headingRad, pose.pitchRad, pose.rollRad);
       rover.root.updateMatrixWorld(true);
       // Suspension: each wheel follows the ground under it relative to the body plane.
@@ -1073,12 +1073,12 @@ export class World {
     const s = this.ingenuity.update(dt, this.groundY);
     // Under the rover the belly hides most of the sky: less sky light and reflection on it (its
     // foil shows the shadowed ground, as in WATSON's images), full in the open.
-    if (this.rover && this.ingenuity.root.visible) {
+    if (this.rover?.root.visible && this.ingenuity.root.visible) {
       const r = this.rover.root.position;
       const p = this.ingenuity.position;
       const d = Math.hypot(p.x - r.x, p.z - r.z);
       this.ingenuity.setSkyLight(0.42 + 0.58 * Math.min(1, Math.max(0, (d - 1.1) / 1.2)));
-    }
+    } else this.ingenuity.setSkyLight(1);
     this.ingenuityLanded ||= s.landed;
     if (s.rotor < 0.5 || s.altitudeM > 4 || !this.ingenuity.root.visible) return;
     const p = this.ingenuity.position;
@@ -1123,6 +1123,57 @@ export class World {
     }
     this.tmp.set(at[0], this.groundY(at[0], -at[1]), -at[1]);
     this.ingenuity.place(this.tmp, headingRad, stowed);
+  }
+
+  /**
+   * Ingenuity flown by the player (mission 4): at a local point (x, north), its height above the
+   * ground there, its heading, rotors on or off, and its lean (rad, forward and sideways).
+   */
+  pilotIngenuity(
+    at: [number, number],
+    altM: number,
+    headingRad: number,
+    rotorsOn: boolean,
+    pitch: number,
+    roll: number,
+  ): void {
+    this.tmp.set(at[0], this.groundY(at[0], -at[1]) + altM, -at[1]);
+    this.ingenuity.steer(this.tmp, headingRad, rotorsOn, pitch, roll);
+  }
+
+  /** The rover drawn or not (hidden while the player flies Ingenuity: it was elsewhere). */
+  setRoverVisible(v: boolean): void {
+    if (this.rover) this.rover.root.visible = v;
+  }
+
+  /** The nearest dust devil up (horizontal distance, m, and where it is), if any. */
+  nearestDevil(x: number, z: number): { distanceM: number; at: Vector3 } | null {
+    let best: { distanceM: number; at: Vector3 } | null = null;
+    for (const d of this.devils) {
+      if (!d.alive || !d.mesh.visible) continue;
+      const p = d.mesh.position;
+      const m = Math.hypot(p.x - x, p.z - z);
+      if (!best || m < best.distanceM) best = { distanceM: m, at: p };
+    }
+    return best;
+  }
+
+  /**
+   * Starts a dust devil `distM` upwind of a point (world x, z), so the wind brings it across;
+   * false when all of them are already up.
+   */
+  summonDevil(x: number, z: number, distM: number): boolean {
+    const d = this.devils.find((x) => !x.alive);
+    if (!d || this.storm > 0.3) return false;
+    const w = this.tmp2.copy(this.wind).setY(0);
+    if (w.lengthSq() < 1e-6) w.set(1, 0, 0);
+    w.normalize();
+    // Upwind, a little to one side, so it passes close by rather than over the rover.
+    const side = (Math.random() - 0.5) * 0.5;
+    this.tmp.set(x - (w.x - w.z * side) * distM, 0, z - (w.z + w.x * side) * distM);
+    this.tmp.y = this.groundY(this.tmp.x, this.tmp.z);
+    d.spawn(this.tmp, this.wind, 90 + Math.random() * 40);
+    return true;
   }
 
   flyIngenuity(to: [number, number]): void {

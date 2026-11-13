@@ -3,7 +3,9 @@
  * the entry's local header and its compressed bytes) and inflates it to disk, so a 676 MB DTM can be
  * taken from the 5.47 GB USGS MSR HiRISE archive without downloading the rest.
  *
- * Run: npx tsx scripts/data/fetch-zip-entry.ts
+ * Run: npx tsx scripts/data/fetch-zip-entry.ts            (the MSR 1 m DTM, from the mosaics ZIP)
+ *      npx tsx scripts/data/fetch-zip-entry.ts images <path inside the ZIP> <dataset id>
+ *        (one file of the individual-images ZIP, e.g. the HiRISE orthoimage over the crater rim)
  * Output: data/raw/msr-hirise/<entry name> + .provenance.json (sha256 of the inflated file).
  */
 import { createHash } from 'node:crypto';
@@ -14,9 +16,12 @@ import { pipeline } from 'node:stream/promises';
 import { createInflateRaw } from 'node:zlib';
 
 const ROOT = join(import.meta.dirname, '..', '..');
-const ZIP =
-  'https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSR_TRN_HiRISE_soc_003_USGS_release_aug2024/MSR_TRN_HiRISE_soc_003_USGS_release_aug2024_mosaics.zip';
-const ENTRY = 'MSR_hirise_soc_003_DTM_MOLATopography_DeltaGeoid_1m_Eqc_latTs0_lon0_Blend40.tif';
+const [which, entryPath, datasetArg] = process.argv.slice(2);
+const ZIP = `https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSR_TRN_HiRISE_soc_003_USGS_release_aug2024/MSR_TRN_HiRISE_soc_003_USGS_release_aug2024_${which === 'images' ? 'images' : 'mosaics'}.zip`;
+/** The entry's path inside the ZIP (after the release folder), and its file name. */
+const ENTRY_PATH = entryPath ?? 'mosaics/MSR_hirise_soc_003_DTM_MOLATopography_DeltaGeoid_1m_Eqc_latTs0_lon0_Blend40.tif';
+const ENTRY = ENTRY_PATH.split('/').pop()!;
+const DATASET = datasetArg ?? 'msr-hirise-dtm';
 const OUT = join(ROOT, 'data', 'raw', 'msr-hirise');
 const UA = { 'User-Agent': 'Copernico-pipeline/0.1 (NASA Space Apps research prototype)' };
 
@@ -67,7 +72,7 @@ for (let p = 0; p < cd.length && cd.readUInt32LE(p) === 0x02014b50; ) {
     }
     x += 4 + len;
   }
-  if (name.endsWith(`/mosaics/${ENTRY}`)) entry = { method, csize, usize, offset, crc };
+  if (name.endsWith(`/${ENTRY_PATH}`)) entry = { method, csize, usize, offset, crc };
   p += 46 + nlen + xlen + clen;
 }
 if (!entry || entry.method !== 8) throw new Error('entry not found or not deflated');
@@ -100,7 +105,7 @@ writeFileSync(
       sha256: hash.digest('hex'),
       zipCrc32: entry.crc.toString(16),
       retrievedUtc: new Date().toISOString().replace(/\.\d{3}Z$/, '+00:00'),
-      datasetId: 'msr-hirise-dtm',
+      datasetId: DATASET,
       sourceUrl: ZIP,
       method: 'zip-entry-range (scripts/data/fetch-zip-entry.ts)',
     },

@@ -5,7 +5,8 @@ import { DATA_VERSION, dataUrl } from '../config';
  * extent), shared by the planner and the game: whether a place can be driven to in the game, and
  * the link that opens it there (free exploration, the rover set down at that point).
  */
-export type GameArea = 'landing' | 'delta';
+export type GameArea = 'landing' | 'floor' | 'delta' | 'neretva' | 'rim';
+const AREAS: readonly string[] = ['landing', 'floor', 'delta', 'neretva', 'rim'];
 interface AreaBox {
   id: GameArea;
   west: number;
@@ -27,7 +28,7 @@ export function loadGameAreas(): Promise<AreaBox[]> {
     .then((r) => (r.ok ? r.json() : { areas: [] }))
     .then((j: { areas: Array<{ id: string; lat: number; lon: number; detail: { heights: { widthM: number; heightM: number } } }> }) =>
       j.areas
-        .filter((a): a is typeof a & { id: GameArea } => a.id === 'landing' || a.id === 'delta')
+        .filter((a): a is typeof a & { id: GameArea } => AREAS.includes(a.id))
         .map((a) => {
           const dLat = ((a.detail.heights.heightM / 2 - MARGIN_M) / R) * (180 / Math.PI);
           const dLon = ((a.detail.heights.widthM / 2 - MARGIN_M) / (R * Math.cos((a.lat * Math.PI) / 180))) * (180 / Math.PI);

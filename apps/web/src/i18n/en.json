@@ -894,11 +894,14 @@
       "doing": {
         "film": "Mastcam-Z films the flight…",
         "away": "Driving clear: the Sun must reach Ingenuity’s solar panel…",
-        "aim": "Turning towards Van Zyl Overlook…"
+        "aim": "Turning towards Van Zyl Overlook…",
+        "moxie": "MOXIE making oxygen…"
       },
       "arrive": {
         "film": "Van Zyl Overlook: stopping to film the flight…"
-      }
+      },
+      "moxie": "MOXIE: {{g}} g of oxygen…",
+      "lockedCore": "Before drilling, analyse the rock with SuperCam (F)"
     },
     "touch": {
       "forward": "Forward",
@@ -937,7 +940,8 @@
         "carbonate": "Silica-cemented carbonate: minerals that grow in water and can trap traces of the environment they formed in."
       },
       "inRack": "Sealed and stored in the tube rack (I: inventory).",
-      "tubeCaption": "Sealed in its own tube (NASA’s model of the Mars 2020 sample tube, 14 cm long)"
+      "tubeCaption": "Sealed in its own tube (NASA’s model of the Mars 2020 sample tube, 14 cm long)",
+      "emptyTitle": "Tube without rock"
     },
     "complete": {
       "title": "Expedition complete",
@@ -1093,7 +1097,10 @@
       "sols": "Sols {{first}}–{{last}}",
       "begin": "Start driving",
       "continue": "Continue",
-      "tip": "N: AutoNav to the next objective · I: inventory · M: map · T: faster time while AutoNav drives"
+      "tip": "N: AutoNav to the next objective · I: inventory · M: map · T: faster time while AutoNav drives",
+      "kickerOne": "Chapter {{n}} · sol {{sol}}",
+      "tipPilot": "M: map · Esc: pause · Flight time only runs while Ingenuity is in the air",
+      "beginPilot": "Start the flight"
     },
     "chapters": {
       "arrival": {
@@ -1131,6 +1138,34 @@
       "free": {
         "title": "Free exploration",
         "story": "No objectives and no clock: drive where you like. Everything works here: SuperCam on any rock (F), AutoNav to a goal or to a point you click on the map (N), time warp (T) and photo mode (P). The places where Perseverance worked are listed on the left to discover: reach them, core at the sample sites, take the panoramas."
+      },
+      "roubion": {
+        "title": "Roubion",
+        "story": "August 2021. Perseverance has left the landing site, heading south across the crater floor. Before its first sample, the team switches on MOXIE, the experiment that makes oxygen from the CO₂ in the air: stop and run it (it uses battery). Then drive to Roubion, a flat rock of the crater floor, and take the mission’s first sample."
+      },
+      "citadelle": {
+        "title": "Citadelle",
+        "story": "Roubion’s tube came back empty: the rock, heavily weathered, crumbled to powder. The team looks for a harder one at Citadelle, a ridge beside Séítah. Before drilling, analyse the rock Rochette with SuperCam’s laser (F, within 7 m); then core Montdenier and Montagnac, two cores of the same rock."
+      },
+      "flight26": {
+        "title": "Flight 26",
+        "story": "19 April 2022. Mars Sample Return engineers want to see the backshell and the parachute that slowed Perseverance from the air. Fly Ingenuity at 8 m: pass slowly over each piece to photograph it, and land at the next airfield before its 159 s of battery run out."
+      },
+      "neretva": {
+        "title": "Neretva Vallis",
+        "story": "June–July 2024. Perseverance follows Neretva Vallis, the old channel where a river flowed into Jezero, towards Cheyava Falls, an arrowhead-shaped rock in the Bright Angel area. To the east, at Valinor Hills, stands Ingenuity, which never flew again after its flight 72."
+      },
+      "cheyava": {
+        "title": "Cheyava Falls",
+        "story": "Cheyava Falls has white veins of calcium sulfate and, between them, light spots ringed with dark material, like a leopard’s. Map the rock with three SuperCam analyses (F), then core Sapphire Canyon."
+      },
+      "climb": {
+        "title": "The climb",
+        "story": "August–December 2024. Perseverance climbs Jezero’s inner wall, sometimes driving backwards so its wheels do not dig into loose sand. Reach Lookout Hill, at the top of the rim, minding the tilt and the slip."
+      },
+      "witchHazel": {
+        "title": "Witch Hazel Hill",
+        "story": "Beyond the crest, Witch Hazel Hill holds rocks older than the crater itself, torn from the crust by the impact that made it. Core Silver Mountain and Main River. The rim is dust-devil country: stop near one and record it with SuperCam’s microphone."
       }
     },
     "objectives": {
@@ -1158,7 +1193,28 @@
       "drive-away": "Drive 12 m away, towards the overlook",
       "film-flight": "Stop at Van Zyl Overlook to film the first flight",
       "deploy-heli": "Deploy Ingenuity at Wright Brothers Field",
-      "aim-overlook": "Turn towards Van Zyl Overlook"
+      "aim-overlook": "Turn towards Van Zyl Overlook",
+      "moxie": "Run MOXIE and make oxygen",
+      "roubion": "Take a sample at Roubion",
+      "rochette-laser": "Analyse Rochette with SuperCam (F)",
+      "montdenier": "Core Montdenier + Montagnac (Rochette)",
+      "pano-seitah": "360° panorama of Séítah from Artuby Ridge",
+      "air-backshell": "Photograph the backshell from the air",
+      "air-parachute": "Photograph the parachute from the air",
+      "land-26": "Land at flight 26’s airfield",
+      "reach-cheyava": "Reach Cheyava Falls",
+      "neretva-laser": "Analyse 2 rocks on the way",
+      "valinor": "Visit Ingenuity at Valinor Hills",
+      "leopard-laser": "Map Cheyava Falls with SuperCam (3 analyses)",
+      "sapphire": "Core Sapphire Canyon",
+      "pano-bright-angel": "360° panorama at Bright Angel",
+      "lookout": "Climb to Lookout Hill, on the crater rim",
+      "rim-laser": "Analyse 2 rocks of the rim",
+      "silver-mountain": "Core Silver Mountain",
+      "main-river": "Core Main River",
+      "devil": "Record a dust devil with SuperCam’s microphone",
+      "green-gardens": "Core Green Gardens",
+      "pano-witch-hazel": "360° panorama at Witch Hazel Hill"
     },
     "toast": {
       "reached": "Reached {{name}}",
@@ -1277,22 +1333,34 @@
       "firstSample": {
         "title": "The empty tube",
         "when": "Aug–Sep 2021",
-        "desc": "Perseverance’s first coring comes up empty: the rock crumbled. Find one strong enough to fill tube 266, and run MOXIE to make oxygen within the sol’s energy budget."
+        "desc": "Perseverance’s first coring comes up empty: the rock crumbled. Find one strong enough to fill tube 266, and run MOXIE to make oxygen within the sol’s energy budget.",
+        "start": "Start",
+        "complete": "First samples sealed",
+        "real": "The first attempt, at Roubion (sol 164), came back empty. On 1 September 2021 (sol 190) Perseverance sealed Montdenier, its first rock sample, and on 8 September Montagnac, from the same rock. MOXIE made 122 g of oxygen in 16 runs up to August 2023."
       },
       "chute": {
         "title": "Back to the chute",
         "when": "Apr 2022",
-        "desc": "Take Ingenuity’s controls for flight 26, 8 m above the backshell and the parachute, then follow the helicopter to its 72nd and last flight."
+        "desc": "Take Ingenuity’s controls for flight 26, 8 m above the backshell and the parachute, then follow the helicopter to its 72nd and last flight.",
+        "start": "Start",
+        "complete": "Flight 26 complete",
+        "real": "Ingenuity flew for 159 s on 19 April 2022 over the backshell and the parachute. It kept flying for almost two more years, up to its flight 72."
       },
       "leopard": {
         "title": "Leopard spots",
         "when": "Jul 2024",
-        "desc": "Cheyava Falls and its leopard spots: map the rock and core Sapphire Canyon, the best candidate sign of ancient life."
+        "desc": "Cheyava Falls and its leopard spots: map the rock and core Sapphire Canyon, the best candidate sign of ancient life.",
+        "start": "Start",
+        "complete": "Sapphire Canyon on board",
+        "real": "Perseverance cored Sapphire Canyon on 21 July 2024 (sol 1215). In 2025 its team described the spots as a potential biosignature: minerals that on Earth often form with the help of microbes, though they can have other origins. Confirming it needs the sample in a laboratory."
       },
       "rim": {
         "title": "The rim",
         "when": "2024–2025",
-        "desc": "Climb Witch Hazel Hill to the crater rim, among the oldest rocks on Mars, and stalk dust devils with the microphone on."
+        "desc": "Climb Witch Hazel Hill to the crater rim, among the oldest rocks on Mars, and stalk dust devils with the microphone on.",
+        "start": "Start",
+        "complete": "On Jezero’s rim",
+        "real": "After about 3.5 months and some 500 m of climbing, Perseverance reached Lookout Hill on 10 December 2024 (sol 1354) and explored Witch Hazel Hill until May 2025."
       },
       "start": "Start",
       "continue": "Continue · chapter {{chapter}}",
@@ -1308,7 +1376,10 @@
         "continue": "Keep exploring",
         "where": "Map",
         "landing": "Landing site",
-        "delta": "Delta front"
+        "delta": "Delta front",
+        "floor": "Crater floor",
+        "neretva": "Neretva Vallis",
+        "rim": "Crater rim"
       },
       "done": "Completed",
       "best": "best {{time}}",
@@ -1319,7 +1390,12 @@
       "reach-parachute": "Parachute and backshell",
       "reach-heat-shield": "Heat shield",
       "station-field": "Wright Brothers Field",
-      "station-overlook": "Van Zyl Overlook"
+      "station-overlook": "Van Zyl Overlook",
+      "station-moxie": "MOXIE",
+      "reach-backshell": "Backshell",
+      "reach-airfield-26": "Flight 26 airfield",
+      "reach-valinor": "Valinor Hills (Ingenuity)",
+      "reach-chute": "Parachute"
     },
     "video": {
       "back": "Back to the missions",
@@ -1364,7 +1440,8 @@
       "shield": "deploy Ingenuity",
       "rotate": "turn Ingenuity upright",
       "drop": "set Ingenuity down",
-      "film": "film the first flight"
+      "film": "film the first flight",
+      "moxie": "run MOXIE"
     },
     "deploy": {
       "title": "Deploying Ingenuity",
@@ -1407,6 +1484,115 @@
           "title": "On Mars",
           "text": "Released, it drops onto its legs. The rover drives away so the Sun reaches its solar panel."
         }
+      }
+    },
+    "pilot": {
+      "title": "Ingenuity · flight 26",
+      "time": "Flight",
+      "alt": "Height",
+      "photos": "Photos",
+      "state": "State",
+      "keys": "Space: take off or land · W/S: forward or back · A/D: turn · Shift: faster",
+      "phase": {
+        "ground": "On the ground",
+        "spinup": "Rotors",
+        "climb": "Climbing",
+        "fly": "Flying",
+        "descend": "Landing",
+        "down": "On the ground"
+      },
+      "prompt": {
+        "takeoff": "Press Space to take off",
+        "spent": "Battery spent",
+        "spinup": "Rotors spinning up to 2,537 rpm…",
+        "climb": "Climbing to 8 m…",
+        "descend": "Landing…",
+        "photo": "Photographing… keep Ingenuity over it, slowly",
+        "land": "Press Space to land here",
+        "photosFirst": "Before landing, photograph the backshell and the parachute",
+        "low": "{{s}} s of flight left!",
+        "fly": "Fly to {{name}} and pass slowly over it"
+      },
+      "takeoff": "Ingenuity takes off: {{s}} s of flight",
+      "photosFirst": "The two photos first",
+      "photo": "Photo taken: {{name}}",
+      "landed": "Landed: {{s}} s in the air",
+      "empty": "Battery spent: Ingenuity lands where it is. The team plans the flight again from the airfield",
+      "low": "{{s}} s of flight left"
+    },
+    "devil": {
+      "recording": "Recording with SuperCam’s microphone… hold still",
+      "stop": "Dust devil nearby: stop the rover to record it",
+      "record": "Press Space to record the dust devil with SuperCam’s microphone",
+      "near": "Dust devil {{distance}} m away: get within 90 m",
+      "lost": "The dust devil moved off: recording cut"
+    },
+    "story": {
+      "moxie": {
+        "kicker": "MOXIE · Mars Oxygen ISRU Experiment",
+        "title": "Oxygen made on Mars",
+        "text": "MOXIE splits oxygen from the carbon dioxide in the air at about 800 °C. On its first run, on 20 April 2021, it made 5.37 g in an hour: what an astronaut breathes in about 10 minutes. In 16 runs up to 2023 it made 122 g. It needs more power than the rover’s generator gives, so it draws on the battery. In the photo, engineers fit it into Perseverance.",
+        "credit": "NASA/JPL-Caltech · PIA24176"
+      },
+      "roubion": {
+        "kicker": "Roubion · sol 166",
+        "title": "A tube without rock",
+        "text": "Roubion’s heavily weathered rock crumbled to powder when drilled, and the tube came up empty. Two days later SuperCam fired its laser inside the hole (the eight pits in the image) to understand why. The tube was sealed with Martian air: it is sample 1.",
+        "credit": "NASA/JPL-Caltech/LANL/CNES/CNRS · PIA24749"
+      },
+      "rochette": {
+        "kicker": "Rochette · sol 185",
+        "title": "A harder rock",
+        "text": "On 27 August 2021 the rover abraded a circle on Rochette (“Bellegarde”) and examined it with the instruments on its arm. This time the core held: Montdenier was sealed on 1 September, the first Martian rock kept for a possible trip to Earth.",
+        "credit": "NASA/JPL-Caltech · PIA24831"
+      },
+      "backshell": {
+        "kicker": "Flight 26 · 19 April 2022",
+        "title": "The backshell, from 8 m",
+        "text": "Ingenuity photographed the backshell standing upright on Jezero’s floor. The cables streaming from its top are the suspension lines that tied it to the parachute. Mars Sample Return engineers asked for these images to study how the landing went.",
+        "credit": "NASA/JPL-Caltech · PIA25219"
+      },
+      "parachute": {
+        "kicker": "Flight 26 · 19 April 2022",
+        "title": "The parachute",
+        "text": "The 21.5 m parachute slowed Perseverance at supersonic speed. It was released with the backshell at about 2.1 km up, and both hit the ground at about 126 km/h.",
+        "credit": "NASA/JPL-Caltech · PIA25217"
+      },
+      "debris": {
+        "kicker": "Flight 26",
+        "title": "The debris field",
+        "text": "From the air it is all in one view: the backshell on the left, the parachute on the right. Ingenuity landed after 159 s in the air, on flight 26 of the 72 it would make.",
+        "credit": "NASA/JPL-Caltech · PIA25218"
+      },
+      "lastFlight": {
+        "kicker": "Flight 72 · 18 January 2024",
+        "title": "The last flight",
+        "text": "After its flight 72, Ingenuity photographed the shadow of one of its blades, damaged in a rough landing: it would not fly again. Designed for up to 5 flights in 30 days, it made 72 in almost three years, about 129 minutes in the air and 17 km.",
+        "credit": "NASA/JPL-Caltech · PIA26243"
+      },
+      "leopard": {
+        "kicker": "Cheyava Falls · 18 July 2024",
+        "title": "Leopard spots",
+        "text": "White veins of calcium sulfate and, between them, a reddish band with millimetre-size light spots ringed with dark material. On Earth, spots like these can form in chemical reactions that feed microbes. It is a potential biosignature, not proof: confirming it needs the sample in a laboratory.",
+        "credit": "NASA/JPL-Caltech · PIA26368"
+      },
+      "valinor": {
+        "kicker": "Valinor Hills · 4 February 2024",
+        "title": "Ingenuity at its last airfield",
+        "text": "Perseverance photographed Ingenuity from about 450 m, where it stayed after damaging its blades on flight 72. The team named the place Valinor Hills, after the land in Tolkien’s novels.",
+        "credit": "NASA/JPL-Caltech/ASU/MSSS · PIA26236"
+      },
+      "lookout": {
+        "kicker": "Lookout Hill · sol 1354",
+        "title": "Over the rim",
+        "text": "On 10 December 2024, after about 3.5 months and some 500 m of climbing, Perseverance saw for the first time what lies beyond Jezero’s rim. To the west waited Witch Hazel Hill, with rocks torn from the crust by the impact that made the crater.",
+        "credit": "NASA/JPL-Caltech · PIA26511"
+      },
+      "devil": {
+        "kicker": "Jezero’s rim · sol 1398",
+        "title": "Dust devils on the rim",
+        "text": "From 1 km away, the navigation cameras saw a dust devil about 65 m wide and at least 400 m tall swallow a smaller one. In 2021 SuperCam’s microphone recorded the first sound of a dust devil on Mars, and in 2025 its team described electric sparks in the dust they raise.",
+        "credit": "NASA/JPL-Caltech · PIA26528"
       }
     }
   },
