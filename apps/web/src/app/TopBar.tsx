@@ -21,7 +21,7 @@ export function TopBar() {
   return (
     <header className="topbar">
       <a className="brand" href="./" title={t('modes.home')}>
-        <img className="brand-mark" src="./logo.svg" alt="" width={22} height={22} />
+        <img className="brand-mark" src="./logo.png" alt="" width={22} height={22} />
         <span className="brand-name">{t('app.name')}</span>
       </a>
       <ModeSwitch current="planner" />
