@@ -78,7 +78,7 @@ test('share link reopens the same route', async ({ page, context }) => {
 
 test('an invalid share link loads nothing and says so', async ({ page }) => {
   await openApp(page, '/planner.html#m=not-a-mission');
-  await expect(page.locator('.toast')).toContainText('not a valid Copernico mission');
+  await expect(page.locator('.toast')).toContainText('not a valid Jezero mission');
   await expect(page.locator('.waypoint')).toHaveCount(0);
 });
 

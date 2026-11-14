@@ -272,7 +272,7 @@ function MainMenu({ session }: { session: GameSession }) {
         <header className="game-home-head">
           <div className="game-home-modes">
             <a className="brand" href={HOME} title={t('modes.home')}>
-              <span className="brand-mark" aria-hidden="true" />
+              <img className="brand-mark" src="./logo.svg" alt="" width={22} height={22} />
               <span className="brand-name">{t('app.name')}</span>
             </a>
             <ModeSwitch current="game" />
@@ -281,6 +281,8 @@ function MainMenu({ session }: { session: GameSession }) {
         </header>
         <h1 id="game-title">{t('game.title')}</h1>
         <p className="lede">{t('game.tagline')}</p>
+        <FreeCard session={session} />
+        <h2 className="game-missions-head">{t('game.missions.heading')}</h2>
         <ol className="game-missions-grid">
           {SLATE.map((m) => {
             const id = m.mission;
@@ -324,9 +326,6 @@ function MainMenu({ session }: { session: GameSession }) {
                 <div className="game-mc-body">
                   <span className="game-mc-when">
                     {t(`game.missions.${m.key}.when`)}
-                    {best !== undefined && (
-                      <span className="game-mc-best"> · {t('game.missions.best', { time: formatClock(best) })}</span>
-                    )}
                   </span>
                   <h2>{title}</h2>
                   <p>{t(`game.missions.${m.key}.desc`)}</p>
@@ -350,7 +349,6 @@ function MainMenu({ session }: { session: GameSession }) {
               </li>
             );
           })}
-          <FreeCard session={session} />
         </ol>
         <p className="meta game-home-credit">{t('game.missions.credit')}</p>
       </section>
@@ -370,14 +368,13 @@ function FreeCard({ session }: { session: GameSession }) {
   const saved = saves[area.id] !== undefined;
   const title = t('game.missions.free.title');
   return (
-    <li className="game-mc is-free">
-      <div className="game-mc-img">
-        <img src={dataUrl(`game/cards/free.webp?v=${DATA_VERSION}`)} alt="" loading="lazy" width={640} height={360} />
-        <span className="game-mc-n">{t('game.missions.free.n')}</span>
+    <section className="game-free" aria-labelledby="game-free-title">
+      <div className="game-free-img">
+        <img src={dataUrl(`game/cards/free.webp?v=${DATA_VERSION}`)} alt="" width={640} height={360} />
       </div>
-      <div className="game-mc-body">
-        <span className="game-mc-when">{t('game.missions.free.when')}</span>
-        <h2>{title}</h2>
+      <div className="game-free-body">
+        <span className="game-free-kicker">{t('game.missions.free.when')}</span>
+        <h2 id="game-free-title">{title}</h2>
         <p>{t('game.missions.free.desc')}</p>
         <div className="game-mc-areas" role="radiogroup" aria-label={t('game.missions.free.where')}>
           {FREE_AREAS.map((a) => (
@@ -402,7 +399,7 @@ function FreeCard({ session }: { session: GameSession }) {
           {saved ? t('game.missions.free.continue') : t('game.missions.free.start')}
         </button>
       </div>
-    </li>
+    </section>
   );
 }
 
@@ -1732,12 +1729,7 @@ function Complete({ session }: { session: GameSession }) {
         )}
         <div className="game-panel-title">{t(`game.missions.${card?.key ?? m.id}.title`)}</div>
         <h2 id="game-done">{t(`game.missions.${m.id}.complete`)}</h2>
-        {result.newBest && <p className="game-best">{t('game.complete.newBest')}</p>}
         <dl className="game-stats">
-          <div>
-            <dt>{t('game.complete.time')}</dt>
-            <dd>{formatClock(result.elapsedS)}</dd>
-          </div>
           {!flying && (
             <div>
               <dt>{t('game.complete.driven')}</dt>

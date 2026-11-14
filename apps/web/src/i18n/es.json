@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Copernico",
+    "name": "Jezero",
     "skipToMain": "Saltar al contenido principal",
     "prototypeNotice": "Prototipo de investigación y educación. Las rutas muestran menor riesgo estimado, nunca seguridad garantizada.",
     "prototypeShort": "Prototipo · las rutas muestran menor riesgo estimado, no seguridad garantizada",
@@ -33,10 +33,10 @@
   },
   "explore": {
     "title": "Explorar Marte",
-    "intro": "Marte desde la órbita. Las formaciones principales están rotuladas en sus posiciones oficiales (UAI). El cráter Jezero, en naranja, es donde trabaja Copernico: explorá su superficie y planificá caminatas ahí.",
+    "intro": "Marte desde la órbita. Las formaciones principales están rotuladas en sus posiciones oficiales (UAI). El cráter Jezero, en naranja, es donde trabaja Jezero: explorá su superficie y planificá caminatas ahí.",
     "exploreJezero": "Explorar Jezero",
     "coverage": "Cobertura para planificar rutas",
-    "coverageNote": "Modelo de elevación de 1 m derivado de HiRISE. Fuera de este contorno Copernico no calcula rutas.",
+    "coverageNote": "Modelo de elevación de 1 m derivado de HiRISE. Fuera de este contorno Jezero no calcula rutas.",
     "guidedDescription": "Sitio de aterrizaje → depósito de muestras Three Forks → frente del delta en Hawksbill Gap, con regreso al inicio.",
     "startGuided": "Cargar caminata guiada",
     "missions": "Misiones de la NASA en este mapa",
@@ -140,7 +140,7 @@
     "license": "Licencia",
     "citation": "Cita",
     "source": "Fuente",
-    "derived": "Derivado por Copernico a partir de:",
+    "derived": "Derivado por Jezero a partir de:",
     "close": "Cerrar"
   },
   "route": {
@@ -324,7 +324,7 @@
     "linkCopied": "Enlace copiado. Quien lo abra obtiene los mismos datos de entrada y recalcula la misma ruta.",
     "copyPrompt": "Copiá este enlace:",
     "sharedOpened": "Se abrió la misión compartida \"{{name}}\".",
-    "shareInvalid": "Este enlace no es una misión válida de Copernico; no se cargó nada.",
+    "shareInvalid": "Este enlace no es una misión válida de Jezero; no se cargó nada.",
     "versionChanged": "Se guardó con otra versión del planificador o de los datos, así que se recalculó y la ruta puede diferir."
   },
   "assistant": {
@@ -413,7 +413,7 @@
   },
   "briefing": {
     "title": "Resumen de la misión",
-    "kicker": "Copernico · Resumen de caminata · Cráter Jezero",
+    "kicker": "Jezero · Resumen de caminata · Cráter Jezero",
     "start": "Inicio planificado: {{ltst}} LTST en Jezero ({{utc}})",
     "mapAlt": "Vista 3D de la ruta planificada",
     "summary": "Resumen",
@@ -424,7 +424,7 @@
   "welcome": {
     "kicker": "NASA Space Apps · Mapa marciano",
     "title": "Planificá una caminata en Marte",
-    "lede": "Copernico combina datos de cinco misiones de la NASA para ayudar a futuros astronautas a planificar una caminata segura en Marte, y a hacer ciencia en el camino.",
+    "lede": "Jezero combina datos de cinco misiones de la NASA para ayudar a futuros astronautas a planificar una caminata segura en Marte, y a hacer ciencia en el camino.",
     "cards": {
       "mars": {
         "title": "Marte",
@@ -449,7 +449,7 @@
     },
     "tour": "Hacer el recorrido (5 capítulos cortos)",
     "explore": "Explorar por mi cuenta",
-    "later": "El botón ? de arriba tiene el recorrido, un modo demo y “Cosas para probar”, una lista de todo lo que hace Copernico. ¿Dudas con alguna palabra?",
+    "later": "El botón ? de arriba tiene el recorrido, un modo demo y “Cosas para probar”, una lista de todo lo que hace Jezero. ¿Dudas con alguna palabra?",
     "glossary": "Abrir el glosario",
     "demo": "Verlo andar solo"
   },
@@ -457,7 +457,7 @@
     "label": "Ayuda",
     "tour": "Recorrido guiado desde el inicio",
     "glossary": "Glosario de términos",
-    "about": "¿Qué es Copernico?",
+    "about": "¿Qué es Jezero?",
     "resume": "Seguir el recorrido ({{chapter}}, paso {{n}})",
     "chapters": "O empezá un capítulo:",
     "chapter": "Empezar el capítulo {{chapter}}",
@@ -476,7 +476,7 @@
     "steps": {
       "planet": {
         "title": "Esto es Marte",
-        "body": "Un modelo 3D de Marte hecho con imágenes y datos de elevación de orbitadores de la NASA. Arrastrá para girarlo; usá la rueda o pellizcá para acercarte. Las formaciones principales están rotuladas en sus posiciones oficiales, y el cráter Jezero, en naranja, es donde pasa todo en Copernico.\nLas estrellas y la Vía Láctea del fondo están donde realmente están, vistas desde Marte a la hora planificada de la caminata.\nTocá Siguiente, o dejá que el recorrido haga un paso por vos con “Hacelo por mí”. Esc sale del recorrido cuando quieras."
+        "body": "Un modelo 3D de Marte hecho con imágenes y datos de elevación de orbitadores de la NASA. Arrastrá para girarlo; usá la rueda o pellizcá para acercarte. Las formaciones principales están rotuladas en sus posiciones oficiales, y el cráter Jezero, en naranja, es donde pasa todo en Jezero.\nLas estrellas y la Vía Láctea del fondo están donde realmente están, vistas desde Marte a la hora planificada de la caminata.\nTocá Siguiente, o dejá que el recorrido haga un paso por vos con “Hacelo por mí”. Esc sale del recorrido cuando quieras."
       },
       "panels": {
         "title": "Cinco pestañas, una por actividad",
@@ -504,7 +504,7 @@
       },
       "alternatives": {
         "title": "¿Más segura o más corta?",
-        "body": "Copernico calcula dos rutas: la de menor riesgo, que evita el terreno más empinado, y la más corta. Cambiá entre ellas acá; “Por qué esta ruta”, más abajo, explica la diferencia con palabras simples."
+        "body": "Jezero calcula dos rutas: la de menor riesgo, que evita el terreno más empinado, y la más corta. Cambiá entre ellas acá; “Por qué esta ruta”, más abajo, explica la diferencia con palabras simples."
       },
       "timeline": {
         "title": "Cuándo caminar",
@@ -532,7 +532,7 @@
       },
       "help": {
         "title": "La ayuda siempre está acá",
-        "body": "Desde ? podés seguir este recorrido, repetir un capítulo, verlo andar solo como demo o abrir “Cosas para probar”, una lista de todo lo que hace Copernico.\nRecordá: las rutas muestran menor riesgo estimado a partir de datos orbitales, nunca seguridad garantizada."
+        "body": "Desde ? podés seguir este recorrido, repetir un capítulo, verlo andar solo como demo o abrir “Cosas para probar”, una lista de todo lo que hace Jezero.\nRecordá: las rutas muestran menor riesgo estimado a partir de datos orbitales, nunca seguridad garantizada."
       },
       "panoramas": {
         "title": "Vistas 360° reales",
@@ -570,7 +570,7 @@
   },
   "glossary": {
     "title": "Glosario",
-    "intro": "Cada palabra técnica de Copernico, en lenguaje simple.",
+    "intro": "Cada palabra técnica de Jezero, en lenguaje simple.",
     "search": "Buscá una palabra",
     "none": "Ningún término coincide.",
     "close": "Cerrar el glosario",
@@ -641,7 +641,7 @@
       },
       "hirise": {
         "term": "HiRISE",
-        "def": "La cámara más nítida en órbita de Marte, en el Mars Reconnaissance Orbiter. Copernico usa sus imágenes de 25 cm y el modelo de terreno de 1 m hecho con ellas."
+        "def": "La cámara más nítida en órbita de Marte, en el Mars Reconnaissance Orbiter. Jezero usa sus imágenes de 25 cm y el modelo de terreno de 1 m hecho con ellas."
       },
       "ctx": {
         "term": "CTX",
@@ -649,7 +649,7 @@
       },
       "mola": {
         "term": "MOLA",
-        "def": "El altímetro láser del Mars Global Surveyor. Midió la forma de todo el planeta; Copernico lo usa para el relieve global."
+        "def": "El altímetro láser del Mars Global Surveyor. Midió la forma de todo el planeta; Jezero lo usa para el relieve global."
       },
       "viking": {
         "term": "Mosaico color Viking",
@@ -657,7 +657,7 @@
       },
       "meda": {
         "term": "MEDA",
-        "def": "La estación meteorológica de Perseverance. Copernico muestra las últimas mediciones publicadas con su fecha; ninguna misión publica el clima de Jezero en vivo."
+        "def": "La estación meteorológica de Perseverance. Jezero muestra las últimas mediciones publicadas con su fecha; ninguna misión publica el clima de Jezero en vivo."
       },
       "reach": {
         "term": "Alcance ida y vuelta",
@@ -784,7 +784,7 @@
   "checklist": {
     "title": "Cosas para probar",
     "close": "Cerrar",
-    "progress": "{{done}} de {{total}} hechas. Cada una muestra una parte distinta de Copernico.",
+    "progress": "{{done}} de {{total}} hechas. Cada una muestra una parte distinta de Jezero.",
     "done": " (hecho)",
     "todo": " (pendiente)",
     "show": "Mostrame",
@@ -822,7 +822,7 @@
   "game": {
     "title": "Misiones de Perseverance",
     "tagline": "La misión de Perseverance en Marte, episodio a episodio: el terreno real visto desde la órbita, los lugares reales y las imágenes de la propia NASA.",
-    "back": "Volver a Copernico",
+    "back": "Volver a Jezero",
     "loading": "Aterrizando Perseverance en Jezero…",
     "loadingMission": "Yendo al punto de partida…",
     "failed": "El juego no pudo iniciarse: falta el terreno o el modelo del rover, o este dispositivo no puede mostrar WebGL 2.",
@@ -1383,7 +1383,7 @@
       "credit": "Imágenes: NASA/JPL-Caltech (NASA Image and Video Library).",
       "free": {
         "title": "Exploración libre",
-        "when": "Cualquier sol",
+        "when": "Modo libre · sin misión ni objetivos",
         "n": "∞",
         "desc": "Conduce donde quieras con todas las herramientas: SuperCam, AutoNav, panorámicas, muestreo, Ingenuity, avance rápido y fotos. Sin objetivos ni reloj.",
         "start": "Explorar",
@@ -1397,7 +1397,8 @@
       },
       "done": "Completada",
       "best": "mejor {{time}}",
-      "again": "Jugar otra vez"
+      "again": "Jugar otra vez",
+      "heading": "Misiones"
     },
     "places": {
       "reach-descent-stage": "Etapa de descenso",
@@ -1611,11 +1612,11 @@
     }
   },
   "modes": {
-    "label": "Modos de Copernico",
+    "label": "Modos de Jezero",
     "planner": "Planificador",
     "plannerHint": "Planifica una caminata en el cráter Jezero",
     "game": "Juego del rover",
     "gameHint": "Conduce a Perseverance por sus misiones reales",
-    "home": "Inicio de Copernico"
+    "home": "Inicio de Jezero"
   }
 }

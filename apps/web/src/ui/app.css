@@ -90,9 +90,7 @@ body {
 .brand-mark {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, var(--mars-strong), var(--mars-dim));
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+  display: block;
 }
 .breadcrumb {
   display: flex;

@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Copernico",
+    "name": "Jezero",
     "skipToMain": "Skip to main content",
     "prototypeNotice": "Research and education prototype. Routes show lower estimated risk, never guaranteed safety.",
     "prototypeShort": "Prototype · routes show lower estimated risk, not guaranteed safety",
@@ -33,10 +33,10 @@
   },
   "explore": {
     "title": "Explore Mars",
-    "intro": "Mars from orbit. Major features are labelled at their official (IAU) positions. Jezero Crater, in orange, is where Copernico works: explore its surface and plan walks there.",
+    "intro": "Mars from orbit. Major features are labelled at their official (IAU) positions. Jezero Crater, in orange, is where this app works: explore its surface and plan walks there.",
     "exploreJezero": "Explore Jezero",
     "coverage": "Route-planning coverage",
-    "coverageNote": "HiRISE-derived 1 m elevation model. Outside this outline Copernico does not compute routes.",
+    "coverageNote": "HiRISE-derived 1 m elevation model. Outside this outline Jezero does not compute routes.",
     "guidedDescription": "Landing site → Three Forks sample depot → Hawksbill Gap delta front, returning to the start.",
     "startGuided": "Load guided Marswalk",
     "missions": "NASA missions in this map",
@@ -140,7 +140,7 @@
     "license": "License",
     "citation": "Citation",
     "source": "Source",
-    "derived": "Derived by Copernico from:",
+    "derived": "Derived by Jezero from:",
     "close": "Close"
   },
   "route": {
@@ -324,7 +324,7 @@
     "linkCopied": "Share link copied. Anyone who opens it gets the same inputs and recomputes the same route.",
     "copyPrompt": "Copy this share link:",
     "sharedOpened": "Opened the shared mission \"{{name}}\".",
-    "shareInvalid": "This share link is not a valid Copernico mission; nothing was loaded.",
+    "shareInvalid": "This share link is not a valid Jezero mission; nothing was loaded.",
     "versionChanged": "It was saved with a different planner or data version, so it was recomputed and the route may differ."
   },
   "assistant": {
@@ -413,7 +413,7 @@
   },
   "briefing": {
     "title": "Mission briefing",
-    "kicker": "Copernico · Marswalk briefing · Jezero Crater",
+    "kicker": "Jezero · Marswalk briefing · Jezero Crater",
     "start": "Planned start: {{ltst}} LTST at Jezero ({{utc}})",
     "mapAlt": "3D view of the planned route",
     "summary": "Summary",
@@ -424,7 +424,7 @@
   "welcome": {
     "kicker": "NASA Space Apps · Martian map",
     "title": "Plan a walk on Mars",
-    "lede": "Copernico combines data from five NASA missions to help future astronauts plan a safe walk on Mars, and do science along the way.",
+    "lede": "Jezero combines data from five NASA missions to help future astronauts plan a safe walk on Mars, and do science along the way.",
     "cards": {
       "mars": {
         "title": "Mars",
@@ -449,7 +449,7 @@
     },
     "tour": "Take the tour (5 short chapters)",
     "explore": "Explore on my own",
-    "later": "The ? button at the top has the tour, a demo mode and “Things to try”, a checklist of everything Copernico can do. Unsure about a word?",
+    "later": "The ? button at the top has the tour, a demo mode and “Things to try”, a checklist of everything Jezero can do. Unsure about a word?",
     "glossary": "Open the glossary",
     "demo": "Watch it play by itself"
   },
@@ -457,7 +457,7 @@
     "label": "Help",
     "tour": "Guided tour from the start",
     "glossary": "Glossary of terms",
-    "about": "What is Copernico?",
+    "about": "What is Jezero?",
     "resume": "Resume the tour ({{chapter}}, step {{n}})",
     "chapters": "Or start one chapter:",
     "chapter": "Start the {{chapter}} chapter",
@@ -476,7 +476,7 @@
     "steps": {
       "planet": {
         "title": "This is Mars",
-        "body": "A 3D model of Mars built from NASA orbiter images and elevation data. Drag to turn it; scroll or pinch to zoom. Major features are labelled at their official positions, and Jezero Crater, in orange, is where everything in Copernico happens.\nThe stars and the Milky Way behind it are where they really are, seen from Mars at the planned walk time.\nPress Next, or let the tour do a step for you with “Do it for me”. Esc leaves the tour at any time."
+        "body": "A 3D model of Mars built from NASA orbiter images and elevation data. Drag to turn it; scroll or pinch to zoom. Major features are labelled at their official positions, and Jezero Crater, in orange, is where everything in Jezero happens.\nThe stars and the Milky Way behind it are where they really are, seen from Mars at the planned walk time.\nPress Next, or let the tour do a step for you with “Do it for me”. Esc leaves the tour at any time."
       },
       "panels": {
         "title": "Five tabs, one per activity",
@@ -504,7 +504,7 @@
       },
       "alternatives": {
         "title": "Safer or shorter?",
-        "body": "Copernico computes two routes: the lower-risk one, which avoids steeper ground, and the shortest one. Switch between them here; “Why this route” below explains the difference in plain words."
+        "body": "Jezero computes two routes: the lower-risk one, which avoids steeper ground, and the shortest one. Switch between them here; “Why this route” below explains the difference in plain words."
       },
       "timeline": {
         "title": "When to walk",
@@ -532,7 +532,7 @@
       },
       "help": {
         "title": "Help is always here",
-        "body": "From ? you can resume this tour, replay one chapter, run it hands-free as a demo, or open “Things to try”, a checklist of everything Copernico can do.\nRemember: routes show lower estimated risk from orbital data, never guaranteed safety."
+        "body": "From ? you can resume this tour, replay one chapter, run it hands-free as a demo, or open “Things to try”, a checklist of everything Jezero can do.\nRemember: routes show lower estimated risk from orbital data, never guaranteed safety."
       },
       "panoramas": {
         "title": "Real 360° views",
@@ -570,7 +570,7 @@
   },
   "glossary": {
     "title": "Glossary",
-    "intro": "Every technical word in Copernico, in plain language.",
+    "intro": "Every technical word in Jezero, in plain language.",
     "search": "Search a word",
     "none": "No term matches.",
     "close": "Close the glossary",
@@ -641,7 +641,7 @@
       },
       "hirise": {
         "term": "HiRISE",
-        "def": "The sharpest camera orbiting Mars, on the Mars Reconnaissance Orbiter. Copernico uses its 25 cm images and the 1 m terrain model made from them."
+        "def": "The sharpest camera orbiting Mars, on the Mars Reconnaissance Orbiter. Jezero uses its 25 cm images and the 1 m terrain model made from them."
       },
       "ctx": {
         "term": "CTX",
@@ -649,7 +649,7 @@
       },
       "mola": {
         "term": "MOLA",
-        "def": "The laser altimeter on Mars Global Surveyor. It measured the shape of the whole planet; Copernico uses it for global relief."
+        "def": "The laser altimeter on Mars Global Surveyor. It measured the shape of the whole planet; Jezero uses it for global relief."
       },
       "viking": {
         "term": "Viking colour mosaic",
@@ -657,7 +657,7 @@
       },
       "meda": {
         "term": "MEDA",
-        "def": "Perseverance's weather station. Copernico shows the latest released measurements with their date; no mission publishes live weather from Jezero."
+        "def": "Perseverance's weather station. Jezero shows the latest released measurements with their date; no mission publishes live weather from Jezero."
       },
       "reach": {
         "term": "Round-trip reach",
@@ -784,7 +784,7 @@
   "checklist": {
     "title": "Things to try",
     "close": "Close",
-    "progress": "{{done}} of {{total}} done. Each one shows a different part of Copernico.",
+    "progress": "{{done}} of {{total}} done. Each one shows a different part of Jezero.",
     "done": " (done)",
     "todo": " (not yet)",
     "show": "Show me",
@@ -822,7 +822,7 @@
   "game": {
     "title": "Perseverance missions",
     "tagline": "Perseverance’s mission on Mars, episode by episode: the real terrain from orbit, the real places, NASA’s own images.",
-    "back": "Back to Copernico",
+    "back": "Back to Jezero",
     "loading": "Landing Perseverance in Jezero…",
     "loadingMission": "Driving to the start…",
     "failed": "The game could not start: the terrain or the rover model is missing, or this device cannot display WebGL 2.",
@@ -1383,7 +1383,7 @@
       "credit": "Images: NASA/JPL-Caltech (NASA Image and Video Library).",
       "free": {
         "title": "Free exploration",
-        "when": "Any sol",
+        "when": "Free mode · no mission, no goals",
         "n": "∞",
         "desc": "Drive where you like with every tool on: SuperCam, AutoNav, panoramas, coring, Ingenuity, time warp and photos. No objectives, no clock.",
         "start": "Explore",
@@ -1397,7 +1397,8 @@
       },
       "done": "Completed",
       "best": "best {{time}}",
-      "again": "Play again"
+      "again": "Play again",
+      "heading": "Missions"
     },
     "places": {
       "reach-descent-stage": "Descent stage",
@@ -1611,11 +1612,11 @@
     }
   },
   "modes": {
-    "label": "Copernico modes",
+    "label": "Jezero modes",
     "planner": "Planner",
     "plannerHint": "Plan a Marswalk in Jezero Crater",
     "game": "Rover game",
     "gameHint": "Drive Perseverance through its real missions",
-    "home": "Copernico home"
+    "home": "Jezero home"
   }
 }

@@ -2009,3 +2009,72 @@
     width: 100%;
   }
 }
+
+/* Free exploration: its own mode, above the missions (wide, gold-edged), not one more card. */
+.game-free {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  margin: 4px 0 6px;
+  border: 1px solid rgb(242 184 75 / 0.55);
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(110deg, rgb(242 184 75 / 0.1), rgb(255 255 255 / 0.03));
+}
+.game-free-img img {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  object-fit: cover;
+  display: block;
+}
+.game-free-body {
+  padding: 16px 18px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+}
+.game-free-kicker {
+  color: var(--rover);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.game-free-body h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+.game-free-body p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.game-free .game-mc-areas {
+  grid-template-columns: repeat(5, auto);
+  justify-content: start;
+  margin: 4px 0;
+}
+.game-free .btn {
+  justify-self: start;
+  min-width: 180px;
+}
+.game-missions-head {
+  margin: 14px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+@media (max-width: 760px) {
+  .game-free {
+    grid-template-columns: 1fr;
+  }
+  .game-free-img img {
+    min-height: 0;
+    max-height: 140px;
+  }
+  .game-free .game-mc-areas {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
