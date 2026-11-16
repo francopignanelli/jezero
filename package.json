@@ -16,6 +16,8 @@
   "scripts": {
     "dev": "npm run dev -w @copernico/web",
     "build": "npm run build -w @copernico/web",
+    "build:netlify": "node scripts/deploy/netlify.mjs",
+    "deploy:data:archive": "node scripts/deploy/archive-data.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",

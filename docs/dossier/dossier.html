@@ -1,0 +1,2583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Jezero — Project Dossier</title>
+    <meta
+      name="description"
+      content="Jezero: a Marswalk planner and a Perseverance rover game built on NASA data of Jezero Crater, Mars."
+    />
+    <style>
+      /* Jezero dossier. The app's own design tokens (apps/web/src/ui/tokens.css): mission-control dark
+   surfaces, one Mars accent, IBM Plex (system fallbacks), mono for every measured value. */
+      :root {
+        --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+        --font-mono: 'IBM Plex Mono', Consolas, ui-monospace, SFMono-Regular, Menlo, monospace;
+        --space-0: #020306;
+        --bg: #0b0e13;
+        --surface: #12161d;
+        --surface-2: #181d26;
+        --surface-3: #202733;
+        --border: #2b3441;
+        --border-strong: #3a4556;
+        --line: rgb(255 255 255 / 0.12);
+        --text: #eceae6;
+        --text-muted: #a4adba;
+        --text-faint: #7d8898;
+        --mars: #e0784a;
+        --mars-strong: #f08c5c;
+        --mars-soft: #f29a6c;
+        --mars-dim: #7a3a1f;
+        --info: #6cc6e6;
+        --ok: #58c98f;
+        --warn: #f2c14e;
+        --route: #5fd4c4;
+        --rover: #f2b84b;
+        --poi: #b69cff;
+        --sample: #ff9ad5;
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+      }
+      body {
+        color: var(--text);
+        font: 10pt/1.5 var(--font-sans);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        counter-reset: pg;
+      }
+      .page {
+        position: relative;
+        width: 210mm;
+        height: 297mm;
+        overflow: hidden;
+        padding: 25mm 17mm 20mm;
+        background:
+          radial-gradient(120% 60% at 100% 0%, rgb(224 120 74 / 0.07), transparent 60%), var(--bg);
+        page-break-after: always;
+        break-after: page;
+        counter-increment: pg;
+      }
+      .page:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+
+      /* Running header and footer, as the app's top bar */
+      .hdr {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 15mm;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 17mm;
+        border-bottom: 1px solid var(--border);
+        background: rgb(11 14 19 / 0.92);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 8.5pt;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .brand img {
+        width: 18px;
+        height: 18px;
+      }
+      .hdr .crumb {
+        font-size: 8pt;
+        color: var(--text-muted);
+      }
+      .hdr .crumb b {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .ftr {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 12mm;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 17mm;
+        font-size: 7.5pt;
+        color: var(--text-faint);
+        border-top: 1px solid var(--border);
+      }
+      .ftr .pn {
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+      }
+      .ftr .pn::before {
+        content: counter(pg, decimal-leading-zero);
+      }
+
+      /* Type */
+      .eyebrow {
+        font-size: 7.5pt;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--mars-soft);
+        margin: 0 0 2mm;
+      }
+      h1 {
+        font-size: 26pt;
+        line-height: 1.05;
+        margin: 0 0 3mm;
+        letter-spacing: -0.01em;
+      }
+      h2 {
+        font-size: 19pt;
+        line-height: 1.1;
+        margin: 0 0 3mm;
+        letter-spacing: -0.005em;
+      }
+      h3 {
+        font-size: 11pt;
+        line-height: 1.25;
+        margin: 0 0 1.5mm;
+      }
+      h4 {
+        font-size: 7.5pt;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin: 0 0 2mm;
+      }
+      p {
+        margin: 0 0 2.5mm;
+      }
+      .lede {
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #dcd8d2;
+        margin-bottom: 5mm;
+      }
+      .muted {
+        color: var(--text-muted);
+      }
+      .faint {
+        color: var(--text-faint);
+      }
+      .small {
+        font-size: 8.5pt;
+      }
+      .xs {
+        font-size: 7.5pt;
+        line-height: 1.4;
+      }
+      .mono {
+        font-family: var(--font-mono);
+      }
+      .mars {
+        color: var(--mars-soft);
+      }
+      .route {
+        color: var(--route);
+      }
+      ul {
+        margin: 0 0 2.5mm;
+        padding-left: 4.5mm;
+      }
+      li {
+        margin: 0 0 1.2mm;
+      }
+      li::marker {
+        color: var(--mars);
+      }
+      b,
+      strong {
+        font-weight: 600;
+        color: #f4f1ec;
+      }
+
+      /* Section number tag */
+      .sec {
+        display: inline-flex;
+        align-items: center;
+        gap: 2mm;
+        margin-bottom: 2mm;
+      }
+      .sec .n {
+        font-family: var(--font-mono);
+        font-size: 8pt;
+        color: var(--bg);
+        background: var(--mars);
+        border-radius: 4px;
+        padding: 0.4mm 1.6mm;
+        font-weight: 600;
+      }
+      .sec .t {
+        font-size: 7.5pt;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--mars-soft);
+      }
+
+      /* Cards, as the app's panels */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 3.5mm 4mm;
+      }
+      .card.accent {
+        border-color: rgb(224 120 74 / 0.55);
+        background:
+          linear-gradient(180deg, rgb(224 120 74 / 0.08), transparent 70%), var(--surface);
+      }
+      .card.info {
+        border-color: rgb(108 198 230 / 0.5);
+      }
+      .card h3 {
+        margin-bottom: 1mm;
+      }
+      .card p:last-child,
+      .card ul:last-child {
+        margin-bottom: 0;
+      }
+      .grid {
+        display: grid;
+        gap: 3.5mm;
+      }
+      .g2 {
+        grid-template-columns: 1fr 1fr;
+      }
+      .g3 {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .g4 {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .mt {
+        margin-top: 4mm;
+      }
+      .mt2 {
+        margin-top: 6mm;
+      }
+      .mb {
+        margin-bottom: 4mm;
+      }
+
+      /* Metric tiles, as .metrics in the Marswalk panel */
+      .stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 3mm 3.5mm;
+      }
+      .stat .k {
+        font-size: 7.5pt;
+        color: var(--text-muted);
+      }
+      .stat .v {
+        font-family: var(--font-mono);
+        font-size: 15pt;
+        font-weight: 600;
+        line-height: 1.2;
+        margin-top: 0.5mm;
+      }
+      .stat .v small {
+        font-size: 9pt;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+      .stat .s {
+        font-size: 7.5pt;
+        color: var(--text-faint);
+        margin-top: 0.5mm;
+        line-height: 1.35;
+      }
+
+      /* Chips, as layer toggles */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5mm;
+      }
+      .chip {
+        font-size: 7.5pt;
+        padding: 0.6mm 2.4mm;
+        border: 1px solid var(--border-strong);
+        border-radius: 999px;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+      .chip.on {
+        border-color: var(--mars);
+        color: var(--text);
+        background: rgb(224 120 74 / 0.12);
+      }
+
+      /* Screenshots */
+      figure {
+        margin: 0;
+      }
+      .shot {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--border-strong);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+        background: #000;
+      }
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .shot.crop img {
+        height: 100%;
+        object-fit: cover;
+      }
+      .shot.fit img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      figcaption {
+        font-size: 7.5pt;
+        color: var(--text-faint);
+        margin-top: 1.6mm;
+        line-height: 1.4;
+      }
+      figcaption b {
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      /* Steps strip (Marswalk 5 steps) */
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 2mm;
+      }
+      .step {
+        position: relative;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 2.6mm 3mm;
+      }
+      .step .num {
+        display: inline-grid;
+        place-items: center;
+        width: 5.4mm;
+        height: 5.4mm;
+        border-radius: 50%;
+        background: rgb(95 212 196 / 0.15);
+        border: 1px solid var(--route);
+        color: var(--route);
+        font-family: var(--font-mono);
+        font-size: 7.5pt;
+        font-weight: 600;
+        margin-bottom: 1.4mm;
+      }
+      .step h3 {
+        font-size: 9pt;
+        margin-bottom: 0.6mm;
+      }
+      .step p {
+        font-size: 7.5pt;
+        color: var(--text-muted);
+        line-height: 1.4;
+        margin: 0;
+      }
+
+      /* Tables */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8pt;
+      }
+      th {
+        text-align: left;
+        font-size: 7pt;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        padding: 1.6mm 2mm;
+        border-bottom: 1px solid var(--border-strong);
+      }
+      td {
+        padding: 1.7mm 2mm;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        line-height: 1.4;
+      }
+      td .xs {
+        color: var(--text-faint);
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .tbl {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1mm 1.5mm;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 6.5pt;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.2mm 1.6mm;
+        border-radius: 999px;
+        border: 1px solid;
+        white-space: nowrap;
+      }
+      .tag.calc {
+        color: var(--info);
+        border-color: rgb(108 198 230 / 0.6);
+      }
+      .tag.meas {
+        color: var(--ok);
+        border-color: rgb(88 201 143 / 0.6);
+      }
+      .tag.asm {
+        color: var(--warn);
+        border-color: rgb(242 193 78 / 0.6);
+      }
+      .tag.mars {
+        color: var(--mars-soft);
+        border-color: rgb(224 120 74 / 0.6);
+      }
+
+      /* Notice, as the prototype banner */
+      .notice {
+        display: flex;
+        gap: 3mm;
+        align-items: flex-start;
+        border: 1px solid rgb(108 198 230 / 0.55);
+        border-radius: 10px;
+        padding: 3mm 4mm;
+        background: rgb(108 198 230 / 0.06);
+        font-size: 8.5pt;
+      }
+      .notice .i {
+        flex: none;
+        width: 5mm;
+        height: 5mm;
+        border-radius: 50%;
+        border: 1px solid var(--info);
+        color: var(--info);
+        display: grid;
+        place-items: center;
+        font-size: 7.5pt;
+        font-weight: 700;
+        font-family: var(--font-mono);
+      }
+
+      /* Mission list (game) */
+      .mission {
+        display: grid;
+        grid-template-columns: 9mm 1fr;
+        gap: 3mm;
+        padding: 2.6mm 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .mission:last-child {
+        border-bottom: 0;
+      }
+      .mission .mn {
+        width: 7mm;
+        height: 7mm;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 1px solid var(--border-strong);
+        display: grid;
+        place-items: center;
+        font-family: var(--font-mono);
+        font-size: 8.5pt;
+        font-weight: 600;
+      }
+      .mission .when {
+        font-size: 7pt;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--mars-soft);
+      }
+      .mission h3 {
+        font-size: 10.5pt;
+        margin: 0.3mm 0 0.8mm;
+      }
+      .mission p {
+        font-size: 8.5pt;
+        margin: 0 0 1mm;
+        color: #d6d2cc;
+      }
+      .mission .real {
+        font-size: 7.5pt;
+        color: var(--text-faint);
+        margin: 0;
+        line-height: 1.4;
+      }
+      .mission .real b {
+        color: var(--text-muted);
+      }
+
+      /* Architecture diagram */
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr 6mm 1fr 6mm 1fr;
+        align-items: stretch;
+      }
+      .flow .arrow {
+        display: grid;
+        place-items: center;
+        color: var(--mars);
+        font-size: 12pt;
+      }
+      .node {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 3mm;
+      }
+      .node h3 {
+        font-size: 9pt;
+        margin-bottom: 1mm;
+      }
+      .node p,
+      .node li {
+        font-size: 7.5pt;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+      .node ul {
+        padding-left: 3.5mm;
+        margin: 0;
+      }
+      .node.hl {
+        border-color: rgb(224 120 74 / 0.55);
+      }
+
+      /* Cover */
+      .cover {
+        padding: 0;
+        background: var(--space-0);
+      }
+      .cover .bg {
+        position: absolute;
+        inset: 0;
+        background: url('img/cover.webp') 50% 45% / cover no-repeat;
+      }
+      .cover .bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgb(7 8 12 / 0.75) 0%,
+          rgb(7 8 12 / 0.15) 30%,
+          rgb(7 8 12 / 0.25) 52%,
+          rgb(7 8 12 / 0.92) 80%,
+          rgb(7 8 12 / 0.98) 100%
+        );
+      }
+      .cover .top {
+        position: absolute;
+        top: 14mm;
+        left: 17mm;
+        right: 17mm;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .cover .top .brand {
+        font-size: 10pt;
+      }
+      .cover .top .brand img {
+        width: 26px;
+        height: 26px;
+      }
+      .cover .top .doc {
+        font-family: var(--font-mono);
+        font-size: 8pt;
+        color: var(--text-muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 1mm 3mm;
+        background: rgb(0 0 0 / 0.35);
+      }
+      .cover .body {
+        position: absolute;
+        left: 17mm;
+        right: 17mm;
+        bottom: 26mm;
+      }
+      .cover .logo {
+        width: 30mm;
+        height: 30mm;
+        margin-bottom: 6mm;
+        filter: drop-shadow(0 6px 20px rgb(0 0 0 / 0.6));
+      }
+      .cover h1 {
+        font-size: 54pt;
+        line-height: 0.95;
+        margin-bottom: 5mm;
+        text-shadow: 0 2px 24px rgb(0 0 0 / 0.5);
+      }
+      .cover .lede {
+        font-size: 13pt;
+        max-width: 150mm;
+        color: #ece7e0;
+      }
+      .cover .modes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4mm;
+        margin-top: 7mm;
+      }
+      .cover .mode {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgb(14 17 23 / 0.82);
+        padding: 4mm 5mm;
+      }
+      .cover .mode small {
+        font-size: 7pt;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #b9c0ca;
+      }
+      .cover .mode h3 {
+        font-size: 13pt;
+        margin: 1mm 0;
+      }
+      .cover .mode p {
+        font-size: 8.5pt;
+        color: #b9c0ca;
+        margin: 0;
+      }
+      .cover .meta {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 7mm;
+        font-size: 7.5pt;
+        color: #8d95a2;
+      }
+
+      /* Contents */
+      .toc {
+        counter-reset: none;
+      }
+      .toc a {
+        display: grid;
+        grid-template-columns: 9mm 1fr auto;
+        gap: 2mm;
+        align-items: baseline;
+        padding: 2mm 0;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        text-decoration: none;
+      }
+      .toc .tn {
+        font-family: var(--font-mono);
+        color: var(--mars-soft);
+        font-size: 9pt;
+      }
+      .toc .tt {
+        font-size: 10.5pt;
+        font-weight: 600;
+      }
+      .toc .tt span {
+        display: block;
+        font-size: 8pt;
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+      .toc .tp {
+        font-family: var(--font-mono);
+        font-size: 9pt;
+        color: var(--text-muted);
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1.05fr 1fr;
+        gap: 6mm;
+      }
+      .split.r {
+        grid-template-columns: 1fr 1.05fr;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1mm 3mm;
+        font-size: 8.5pt;
+      }
+      .kv dt {
+        color: var(--text-muted);
+      }
+      .kv dd {
+        margin: 0;
+      }
+      .quote {
+        border-left: 2px solid var(--mars);
+        padding: 1mm 0 1mm 4mm;
+        color: #dcd8d2;
+        font-size: 10pt;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ============================================================ 1 · COVER -->
+    <section class="page cover">
+      <div class="bg" aria-hidden="true"></div>
+      <div class="top">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="doc">Project dossier · v1.0 · November 2026</div>
+      </div>
+      <div class="body">
+        <img class="logo" src="img/logo.png" alt="Jezero logo" />
+        <p class="eyebrow">Jezero Crater, Mars · NASA Space Apps Challenge 2026</p>
+        <h1>Jezero</h1>
+        <p class="lede">
+          Jezero Crater rebuilt from NASA's own data. Two ways into the same place: plan a crewed
+          walk across it, or relive Perseverance's mission on the ground it drove.
+        </p>
+        <div class="modes">
+          <div class="mode">
+            <small>For a crew</small>
+            <h3>Planner</h3>
+            <p>
+              Plan a Marswalk: terrain, slopes, sunlight and the sites Perseverance studied, with
+              routes of lower estimated risk.
+            </p>
+          </div>
+          <div class="mode">
+            <small>For the rover</small>
+            <h3>Rover game</h3>
+            <p>
+              Drive Perseverance through seven real episodes, from the landing to the crater rim, or
+              explore freely.
+            </p>
+          </div>
+        </div>
+        <div class="meta">
+          <span>Challenge: Interplanetary Survival Guide — Martian Map</span>
+          <span
+            >Cover: Jezero's floor and delta, Mastcam-Z · NASA/JPL-Caltech/ASU/MSSS (PIA24765)</span
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ 2 · CONTENTS + AT A GLANCE -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Project dossier › <b>Overview</b></div>
+      </header>
+
+      <p class="eyebrow">Overview</p>
+      <h2>At a glance</h2>
+      <p class="lede">
+        Jezero is a web application that turns the orbital and rover data of one Martian crater into
+        a place you can plan in and drive through. It runs in the browser, needs no account, and
+        works in English and Spanish.
+      </p>
+
+      <div class="grid g4">
+        <div class="stat">
+          <div class="k">NASA missions</div>
+          <div class="v">5</div>
+          <div class="s">
+            MGS, Mars Odyssey, MRO, Viking, Mars 2020 — plus ESA's Gaia for the sky
+          </div>
+        </div>
+        <div class="stat">
+          <div class="k">Terrain model</div>
+          <div class="v">1 <small>m</small></div>
+          <div class="s">HiRISE elevation, routed on a 5 m grid over 79.7 km²</div>
+        </div>
+        <div class="stat">
+          <div class="k">Science sites</div>
+          <div class="v">14</div>
+          <div class="s">Each sourced, with why it matters and what to investigate</div>
+        </div>
+        <div class="stat">
+          <div class="k">Real 360° views</div>
+          <div class="v">12</div>
+          <div class="s">Mastcam-Z panoramas, placed and oriented on the terrain</div>
+        </div>
+        <div class="stat">
+          <div class="k">Rover missions</div>
+          <div class="v">7 <small>+ free</small></div>
+          <div class="s">Episodes from Perseverance's real mission, 2021–2025</div>
+        </div>
+        <div class="stat">
+          <div class="k">Game maps</div>
+          <div class="v">5</div>
+          <div class="s">Landing site, crater floor, delta front, Neretva Vallis, rim</div>
+        </div>
+        <div class="stat">
+          <div class="k">Automated tests</div>
+          <div class="v">235</div>
+          <div class="s">215 unit and property tests, 20 in a real browser</div>
+        </div>
+        <div class="stat">
+          <div class="k">Accessibility</div>
+          <div class="v">AA</div>
+          <div class="s">WCAG 2.2 AA automated audit; keyboard-only route planning</div>
+        </div>
+      </div>
+
+      <h4 class="mt2">Contents</h4>
+      <nav class="toc">
+        <a
+          ><span class="tn">01</span
+          ><span class="tt"
+            >The idea<span>The challenge, why Jezero, and the principles behind the app</span></span
+          ><span class="tp">03</span></a
+        >
+        <a
+          ><span class="tn">02</span
+          ><span class="tt"
+            >The Planner<span>From orbit to a planned, checked and shareable Marswalk</span></span
+          ><span class="tp">04</span></a
+        >
+        <a
+          ><span class="tn">03</span
+          ><span class="tt"
+            >The Rover game<span>Seven episodes of Perseverance on the same terrain</span></span
+          ><span class="tp">10</span></a
+        >
+        <a
+          ><span class="tn">04</span
+          ><span class="tt"
+            >Science method and validation<span
+              >Frames, terrain, routing, time — and how each is checked</span
+            ></span
+          ><span class="tp">15</span></a
+        >
+        <a
+          ><span class="tn">05</span
+          ><span class="tt"
+            >Architecture and tools<span
+              >How the data becomes a static, private, offline-capable web app</span
+            ></span
+          ><span class="tp">16</span></a
+        >
+        <a
+          ><span class="tn">06</span
+          ><span class="tt"
+            >Data sources and references<span
+              >Every dataset, image, video and model, with credit and licence</span
+            ></span
+          ><span class="tp">17</span></a
+        >
+        <a
+          ><span class="tn">07</span
+          ><span class="tt"
+            >Limits and next steps<span
+              >What the data cannot tell, and where the project goes next</span
+            ></span
+          ><span class="tp">19</span></a
+        >
+      </nav>
+
+      <div class="card accent mt2">
+        <h3>In short</h3>
+        <p class="small muted">
+          A crew picks stops in Jezero Crater; the planner finds a walk of lower estimated risk on 1
+          m terrain, explains it, checks it against daylight and the walk-back limit, and prices
+          science detours along the way. Anyone else can drive Perseverance through the episodes
+          that made it famous — on the very same ground, with NASA's own pictures.
+        </p>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 3 · THE IDEA -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Project dossier › <b>The idea</b></div>
+      </header>
+
+      <div class="sec"><span class="n">01</span><span class="t">The idea</span></div>
+      <h2>One crater, every dataset, two ways in</h2>
+      <p class="lede">
+        The first crews on Mars will need more than a pretty globe: they will need to know where
+        they can walk, how long it takes, what they will find, and when the Sun goes down. That
+        information exists today — but it is spread across missions, instruments, coordinate frames
+        and archives.
+      </p>
+
+      <div class="split">
+        <div>
+          <h3>The challenge</h3>
+          <p>
+            The challenge asks for an integrated, layered map that helps astronauts plan a Marswalk,
+            carry it out, do science along the way, and stay informed about conditions. Jezero
+            answers it for one real place, in depth, rather than for the whole planet in outline.
+          </p>
+          <h3 class="mt">Why Jezero Crater?</h3>
+          <p>
+            A 45 km crater that held a lake about 3.5 billion years ago; the river delta it left is
+            still preserved on its western side. NASA's Perseverance rover has explored it since
+            February 2021, collecting rock samples for possible return to Earth. Few places on Mars
+            are known as well: 1 m orbital terrain, a rover traverse localized in the mission's own
+            frame, measured weather and real panoramas from the ground.
+          </p>
+          <h3 class="mt">Two modes, one place</h3>
+          <p>
+            The <b>Planner</b> is for a crew: plan, understand, check and share a walk. The
+            <b>Rover game</b> is for everyone else: drive Perseverance through its real episodes on
+            the same ground. Both share the terrain, the places and the rover's route — any site in
+            the planner that lies on a game map opens there.
+          </p>
+        </div>
+        <div>
+          <figure>
+            <div class="shot">
+              <img src="img/home.jpg" alt="Jezero home page with the two modes" />
+            </div>
+            <figcaption>
+              <b>Home page.</b> Planner and Rover game over a Mastcam-Z view of Jezero's floor
+              (NASA/JPL-Caltech/ASU/MSSS).
+            </figcaption>
+          </figure>
+          <h4 class="mt2">Principles</h4>
+          <div class="grid" style="gap: 2.5mm">
+            <div class="card">
+              <h3>Real data only</h3>
+              <p class="small muted">
+                Every layer, place and number traces to a published NASA or partner product, with
+                its date, resolution and limits one click away.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Honest about uncertainty</h3>
+              <p class="small muted">
+                Routes are "lower estimated risk", never "safe". Calculated, measured and assumed
+                values are labelled as such. Nothing is called live.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Open to everyone</h3>
+              <p class="small muted">
+                No sign-in, no tracking, two languages, keyboard and reduced-motion support, and an
+                audited accessible interface.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 4 · PLANNER: ORBIT TO CRATER -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Planner › <b>From orbit to the crater</b></div>
+      </header>
+
+      <div class="sec"><span class="n">02</span><span class="t">The Planner</span></div>
+      <h2>From orbit to the crater floor</h2>
+      <p class="lede">
+        The planner opens on Mars from orbit, under the sky as it would be seen from Jezero, and
+        flies into the crater in one click.
+      </p>
+
+      <figure>
+        <div class="shot">
+          <img src="img/planner-globe.jpg" alt="Planner: Mars globe with IAU-labelled features" />
+        </div>
+        <figcaption>
+          <b>Explore Mars.</b> Major features at their official IAU positions; Jezero in orange.
+          Stars, planets and the Milky Way are placed for the planned date and time. Global colour:
+          Viking Orbiters (USGS/NASA); relief: MGS MOLA.
+        </figcaption>
+      </figure>
+
+      <div class="grid g3 mt">
+        <div class="card">
+          <h3>A globe that is Mars</h3>
+          <p class="small muted">
+            Terrain and imagery sit on the IAU 2015 Mars sphere, in the frame the Mars 2020 mission
+            uses for its own localizations — not on Earth's ellipsoid.
+          </p>
+        </div>
+        <div class="card">
+          <h3>A sky that is right</h3>
+          <p class="small muted">
+            Every naked-eye star (to magnitude 6.5), the planets and the Milky Way (ESA Gaia) at
+            their true positions for the sol and hour chosen, as seen from Jezero.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Detail where it counts</h3>
+          <p class="small muted">
+            Imagery sharpens on the way down — Viking 925 m → CTX 5 m → HiRISE 0.5 m, and 25 cm
+            around the rover — with a visible outline where routes can be computed.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid g2 mt">
+        <div>
+          <h4>The five panels</h4>
+          <div class="chips">
+            <span class="chip on">Mars</span><span class="chip">Surface</span
+            ><span class="chip">360° views</span><span class="chip">Marswalk</span
+            ><span class="chip">Conditions</span>
+          </div>
+          <p class="small muted mt">
+            A rail on the left switches panels; the 3D scene stays in place. A breadcrumb (Mars ›
+            Jezero Crater › Operational area) and a mission clock (sol, local true solar time, solar
+            longitude) sit in the top bar.
+          </p>
+        </div>
+        <div>
+          <h4>First visit</h4>
+          <p class="small muted">
+            A welcome screen, a five-chapter guided tour, a "Things to try" checklist and a glossary
+            introduce the app. A persistent notice reminds that routes show lower estimated risk,
+            not guaranteed safety.
+          </p>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 5 · PLANNER: SURFACE + MARSWALK -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Planner › <b>Planning a Marswalk</b></div>
+      </header>
+
+      <p class="eyebrow">Planner · Marswalk</p>
+      <h2>Planning a Marswalk in five steps</h2>
+      <p class="lede">
+        Choose stops, calculate, review, simulate, then save or share. Routes stay inside the
+        coverage outline, on a 5 m grid derived from the 1 m HiRISE terrain model.
+      </p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <h3>Choose the stops</h3>
+          <p>
+            Pick on the map, from the science sites, by coordinates, or load the guided Marswalk.
+            Set minutes at each stop.
+          </p>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <h3>Calculate</h3>
+          <p>A* search computes two alternatives: lower estimated risk and shortest feasible.</p>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <h3>Review</h3>
+          <p>
+            Metrics, an explanation, the elevation profile, the EVA timeline and nearby science
+            stops.
+          </p>
+        </div>
+        <div class="step">
+          <div class="num">4</div>
+          <h3>Simulate</h3>
+          <p>Walk the route in 3D with an EVA clock, distance walked and slope underfoot.</p>
+        </div>
+        <div class="step">
+          <div class="num">5</div>
+          <h3>Save or share</h3>
+          <p>Missions saved in the browser, share links, GeoJSON/CSV and a printable briefing.</p>
+        </div>
+      </div>
+
+      <figure class="mt">
+        <div class="shot">
+          <img src="img/planner-route.jpg" alt="Planner: guided Marswalk computed over Jezero" />
+        </div>
+        <figcaption>
+          <b>The guided Marswalk.</b> Octavia E. Butler Landing → Three Forks sample depot →
+          Hawksbill Gap / Wildcat Ridge and back. Lower-risk route in teal, shortest alternative
+          dashed; the rover's own traverse in pale gold. Imagery: MRO CTX and HiRISE.
+        </figcaption>
+      </figure>
+
+      <h4 class="mt">The guided example, as computed</h4>
+      <div class="grid g4">
+        <div class="stat">
+          <div class="k">Distance</div>
+          <div class="v">5.64 <small>km</small></div>
+          <div class="s">Round trip, three stops</div>
+        </div>
+        <div class="stat">
+          <div class="k">Estimated duration</div>
+          <div class="v">3 h 45</div>
+          <div class="s">Range across speed models: 1 h 40 – 3 h 45</div>
+        </div>
+        <div class="stat">
+          <div class="k">Max terrain slope</div>
+          <div class="v">15°</div>
+          <div class="s">Elevation gain and loss: 74 m</div>
+        </div>
+        <div class="stat">
+          <div class="k">Walk-back margin</div>
+          <div class="v route">3 h 05</div>
+          <div class="s">To spare within an 8 h EVA, incl. stops and 30 min ingress</div>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 6 · PLANNER: REVIEW -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Planner › <b>Review and carry out</b></div>
+      </header>
+
+      <p class="eyebrow">Planner · Review</p>
+      <h2>Will the walk work?</h2>
+
+      <div class="split r">
+        <div>
+          <p class="lede" style="margin-bottom: 4mm">
+            The review step answers the questions a crew would ask before stepping out of the
+            airlock — and shows the evidence behind each answer.
+          </p>
+          <ul class="small">
+            <li>
+              <b>Why this route.</b> A plain-language explanation of which steep stretches the
+              lower-risk route avoids, and what that costs in extra distance compared with the
+              shortest one.
+            </li>
+            <li>
+              <b>If the slope limit were different.</b> The riskiest assumption — the walkable slope
+              — is tested: the route is recomputed at 15°, 20° and 25° to show whether it holds.
+            </li>
+            <li>
+              <b>Elevation profile</b> linked to the 3D route: hover or scrub it and the point moves
+              on the map. The route can be coloured by slope.
+            </li>
+            <li>
+              <b>EVA timeline.</b> Departure, arrival at each stop, time at the stop and return, in
+              Mars local true solar time, with the Sun's elevation along the way.
+            </li>
+            <li>
+              <b>Daylight check.</b> How long before the Sun drops below 10°, calculated to the
+              minute with Mars24.
+            </li>
+            <li>
+              <b>Walk-back check.</b> Whether the crew could still walk back within the EVA limit,
+              counting stop time — a conservative bound borrowed from Apollo practice.
+            </li>
+            <li>
+              <b>Science stops near your route,</b> each priced as a detour in metres and minutes,
+              ready to add.
+            </li>
+          </ul>
+        </div>
+        <figure>
+          <div class="shot crop" style="height: 118mm">
+            <img
+              src="img/planner-timeline.jpg"
+              alt="Planner: metrics and EVA timeline"
+              style="object-position: 0 0; width: 260%; max-width: none; height: auto"
+            />
+          </div>
+          <figcaption>
+            <b>Metrics and EVA timeline.</b> 10:00 → 14:19 LTST: 3 h 45 min walking and 40 min at
+            stops; back 3 h 20 min before the Sun drops below 10°.
+          </figcaption>
+        </figure>
+      </div>
+
+      <h4 class="mt2">Carry it out and take it with you</h4>
+      <div class="grid g3">
+        <div class="card">
+          <h3>Simulate the walk</h3>
+          <p class="small muted">
+            A walker follows the route in 3D with an EVA clock, distance walked, elevation, slope
+            underfoot and the next stop. Pause, resume or end at any time.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Missions without an account</h3>
+          <p class="small muted">
+            Plans are saved in the browser, with versions. Rename, reopen or delete them; nothing
+            leaves the device.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Share and export</h3>
+          <p class="small muted">
+            Share links recompute the same route deterministically on any machine. Export GeoJSON
+            and CSV, or print a mission briefing.
+          </p>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 7 · PLANNER: READING THE GROUND -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Planner › <b>Reading the ground</b></div>
+      </header>
+
+      <p class="eyebrow">Planner · Surface and layers</p>
+      <h2>Reading the ground</h2>
+      <p class="lede">
+        Orbital maps of slope, height, minerals and grain size, each with a legend and a source card
+        giving mission, date, resolution, units and limitations. Click anywhere in the crater to
+        inspect the planner's own grid values at that point.
+      </p>
+
+      <div class="grid g2">
+        <figure>
+          <div class="shot fit" style="aspect-ratio: 4 / 3">
+            <img
+              src="img/planner-slope.jpg"
+              alt="Slope classes layer under the route"
+              style="object-position: 100% 50%"
+            />
+          </div>
+          <figcaption>
+            <b>Slope classes</b> (10 m baseline): mild 0–10°, moderate 10–15°, steep 15–20°, hatched
+            above 20°. Derived from the HiRISE 1 m terrain model.
+          </figcaption>
+        </figure>
+        <figure>
+          <div class="shot fit" style="aspect-ratio: 4 / 3">
+            <img
+              src="img/planner-crism.jpg"
+              alt="CRISM mineral indicators layer"
+              style="object-position: 100% 50%"
+            />
+          </div>
+          <figcaption>
+            <b>CRISM mineral indicators</b> from six MRO observations (18 m): carbonate / clay and
+            mafic composites. Indicators, not identifications.
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="tbl mt">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 24%">Layer</th>
+              <th style="width: 32%">Source</th>
+              <th style="width: 18%">Resolution</th>
+              <th>What it tells a crew</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Imagery tiers</b></td>
+              <td>Viking Orbiters · MRO CTX · MRO HiRISE</td>
+              <td class="mono">925 m → 25 cm</td>
+              <td>What the ground looks like, sharpening with zoom</td>
+            </tr>
+            <tr>
+              <td><b>Slope classes</b></td>
+              <td>Mars 2020 TRN HiRISE DTM (USGS)</td>
+              <td class="mono">1 m → 10 m base</td>
+              <td>Where walking gets hard or unsafe</td>
+            </tr>
+            <tr>
+              <td><b>Elevation</b></td>
+              <td>HiRISE DTM over CTX DEM and MOLA</td>
+              <td class="mono">1–20 m</td>
+              <td>Height above the areoid (Mars datum)</td>
+            </tr>
+            <tr>
+              <td><b>Thermal inertia</b></td>
+              <td>Mars Odyssey THEMIS (Edwards &amp; Buz 2021)</td>
+              <td class="mono">~100 m</td>
+              <td>Loose sand versus rock and bedrock</td>
+            </tr>
+            <tr>
+              <td><b>Mineral indicators</b></td>
+              <td>MRO CRISM MTRDR composites</td>
+              <td class="mono">18 m</td>
+              <td>Carbonates, clays, mafic minerals: science targets</td>
+            </tr>
+            <tr>
+              <td><b>Round-trip reach</b></td>
+              <td>Computed on the routing grid</td>
+              <td class="mono">5 m</td>
+              <td>Everything reachable and back within a time budget</td>
+            </tr>
+            <tr>
+              <td><b>Rover, samples, Ingenuity</b></td>
+              <td>Mars 2020 MMGIS and PDS PLACES</td>
+              <td class="mono">tactical</td>
+              <td>Where Perseverance drove, cored and flew, with dates</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 8 · PLANNER: 360 + SCIENCE -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Planner › <b>360° views and science sites</b></div>
+      </header>
+
+      <p class="eyebrow">Planner · 360° views</p>
+      <h2>Standing where the rover stood</h2>
+      <p class="lede">
+        Twelve real Mastcam-Z mosaics, each placed at the sol and spot where Perseverance took it.
+        Their compass and horizon are measured by matching the photographed skyline to the terrain
+        model, so labels of real places line up with the landscape.
+      </p>
+
+      <figure>
+        <div class="shot">
+          <img src="img/planner-panorama.jpg" alt="360° panorama at Three Forks sample depot" />
+        </div>
+        <figcaption>
+          <b>Three Forks sample depot, sol 670.</b> Real Mastcam-Z mosaic
+          (NASA/JPL-Caltech/ASU/MSSS) with what you are looking at, why the place matters, the
+          mission moment and the samples cored nearby. A tour flies from one panorama to the next
+          along the rover's path.
+        </figcaption>
+      </figure>
+
+      <div class="grid g3 mt">
+        <div class="card">
+          <h3>Labels you can trust</h3>
+          <p class="small muted">
+            Places within 8 km, and other panoramas within 6 km, are labelled at their true
+            direction and elevation; those hidden by terrain are dimmed, using line of sight on the
+            elevation model.
+          </p>
+        </div>
+        <div class="card">
+          <h3>14 science sites</h3>
+          <p class="small muted">
+            From Octavia E. Butler Landing to Cheyava Falls and the crater rim. Each says why it
+            matters and what a crew should investigate, with its sources, and can be added as a
+            stop.
+          </p>
+        </div>
+        <div class="card">
+          <h3>The samples</h3>
+          <p class="small muted">
+            Perseverance's sample sites with the cored rock, the sol and NASA's close-up photographs
+            of each sample, linked from the map and from the panoramas.
+          </p>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 9 · PLANNER: CONDITIONS -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Planner › <b>Conditions and time</b></div>
+      </header>
+
+      <p class="eyebrow">Planner · Conditions</p>
+      <h2>Conditions and time — honestly labelled</h2>
+      <p class="lede">
+        No mission publishes live weather for Jezero. The planner says so, and separates what is
+        calculated from what was measured, with the date of every value.
+      </p>
+
+      <div class="split">
+        <figure>
+          <div class="shot crop" style="height: 122mm">
+            <img
+              src="img/planner-conditions.jpg"
+              alt="Conditions panel"
+              style="object-position: 0 0; width: 260%; max-width: none; height: auto"
+            />
+          </div>
+          <figcaption>
+            <b>Conditions and time.</b> Calculated sol, season and Sun; latest released MEDA
+            measurements, dated.
+          </figcaption>
+        </figure>
+        <div>
+          <div class="card mb">
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <h3>Calculated</h3>
+              <span class="tag calc">Calculated</span>
+            </div>
+            <ul class="small">
+              <li>Sol, Mars year, local true and mean solar time (LTST / LMST)</li>
+              <li>Season and solar longitude (Ls)</li>
+              <li>Sun elevation and azimuth; the daylight window above 10°</li>
+              <li>The scene's lighting follows the calculated Sun</li>
+            </ul>
+            <p class="xs faint">
+              Mars24 algorithm (NASA GISS). Sol numbering: the Mars 2020 mission clock.
+            </p>
+          </div>
+          <div class="card mb">
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <h3>Measured</h3>
+              <span class="tag meas">Measured</span>
+            </div>
+            <ul class="small">
+              <li>Air temperature near the mast (minimum … maximum)</li>
+              <li>Surface pressure (mean and range)</li>
+              <li>Per-sol summaries of the latest public release (sol 1859)</li>
+            </ul>
+            <p class="xs faint">Mars 2020 MEDA calibrated data, NASA PDS Atmospheres Node.</p>
+          </div>
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <h3>Assumed</h3>
+              <span class="tag asm">Assumption</span>
+            </div>
+            <ul class="small">
+              <li>
+                Walking speeds and the 20° slope limit come from Apollo and Artemis lunar sources,
+                and are labelled as assumptions for Mars
+              </li>
+              <li>Time at each stop is set by the planner's user</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <h4 class="mt2">For everyone</h4>
+      <div class="grid g3">
+        <div class="card">
+          <h3>Two languages</h3>
+          <p class="small muted">
+            English and Spanish throughout the planner, the game and the home page, switched at any
+            time.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Keyboard and motion</h3>
+          <p class="small muted">
+            A whole route can be planned with the keyboard alone; reduced motion turns off camera
+            flights and playback.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Audited</h3>
+          <p class="small muted">
+            An automated WCAG 2.2 AA audit runs in a real browser; meaning is never carried by
+            colour alone.
+          </p>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 10 · GAME: OVERVIEW -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Rover game › <b>Perseverance missions</b></div>
+      </header>
+
+      <div class="sec"><span class="n">03</span><span class="t">The Rover game</span></div>
+      <h2>Perseverance's mission, episode by episode</h2>
+      <p class="lede">
+        The real terrain from orbit, the real places, NASA's own images. Each episode runs on its
+        own map rebuilt from orbital data, in the order the rover lived them. Progress is saved in
+        the browser, per mission.
+      </p>
+
+      <figure>
+        <div class="shot"><img src="img/game-menu.jpg" alt="Rover game missions menu" /></div>
+        <figcaption>
+          <b>Missions menu.</b> Free exploration on any of five maps, and the seven episodes, each
+          illustrated with NASA's own pictures (NASA/JPL-Caltech, ASU, MSSS).
+        </figcaption>
+      </figure>
+
+      <h4 class="mt">How each world is built</h4>
+      <div class="grid g3">
+        <div class="card">
+          <h3>Detail</h3>
+          <p class="small muted">
+            Around the rover: the HiRISE 1 m terrain model at 1 cm height steps, draped with HiRISE
+            imagery.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Middle and far</h3>
+          <p class="small muted">
+            12 km at 8 m (HiRISE feathered over CTX), then 64 km at 100 m (CTX over MOLA), out to
+            the crater rim on the horizon.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Ground and sky</h3>
+          <p class="small muted">
+            Ground textures re-projected from Mastcam-Z panoramas (~3 mm per pixel); a dust haze
+            layered as the measured atmospheric column.
+          </p>
+        </div>
+      </div>
+      <p class="small muted mt">
+        Perseverance, Ingenuity and the sample tube are NASA's own 3D models (NASA 3D Resources).
+        Where gameplay departs from history — for timing or playability — the story text says so.
+      </p>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 11 · GAME: SEVEN MISSIONS -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Rover game › <b>Seven episodes</b></div>
+      </header>
+
+      <p class="eyebrow">Rover game · Missions</p>
+      <h2>Seven real episodes</h2>
+
+      <div class="card" style="padding: 1mm 4mm">
+        <div class="mission">
+          <div class="mn">1</div>
+          <div>
+            <span class="when">18 Feb 2021</span>
+            <h3>Seven minutes</h3>
+            <p>
+              NASA's video of the landing, then Octavia E. Butler Landing: find the descent stage,
+              the parachute and the heat shield where they fell.
+            </p>
+            <p class="real">
+              <b>As it really was:</b> the hardware lies where HiRISE photographed it on 19 February
+              2021.
+            </p>
+          </div>
+        </div>
+        <div class="mission">
+          <div class="mn">2</div>
+          <div>
+            <span class="when">Apr 2021</span>
+            <h3>Wright Brothers moment</h3>
+            <p>
+              Set Ingenuity down on its airfield and watch, in NASA's own footage, the first powered
+              flight on another world.
+            </p>
+            <p class="real">
+              <b>As it really was:</b> Ingenuity flew 39.1 s on 19 April 2021 (sol 58); it went on
+              to fly 72 times.
+            </p>
+          </div>
+        </div>
+        <div class="mission">
+          <div class="mn">3</div>
+          <div>
+            <span class="when">Aug–Sep 2021</span>
+            <h3>The empty tube</h3>
+            <p>
+              The first coring comes up empty: the rock crumbled. Find one strong enough to fill
+              tube 266, and run MOXIE to make oxygen within the sol's energy budget.
+            </p>
+            <p class="real">
+              <b>As it really was:</b> Roubion (sol 164) came back empty; Montdenier was sealed on 1
+              September 2021 (sol 190).
+            </p>
+          </div>
+        </div>
+        <div class="mission">
+          <div class="mn">4</div>
+          <div>
+            <span class="when">Apr 2022</span>
+            <h3>Back to the chute</h3>
+            <p>
+              Take Ingenuity's controls for flight 26, 8 m above the backshell and the parachute,
+              then follow the helicopter to its 72nd and last flight.
+            </p>
+            <p class="real">
+              <b>As it really was:</b> Ingenuity flew 159 s on 19 April 2022 over the backshell and
+              the parachute.
+            </p>
+          </div>
+        </div>
+        <div class="mission">
+          <div class="mn">5</div>
+          <div>
+            <span class="when">2022–2023</span>
+            <h3>The delta front</h3>
+            <p>
+              Four chapters: Hawksbill Gap, Wildcat Ridge and Amalik, and the first sample depot on
+              another world, at Three Forks.
+            </p>
+            <p class="real">
+              <b>As it really was:</b> the campaign ran from April 2022 to February 2023.
+            </p>
+          </div>
+        </div>
+        <div class="mission">
+          <div class="mn">6</div>
+          <div>
+            <span class="when">Jul 2024</span>
+            <h3>Leopard spots</h3>
+            <p>
+              Cheyava Falls and its leopard spots: map the rock with three SuperCam analyses and
+              core Sapphire Canyon, the best candidate sign of ancient life.
+            </p>
+            <p class="real">
+              <b>As it really was:</b> Sapphire Canyon was cored on 21 July 2024 (sol 1215);
+              confirming a biosignature needs the sample in a laboratory.
+            </p>
+          </div>
+        </div>
+        <div class="mission">
+          <div class="mn">7</div>
+          <div>
+            <span class="when">2024–2025</span>
+            <h3>The rim</h3>
+            <p>
+              Climb to Lookout Hill and Witch Hazel Hill, among the oldest rocks on Mars, and stalk
+              dust devils with the microphone on.
+            </p>
+            <p class="real">
+              <b>As it really was:</b> Perseverance reached Lookout Hill on 10 December 2024 (sol
+              1354), after some 500 m of climbing.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card accent mt">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h3>Free exploration</h3>
+          <span class="tag mars">Free mode · no goals</span>
+        </div>
+        <p class="small muted">
+          Drive anywhere on five maps — landing site, crater floor, delta front, Neretva Vallis,
+          crater rim — with every tool on: SuperCam, AutoNav, panoramas, coring, Ingenuity, time
+          warp and photos. No objectives, no clock.
+        </p>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 12 · GAME: DRIVING -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Rover game › <b>Driving on Mars</b></div>
+      </header>
+
+      <p class="eyebrow">Rover game · Driving</p>
+      <h2>Driving on Mars, with Mars' rules</h2>
+
+      <figure>
+        <div class="shot">
+          <img
+            src="img/game-drive.jpg"
+            alt="Perseverance on the crater floor near the delta front"
+          />
+        </div>
+        <figcaption>
+          <b>Chapter 1 · Arrival at the delta front.</b> Objectives at top left, the rover's status
+          at top right, a HiRISE minimap with AutoNav at bottom left. Terrain: HiRISE and CTX; rover
+          model: NASA 3D Resources.
+        </figcaption>
+      </figure>
+
+      <div class="grid g2 mt">
+        <div>
+          <h4>Real hazards</h4>
+          <ul class="small">
+            <li>
+              <b>Soft sand.</b> Dark, rippled ground: the wheels slip and dig in. Spirit was trapped
+              for good in 2009.
+            </li>
+            <li>
+              <b>Sharp rocks.</b> Driving fast over boulders wears the wheels, as it punctured
+              Curiosity's; below 50 % the rover slows down.
+            </li>
+            <li>
+              <b>Slopes.</b> Over 30°, uphill or sideways, the rover stops — as the real one would.
+            </li>
+            <li><b>Dust storms.</b> The haze closes in; follow the compass and the map.</li>
+          </ul>
+        </div>
+        <div>
+          <h4>The rover's tools</h4>
+          <ul class="small">
+            <li>
+              <b>Power.</b> The battery recharges slowly from the nuclear power source (MMRTG),
+              faster when stopped; boosting costs energy.
+            </li>
+            <li>
+              <b>AutoNav.</b> Click the map or press N: the rover plans its own path around steep
+              ground, sand and boulders.
+            </li>
+            <li>
+              <b>Time warp</b> while AutoNav drives, and a telemetry panel with speed, tilt, slip,
+              distance and science points.
+            </li>
+            <li>
+              <b>Cameras.</b> Close and far views; a photo mode with the rover's own cameras keeps
+              shots in a gallery.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="grid g2 mt">
+        <figure>
+          <div class="shot fit" style="aspect-ratio: 4 / 3">
+            <img
+              src="img/game-chapter.jpg"
+              alt="Chapter card: Arrival at the delta front"
+              style="object-position: 50% 50%"
+            />
+          </div>
+          <figcaption>
+            <b>A chapter opens.</b> Sols, the real story and the objectives, before driving.
+          </figcaption>
+        </figure>
+        <div>
+          <h4>Chapters and objectives</h4>
+          <ul class="small">
+            <li>
+              Each episode is split into chapters dated in sols, each opening on what the rover
+              really did there.
+            </li>
+            <li>
+              Objectives are required or optional, and tracked on screen; key hints are always one
+              glance away.
+            </li>
+            <li>
+              Reaching the end shows how it really happened — the dates, sols and outcome of the
+              real mission.
+            </li>
+            <li>
+              Progress is saved in the browser, per mission; any episode can be replayed from the
+              menu.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 13 · GAME: SCIENCE -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Rover game › <b>Doing science</b></div>
+      </header>
+
+      <p class="eyebrow">Rover game · Science</p>
+      <h2>Doing the rover's science</h2>
+
+      <div class="grid g2">
+        <figure>
+          <div class="shot fit" style="aspect-ratio: 4 / 3">
+            <img
+              src="img/game-supercam.jpg"
+              alt="SuperCam analysis of a clay-bearing mudstone"
+              style="object-position: 100% 100%"
+            />
+          </div>
+          <figcaption>
+            <b>SuperCam.</b> Centre a rock and press F: the laser reads its spectrum and what it is
+            made of.
+          </figcaption>
+        </figure>
+        <figure>
+          <div class="shot fit" style="aspect-ratio: 4 / 3">
+            <img
+              src="img/game-inventory.jpg"
+              alt="Inventory with sample and witness tubes"
+              style="object-position: 50% 50%"
+            />
+          </div>
+          <figcaption>
+            <b>Inventory.</b> 43 tubes — 38 for samples and 5 witness tubes — with samples,
+            analyses, discoveries and a journal.
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="grid g3 mt">
+        <div class="card">
+          <h3>Seven rock types</h3>
+          <p class="small muted">
+            Basalt-like lava rock, olivine-rich rock, sulfate salts, clay-bearing mudstone,
+            carbonate, silica (opal) and an iron–nickel meteorite — each with its own spectrum and
+            story.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Coring and sample cards</h3>
+          <p class="small muted">
+            Stop inside a sample ring and the arm cores it. Each real sample earns a card with
+            NASA's photograph of the core, its sol and why it was taken.
+          </p>
+        </div>
+        <div class="card">
+          <h3>MOXIE</h3>
+          <p class="small muted">
+            Make oxygen from the Martian air within the sol's energy budget, as the real experiment
+            did — 122 g in 16 runs.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Panoramas</h3>
+          <p class="small muted">
+            At a panorama spot, stop and press Space: Mastcam-Z takes a 360° mosaic — and the real
+            one Perseverance took there appears.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Listening to Mars</h3>
+          <p class="small muted">
+            On the rim, stop near a dust devil and record it with SuperCam's microphone.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Story cards</h3>
+          <p class="small muted">
+            Chapters open on what really happened, illustrated with NASA's images: MOXIE, Rochette,
+            the backshell, the parachute, the leopard spots.
+          </p>
+        </div>
+      </div>
+
+      <figure class="mt">
+        <div class="shot fit" style="aspect-ratio: 176 / 58">
+          <img
+            src="img/game-rim.jpg"
+            alt="Perseverance climbing toward the crater rim"
+            style="object-position: 50% 52%"
+          />
+        </div>
+        <figcaption>
+          <b>The rim · The climb.</b> Lookout Hill is 1.96 km ahead and the rover already tilts 14°,
+          on the crater-rim terrain model (USGS MSR HiRISE DTM, 1 m).
+        </figcaption>
+      </figure>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 14 · GAME: INGENUITY + LINK -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Rover game › <b>Ingenuity, and one place for both modes</b></div>
+      </header>
+
+      <p class="eyebrow">Rover game · Ingenuity</p>
+      <h2>Flying Ingenuity</h2>
+
+      <div class="split">
+        <div>
+          <p class="lede" style="margin-bottom: 4mm">
+            In "Back to the chute" the player takes the controls of the Mars helicopter for its
+            flight 26: 8 m above the ground, over the backshell and the parachute that slowed
+            Perseverance, before its 159 s of battery run out.
+          </p>
+          <ul class="small">
+            <li>
+              Take off and land with Space; fly with W A S D; Shift goes faster. Flight time only
+              runs while in the air.
+            </li>
+            <li>Photograph each piece of hardware from the air, then land on the next airfield.</li>
+            <li>
+              In "Wright Brothers moment", Ingenuity is deployed from under the rover, step by step
+              as NASA's images show, and NASA's video of the first flight plays.
+            </li>
+            <li>The helicopter is then followed to its 72nd and last flight, in January 2024.</li>
+          </ul>
+        </div>
+        <figure>
+          <div class="shot">
+            <img src="img/game-chute.jpg" alt="Ingenuity ready for flight 26" />
+          </div>
+          <figcaption>
+            <b>Flight 26, sol 414.</b> Ingenuity on the ground with its flight panel; the parachute
+            170 m ahead. Model: NASA 3D Resources.
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="sec mt2"><span class="t">One place, two modes</span></div>
+      <h2 style="font-size: 15pt">The planner and the game share Jezero</h2>
+      <div class="grid g3">
+        <div class="card">
+          <h3>Same terrain</h3>
+          <p class="small muted">
+            Both are built from the same HiRISE, CTX and MOLA products by the same reproducible
+            pipeline.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Same places</h3>
+          <p class="small muted">
+            The science sites, samples, panoramas and the rover's route are one catalogue, shared by
+            both modes.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Drive here</h3>
+          <p class="small muted">
+            A planner site that lies on a game map opens there, in free exploration, at that point.
+          </p>
+        </div>
+      </div>
+
+      <figure class="mt">
+        <div class="shot fit" style="aspect-ratio: 16 / 7.6">
+          <img
+            src="img/planner-surface.jpg"
+            alt="Planner Surface panel with the rover traverse and the link to the game"
+            style="object-position: 0 40%"
+          />
+        </div>
+        <figcaption>
+          <b>Surface panel.</b> Perseverance's route to sol 1980, its samples and Ingenuity's
+          flights (NASA/JPL-Caltech MMGIS), with the link that drives the rover in the game.
+        </figcaption>
+      </figure>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 15 · METHOD + VALIDATION -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Project dossier › <b>Science method and validation</b></div>
+      </header>
+
+      <div class="sec"><span class="n">04</span><span class="t">Science method</span></div>
+      <h2>How the numbers are made — and checked</h2>
+
+      <div class="tbl">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 20%">Step</th>
+              <th style="width: 45%">Method</th>
+              <th>Check</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Frames</b></td>
+              <td>
+                IAU 2015 Mars sphere (R = 3,396,190 m) and the Mars 2020 localization frame; heights
+                above the areoid. A subtle reprojection pitfall (a 5.4 % scale error from the wrong
+                standard parallel) was caught and corrected.
+              </td>
+              <td>All 666 PDS PLACES rover localizations re-projected to ≤ 0.5 mm</td>
+            </tr>
+            <tr>
+              <td><b>Terrain</b></td>
+              <td>
+                HiRISE 1 m DTM aggregated to a 5 m routing grid (2,250 × 1,424 cells, 79.7 km²) with
+                elevation, fine-scale slope (median and P90) and thermal inertia.
+              </td>
+              <td>509 localizations inside the grid: elevation RMS 0.07 m, mean −0.01 m</td>
+            </tr>
+            <tr>
+              <td><b>Slope</b></td>
+              <td>
+                Over a 10 m baseline, the scale of a walker's footing; 3.4 % of the area exceeds
+                20°.
+              </td>
+              <td>Analytic slope planes in unit tests</td>
+            </tr>
+            <tr>
+              <td><b>Routing</b></td>
+              <td>
+                A* on the 5 m grid with slope and no-data barriers and no corner-cutting; lower-risk
+                and shortest-feasible cost profiles; detours priced per stop.
+              </td>
+              <td>Property tests; route compute ~0.3 s for the guided 5.6 km loop</td>
+            </tr>
+            <tr>
+              <td><b>Walking limits</b></td>
+              <td>
+                Speeds and a 20° limit from Apollo surface EVAs and Artemis studies (lunar),
+                labelled as assumptions.
+              </td>
+              <td>Sensitivity: route recomputed at 15°, 20° and 25°</td>
+            </tr>
+            <tr>
+              <td><b>Time and Sun</b></td>
+              <td>
+                Mars24 algorithm for sol, LTST and Ls; Sun direction from the IAU 2015 rotation.
+              </td>
+              <td>Mars24 worked examples; Sun direction agrees to &lt; 0.1°</td>
+            </tr>
+            <tr>
+              <td><b>Panoramas</b></td>
+              <td>
+                Placed by sol; compass and horizon measured by matching the skyline to the terrain
+                model.
+              </td>
+              <td>Median residual reported per panorama</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 class="mt2">Quality and performance</h4>
+      <div class="grid g4">
+        <div class="stat">
+          <div class="k">Unit and property tests</div>
+          <div class="v">215</div>
+          <div class="s">Scientific core, routing, time, missions</div>
+        </div>
+        <div class="stat">
+          <div class="k">Browser tests</div>
+          <div class="v">20</div>
+          <div class="s">Guided flow, keyboard-only route, Spanish, panoramas, game</div>
+        </div>
+        <div class="stat">
+          <div class="k">Planner ready, cold</div>
+          <div class="v">7.1 <small>s</small></div>
+          <div class="s">Production build on a throttled Fast 4G link</div>
+        </div>
+        <div class="stat">
+          <div class="k">Game menu, cold</div>
+          <div class="v">1.5 <small>s</small></div>
+          <div class="s">Same conditions; 3D world loads behind it</div>
+        </div>
+      </div>
+      <p class="xs faint mt">
+        A network guard in the browser tests proves the app contacts no external host: every tile,
+        model and dataset is served from the same origin.
+      </p>
+
+      <h4 class="mt2">Built to be checked</h4>
+      <div class="grid g3">
+        <div class="card">
+          <h3>Reproducible</h3>
+          <p class="small muted">
+            Every product is rebuilt from its public source by one pipeline; each remote file's
+            header is checked before it is used.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Deterministic</h3>
+          <p class="small muted">
+            The same stops give the same route to the millimetre on any machine, which is what makes
+            share links trustworthy.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Traceable</h3>
+          <p class="small muted">
+            Each layer, place, sample and panorama carries its source, date and licence in the app's
+            catalogue, shown to the user.
+          </p>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 16 · ARCHITECTURE -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Project dossier › <b>Architecture and tools</b></div>
+      </header>
+
+      <div class="sec"><span class="n">05</span><span class="t">Architecture</span></div>
+      <h2>From archives to a static web app</h2>
+      <p class="lede">
+        A reproducible pipeline turns public archives into tiles and grids; a static site serves
+        three pages. There is no server-side logic, no account and no tracking: the whole app can be
+        hosted on any static host.
+      </p>
+
+      <div class="flow">
+        <div class="node">
+          <h3>Public archives</h3>
+          <ul>
+            <li>NASA PDS, USGS Astrogeology</li>
+            <li>Mars 2020 MMGIS, PLACES, MEDA</li>
+            <li>NASA Photojournal, 3D Resources</li>
+            <li>ESA Gaia (via NASA SVS)</li>
+          </ul>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node hl">
+          <h3>Reproducible pipeline</h3>
+          <ul>
+            <li>GDAL / PROJ in Docker (Python)</li>
+            <li>Node scripts for rover, weather, media</li>
+            <li>Header checks of every remote source</li>
+            <li>Validation against PDS PLACES</li>
+          </ul>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node">
+          <h3>Static site</h3>
+          <ul>
+            <li>Home, Planner, Rover game</li>
+            <li>27,500 files, 351 MB of tiles and data</li>
+            <li>Content-hashed bundles, cached data</li>
+            <li>Works without any external host</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="grid g2 mt">
+        <div class="node">
+          <h3>Planner</h3>
+          <ul>
+            <li>CesiumJS on a Mars sphere: quantized-mesh terrain and imagery tiers</li>
+            <li>Routing in a Web Worker, so the interface never freezes</li>
+            <li>Missions, versions and share links stored in the browser</li>
+          </ul>
+        </div>
+        <div class="node">
+          <h3>Rover game</h3>
+          <ul>
+            <li>three.js world with near, middle and far terrain rings</li>
+            <li>Rover physics: slope, slip, sand, wheel wear, power</li>
+            <li>NASA video, images and models streamed on demand</li>
+          </ul>
+        </div>
+      </div>
+
+      <h4 class="mt2">Tools and libraries</h4>
+      <div class="tbl">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 26%">Area</th>
+              <th>Tools</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Language</b></td>
+              <td>TypeScript (app and scientific core), Python (geospatial pipeline)</td>
+            </tr>
+            <tr>
+              <td><b>Interface</b></td>
+              <td>React, zustand (state), zod (data contracts), i18next (English / Spanish)</td>
+            </tr>
+            <tr>
+              <td><b>3D</b></td>
+              <td>CesiumJS (planner globe and terrain), three.js (rover game)</td>
+            </tr>
+            <tr>
+              <td><b>Geospatial</b></td>
+              <td>GDAL, PROJ, Docker</td>
+            </tr>
+            <tr>
+              <td><b>Build and quality</b></td>
+              <td>
+                Vite, Vitest, fast-check (property tests), Playwright (browser tests), axe-core
+                (accessibility), ESLint, Prettier
+              </td>
+            </tr>
+            <tr>
+              <td><b>Licence</b></td>
+              <td>Code under Apache-2.0; data remain under their original terms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 class="mt2">Privacy and hosting</h4>
+      <div class="grid g3">
+        <div class="card">
+          <h3>No accounts</h3>
+          <p class="small muted">
+            Nobody signs in. Missions, settings and game progress live in the visitor's own browser.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Nothing leaves the browser</h3>
+          <p class="small muted">
+            No analytics, no third-party scripts, no external map services: the app talks only to
+            the site that serves it.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Cheap to host</h3>
+          <p class="small muted">
+            Static files on object storage behind a CDN: well under a dollar a month for storage,
+            judging traffic within free tiers.
+          </p>
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 17 · SOURCES: NASA DATA -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Project dossier › <b>Data sources</b></div>
+      </header>
+
+      <div class="sec"><span class="n">06</span><span class="t">Data sources</span></div>
+      <h2>NASA data used</h2>
+
+      <div class="tbl">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 21%">Mission · instrument</th>
+              <th style="width: 34%">Product</th>
+              <th style="width: 17%">Used for</th>
+              <th>Citation · licence</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>MRO · HiRISE</b></td>
+              <td>Mars 2020 TRN HiRISE DTM mosaic (1 m) and orthomosaic (25 cm), USGS</td>
+              <td>Terrain, slopes, routing grid, game detail</td>
+              <td class="xs">Fergason, R.L. et al. (2020) LPSC 51, #2020. US Government work.</td>
+            </tr>
+            <tr>
+              <td><b>MRO · HiRISE</b></td>
+              <td>USGS MSR HiRISE DTM mosaic v003 (1 m) and 25 cm orthoimage, crater rim</td>
+              <td>The rim map</td>
+              <td class="xs">USGS Astrogeology, MSR TRN HiRISE mosaics (2024). Public.</td>
+            </tr>
+            <tr>
+              <td><b>MRO · HiRISE</b></td>
+              <td>RDR ESP_085859_1985 (RED, 25 cm)</td>
+              <td>Imagery around the rover</td>
+              <td class="xs">
+                McEwen, A.S. et al. (2007) JGR 112, E05S02. NASA/JPL/University of Arizona.
+              </td>
+            </tr>
+            <tr>
+              <td><b>MRO · CTX</b></td>
+              <td>Mars 2020 Science Investigation CTX DEM (20 m) and orthomosaic (5 m)</td>
+              <td>Regional terrain and imagery</td>
+              <td class="xs">Mangold, N. et al. (2021) Science 374, 711–717.</td>
+            </tr>
+            <tr>
+              <td><b>MRO · CRISM</b></td>
+              <td>MTRDR map-projected targeted products, summary-parameter composites</td>
+              <td>Mineral indicators</td>
+              <td class="xs">
+                Seelos, F.P. et al. (2016) NASA PDS; Viviano-Beck, C.E. et al. (2014) JGR Planets
+                119.
+              </td>
+            </tr>
+            <tr>
+              <td><b>MGS · MOLA</b></td>
+              <td>Mission Experiment Gridded Data Record, 32 pixels/degree</td>
+              <td>Global relief, far terrain</td>
+              <td class="xs">Smith, D.E. et al. (2003) NASA PDS.</td>
+            </tr>
+            <tr>
+              <td><b>Viking Orbiters</b></td>
+              <td>Colorized global mosaic (925 m) and MDIM 2.1 (232 m)</td>
+              <td>Global colour</td>
+              <td class="xs">USGS Astrogeology. Public domain.</td>
+            </tr>
+            <tr>
+              <td><b>Mars Odyssey · THEMIS</b></td>
+              <td>THEMIS-derived thermal inertia of Jezero Crater</td>
+              <td>Sand versus rock</td>
+              <td class="xs">
+                Edwards, C.S. &amp; Buz, J. (2021) Zenodo, doi:10.5281/zenodo.4931348. CC BY 4.0.
+              </td>
+            </tr>
+            <tr>
+              <td><b>Mars 2020</b></td>
+              <td>Rover waypoints, traverse, samples and Ingenuity flights (MMGIS)</td>
+              <td>Rover route, samples, flights</td>
+              <td class="xs">NASA/JPL-Caltech, Mars 2020 location map.</td>
+            </tr>
+            <tr>
+              <td><b>Mars 2020</b></td>
+              <td>PLACES localizations (best tactical)</td>
+              <td>Frame validation</td>
+              <td class="xs">Mars 2020 PLACES bundle, NASA PDS Geosciences Node.</td>
+            </tr>
+            <tr>
+              <td><b>Mars 2020 · MEDA</b></td>
+              <td>Calibrated air temperature (ATS) and pressure (PS)</td>
+              <td>Measured conditions</td>
+              <td class="xs">
+                Rodriguez-Manfredi, J.A. et al., MEDA bundle, NASA PDS Atmospheres Node.
+              </td>
+            </tr>
+            <tr>
+              <td><b>Mars 2020 · Mastcam-Z</b></td>
+              <td>360° panorama collection and PIA26699</td>
+              <td>360° views, game ground textures</td>
+              <td class="xs">Mastcam-Z team (ASU). NASA/JPL-Caltech/ASU/MSSS.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 class="mt2">Space Agency Partner data</h4>
+      <div class="card info">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h3>ESA · Gaia and Hipparcos</h3>
+          <span class="tag calc">Partner</span>
+        </div>
+        <p class="small muted">
+          The Milky Way background of the planner's sky is built from ESA's Gaia DR2 and Hipparcos
+          star data, through NASA SVS's Deep Star Maps 2020. Gaia DR2: ESA/Gaia/DPAC, CC BY-SA 3.0
+          IGO. Visualization: NASA/Goddard Space Flight Center Scientific Visualization Studio.
+        </p>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 18 · SOURCES: MEDIA + REFERENCES -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Project dossier › <b>Media and references</b></div>
+      </header>
+
+      <p class="eyebrow">Data sources · continued</p>
+      <h2>NASA media, models and references</h2>
+
+      <div class="tbl">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 26%">Item</th>
+              <th style="width: 44%">Where it appears</th>
+              <th>Credit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>"Perseverance Rover's Descent and Touchdown on Mars"</b></td>
+              <td>Mission 1, Seven minutes, with NASA's English captions</td>
+              <td class="xs">NASA/JPL-Caltech</td>
+            </tr>
+            <tr>
+              <td><b>"First Video of NASA's Ingenuity Mars Helicopter in Flight"</b></td>
+              <td>Mission 2, Wright Brothers moment (13–43 s of the original)</td>
+              <td class="xs">NASA/JPL-Caltech/ASU/MSSS</td>
+            </tr>
+            <tr>
+              <td><b>Photojournal images</b></td>
+              <td>
+                Mission cards, story cards, Ingenuity deployment, sample close-ups, home page.
+                PIA24176, 24333, 24424, 24441–24443, 24448, 24449, 24548, 24595, 24749, 24765,
+                24831, 24832, 24928, 25217–25219, 26236, 26243, 26344, 26368, 26511, 26528, 26573,
+                26699
+              </td>
+              <td class="xs">
+                NASA/JPL-Caltech; ASU/MSSS (Mastcam-Z); MSSS (WATSON); University of Arizona
+                (HiRISE)
+              </td>
+            </tr>
+            <tr>
+              <td><b>3D models</b></td>
+              <td>
+                Perseverance (25042), Ingenuity (25043) and the Mars 2020 sample tube, optimized for
+                the web
+              </td>
+              <td class="xs">NASA 3D Resources</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 class="mt2">Other references</h4>
+      <div class="tbl">
+        <table>
+          <tbody>
+            <tr>
+              <td style="width: 30%"><b>Bright Star Catalogue</b></td>
+              <td>
+                Yale Bright Star Catalogue, 5th revised edition (J2000): the planner's stars.
+                Hoffleit, D. &amp; Warren, W.H. Jr. (1991).
+              </td>
+            </tr>
+            <tr>
+              <td><b>Mars24</b></td>
+              <td>
+                Mars24 Sunclock algorithm, NASA Goddard Institute for Space Studies: sol, LTST, Ls
+                and the Sun.
+              </td>
+            </tr>
+            <tr>
+              <td><b>IAU cartography</b></td>
+              <td>
+                IAU Working Group on Cartographic Coordinates and Rotational Elements, 2015 report:
+                the Mars sphere and rotation.
+              </td>
+            </tr>
+            <tr>
+              <td><b>Lunar EVA experience</b></td>
+              <td>
+                Apollo surface-EVA traverse records (speeds, slopes walked, walk-back rule) and
+                Artemis EVA planning studies: walking assumptions, labelled as such.
+              </td>
+            </tr>
+            <tr>
+              <td><b>Mars Exploration Rovers, MSL</b></td>
+              <td>
+                Spirit's 2009 sand trap and Curiosity's wheel damage: the game's hazard model.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="notice mt2">
+        <span class="i">i</span>
+        <div>
+          NASA still images, audio and video are generally not subject to copyright; they are
+          credited as their sources ask. The NASA insignia and logotype are not used as branding in
+          the app or in this document, and nothing here implies NASA's endorsement.
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+
+    <!-- ============================================================ 19 · LIMITS + NEXT -->
+    <section class="page">
+      <header class="hdr">
+        <div class="brand"><img src="img/logo.png" alt="" />Jezero</div>
+        <div class="crumb">Project dossier › <b>Limits and next steps</b></div>
+      </header>
+
+      <div class="sec"><span class="n">07</span><span class="t">Limits and next steps</span></div>
+      <h2>What the data cannot tell</h2>
+      <p class="lede">
+        A planner is only as trustworthy as its stated limits. These are the ones Jezero shows its
+        users, in the interface and here.
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h3>Rocks smaller than a pixel</h3>
+          <p class="small muted">
+            Orbital data cannot resolve rocks under about 1.5 m. A route of lower estimated risk can
+            still cross a boulder field a crew would see only on the ground.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Lunar walking limits</h3>
+          <p class="small muted">
+            Speeds and the 20° slope limit come from the Moon. Mars' gravity, suits and soils
+            differ; the sensitivity test shows how much the route depends on them.
+          </p>
+        </div>
+        <div class="card">
+          <h3>No live weather</h3>
+          <p class="small muted">
+            MEDA data are released months after they are taken. The planner shows the latest
+            released sol and says how old it is; it never calls a value current.
+          </p>
+        </div>
+        <div class="card">
+          <h3>One operational area</h3>
+          <p class="small muted">
+            Routes are computed only inside the 79.7 km² covered by the 1 m terrain model. Outside
+            the outline, Jezero shows the terrain but does not plan.
+          </p>
+        </div>
+        <div class="card">
+          <h3>A modern browser</h3>
+          <p class="small muted">
+            The 3D scenes need WebGL 2. Where it is missing, a clear message is shown; a 2D fallback
+            is not built yet.
+          </p>
+        </div>
+        <div class="card">
+          <h3>History, simplified</h3>
+          <p class="small muted">
+            The game compresses time and distance for play. Each episode's "as it really was" note
+            gives the real dates, sols and outcomes.
+          </p>
+        </div>
+      </div>
+
+      <h4 class="mt2">Next steps</h4>
+      <div class="grid g3">
+        <div class="card accent">
+          <h3>The western rim</h3>
+          <p class="small muted">
+            Extend route planning to the crater rim, where Perseverance works today, using the 1 m
+            rim terrain model already in the game.
+          </p>
+        </div>
+        <div class="card accent">
+          <h3>Mobile and devices</h3>
+          <p class="small muted">
+            Measure and tune performance on a mid-range phone and an integrated-GPU laptop.
+          </p>
+        </div>
+        <div class="card accent">
+          <h3>More of the record</h3>
+          <p class="small muted">
+            Newer MEDA releases, more panoramas and samples as NASA publishes them, through the same
+            pipeline.
+          </p>
+        </div>
+      </div>
+
+      <div class="notice mt2">
+        <span class="i">!</span>
+        <div>
+          <b>Research and education prototype.</b> Routes express lower <i>estimated</i> risk from
+          orbital data, never guaranteed safety. Jezero is an independent project for the NASA Space
+          Apps Challenge 2026 and is not affiliated with or endorsed by NASA or any space agency.
+        </div>
+      </div>
+
+      <footer class="ftr"><span>Jezero · Project dossier</span><span class="pn"></span></footer>
+    </section>
+  </body>
+</html>
