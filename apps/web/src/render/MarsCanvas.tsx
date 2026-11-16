@@ -105,7 +105,8 @@ export function MarsCanvas() {
     // screen has the pixels to show it.
     let revealed = () => {};
     const shown = new Promise<void>((r) => (revealed = r));
-    const screenPx = Math.max(window.screen.width, window.screen.height) * (window.devicePixelRatio || 1);
+    const screenPx =
+      Math.max(window.screen.width, window.screen.height) * (window.devicePixelRatio || 1);
     const sky = scene
       .loadSky(
         dataUrl(`sky/stars.json?v=${DATA_VERSION}`),

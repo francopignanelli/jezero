@@ -825,7 +825,15 @@ export class TerrainMesh {
   }
 
   /** Marks of the landing on the ground (world/landing.ts); up to MAX_MARKS. */
-  setMarks(marks: Array<{ x: number; north: number; radiusM: number; type: number; dir: [number, number] }>): void {
+  setMarks(
+    marks: Array<{
+      x: number;
+      north: number;
+      radiusM: number;
+      type: number;
+      dir: [number, number];
+    }>,
+  ): void {
     const m = this.uniforms.uMarks!.value as Vector4[];
     const d = this.uniforms.uMarkDir!.value as Vector2[];
     const n = Math.min(MAX_MARKS, marks.length);

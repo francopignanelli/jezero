@@ -116,9 +116,10 @@ export function GameApp() {
           {t('game.loadingMission')}
         </div>
       )}
-      {session && ['playing', 'paused', 'card', 'story', 'inventory', 'chapter'].includes(phase) && (
-        <Hud session={session} />
-      )}
+      {session &&
+        ['playing', 'paused', 'card', 'story', 'inventory', 'chapter'].includes(phase) && (
+          <Hud session={session} />
+        )}
       {session && phase === 'playing' && <FindingPanel />}
       {session && ['playing', 'chapter', 'card', 'story', 'panorama'].includes(phase) && <Toasts />}
       {session && phase === 'story' && <StoryCard session={session} />}
@@ -248,13 +249,14 @@ const SLATE: Array<{ n: number; key: string; mission?: MissionId }> = [
 export const slateOf = (id: MissionId) => SLATE.find((m) => m.mission === id);
 
 /** Free exploration: the maps it can be played on, in the order of the missions. */
-const FREE_AREAS: Array<{ id: MissionId; key: 'landing' | 'floor' | 'delta' | 'neretva' | 'rim' }> = [
-  { id: 'free-landing', key: 'landing' },
-  { id: 'free-floor', key: 'floor' },
-  { id: 'free-delta', key: 'delta' },
-  { id: 'free-neretva', key: 'neretva' },
-  { id: 'free-rim', key: 'rim' },
-];
+const FREE_AREAS: Array<{ id: MissionId; key: 'landing' | 'floor' | 'delta' | 'neretva' | 'rim' }> =
+  [
+    { id: 'free-landing', key: 'landing' },
+    { id: 'free-floor', key: 'floor' },
+    { id: 'free-delta', key: 'delta' },
+    { id: 'free-neretva', key: 'neretva' },
+    { id: 'free-rim', key: 'rim' },
+  ];
 
 /**
  * The game's home: the two modes of Copernico, the language, the missions as cards of one size,
@@ -297,7 +299,10 @@ function MainMenu({ session }: { session: GameSession }) {
                   ? t('game.missions.again')
                   : t('game.missions.start');
             return (
-              <li key={m.key} className={`game-mc ${id ? '' : 'is-soon'} ${best !== undefined ? 'is-done' : ''}`}>
+              <li
+                key={m.key}
+                className={`game-mc ${id ? '' : 'is-soon'} ${best !== undefined ? 'is-done' : ''}`}
+              >
                 <div className="game-mc-img">
                   <img
                     src={dataUrl(`game/cards/${m.key}.webp?v=${DATA_VERSION}`)}
@@ -324,9 +329,7 @@ function MainMenu({ session }: { session: GameSession }) {
                   )}
                 </div>
                 <div className="game-mc-body">
-                  <span className="game-mc-when">
-                    {t(`game.missions.${m.key}.when`)}
-                  </span>
+                  <span className="game-mc-when">{t(`game.missions.${m.key}.when`)}</span>
                   <h2>{title}</h2>
                   <p>{t(`game.missions.${m.key}.desc`)}</p>
                   {id ? (
@@ -335,7 +338,9 @@ function MainMenu({ session }: { session: GameSession }) {
                       className="btn btn-primary"
                       aria-label={`${label}: ${title}`}
                       onClick={() =>
-                        void (saved !== undefined ? session.continueExpedition(id) : session.newExpedition(id))
+                        void (saved !== undefined
+                          ? session.continueExpedition(id)
+                          : session.newExpedition(id))
                       }
                     >
                       {label}
@@ -370,7 +375,12 @@ function FreeCard({ session }: { session: GameSession }) {
   return (
     <section className="game-free" aria-labelledby="game-free-title">
       <div className="game-free-img">
-        <img src={dataUrl(`game/cards/free.webp?v=${DATA_VERSION}`)} alt="" width={640} height={360} />
+        <img
+          src={dataUrl(`game/cards/free.webp?v=${DATA_VERSION}`)}
+          alt=""
+          width={640}
+          height={360}
+        />
       </div>
       <div className="game-free-body">
         <span className="game-free-kicker">{t('game.missions.free.when')}</span>
@@ -394,7 +404,9 @@ function FreeCard({ session }: { session: GameSession }) {
           type="button"
           className="btn btn-primary"
           aria-label={`${saved ? t('game.missions.free.continue') : t('game.missions.free.start')}: ${title}`}
-          onClick={() => void (saved ? session.continueExpedition(area.id) : session.newExpedition(area.id))}
+          onClick={() =>
+            void (saved ? session.continueExpedition(area.id) : session.newExpedition(area.id))
+          }
         >
           {saved ? t('game.missions.free.continue') : t('game.missions.free.start')}
         </button>
@@ -571,7 +583,9 @@ function ChapterPage({ session }: { session: GameSession }) {
             </li>
           ))}
         </ul>
-        <p className="meta">{t(missionOf(exp).pilot ? 'game.chapter.tipPilot' : 'game.chapter.tip')}</p>
+        <p className="meta">
+          {t(missionOf(exp).pilot ? 'game.chapter.tipPilot' : 'game.chapter.tip')}
+        </p>
         <button
           type="button"
           className="btn btn-primary"
@@ -607,7 +621,9 @@ function Objectives() {
           ? `${t('game.missions.free.title')} · ${t(`game.missions.free.${m.areaId}`)}`
           : `${t('game.chapter.short', { n: exp.chapter + 1 })} · ${t(`game.chapters.${c.id}.title`)}`}
       </div>
-      {m.free && <p className="game-found">{t('game.hud.found', { n: found, total: listed.length })}</p>}
+      {m.free && (
+        <p className="game-found">{t('game.hud.found', { n: found, total: listed.length })}</p>
+      )}
       <ol>
         {shown.map((o) => {
           const done = objectiveDone(exp, o, c);
@@ -695,111 +711,113 @@ function Hud({ session }: { session: GameSession }) {
 
       {hud.pilot && <PilotPanel session={session} />}
       {!hud.pilot && (
-      <section className="game-panel game-gauges" aria-label={t('game.hud.battery')}>
-        <div className={`game-battery ${hud.batteryPct < 20 ? 'is-low' : ''}`}>
-          <span>{t('game.hud.battery')}</span>
+        <section className="game-panel game-gauges" aria-label={t('game.hud.battery')}>
+          <div className={`game-battery ${hud.batteryPct < 20 ? 'is-low' : ''}`}>
+            <span>{t('game.hud.battery')}</span>
+            <div
+              className="game-bar"
+              role="meter"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(hud.batteryPct)}
+              aria-label={t('game.hud.battery')}
+            >
+              <div style={{ width: `${hud.batteryPct}%` }} />
+            </div>
+            <strong>{Math.round(hud.batteryPct)}%</strong>
+          </div>
           <div
-            className="game-bar"
-            role="meter"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(hud.batteryPct)}
-            aria-label={t('game.hud.battery')}
+            className={`game-battery game-wheels ${hud.wheelsPct < 50 ? 'is-low' : ''} ${hud.wearing ? 'is-hit' : ''}`}
           >
-            <div style={{ width: `${hud.batteryPct}%` }} />
+            <span>{t('game.hud.wheels')}</span>
+            <div
+              className="game-bar"
+              role="meter"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(hud.wheelsPct)}
+              aria-label={t('game.hud.wheels')}
+            >
+              <div style={{ width: `${hud.wheelsPct}%` }} />
+            </div>
+            <strong>{Math.round(hud.wheelsPct)}%</strong>
           </div>
-          <strong>{Math.round(hud.batteryPct)}%</strong>
-        </div>
-        <div
-          className={`game-battery game-wheels ${hud.wheelsPct < 50 ? 'is-low' : ''} ${hud.wearing ? 'is-hit' : ''}`}
-        >
-          <span>{t('game.hud.wheels')}</span>
-          <div
-            className="game-bar"
-            role="meter"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(hud.wheelsPct)}
-            aria-label={t('game.hud.wheels')}
-          >
-            <div style={{ width: `${hud.wheelsPct}%` }} />
+          <dl>
+            <div>
+              <dt>{t('game.hud.speed')}</dt>
+              <dd className={hud.boosting ? 'is-boost' : ''}>
+                {Math.abs(hud.speedMps).toFixed(1)} m/s
+              </dd>
+            </div>
+            <div>
+              <dt>{t('game.hud.tilt')}</dt>
+              <dd className={hud.tiltDeg >= DRIVE.tiltWarnDeg ? 'is-warn' : ''}>
+                {formatDegrees(hud.tiltDeg, lang)}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('game.hud.time')}</dt>
+              <dd>{formatClock(hud.elapsedS)}</dd>
+            </div>
+            <div>
+              <dt>{t('game.hud.driven')}</dt>
+              <dd>{formatDistance(hud.odometerM, lang)}</dd>
+            </div>
+            <div>
+              <dt>{t('game.hud.slip')}</dt>
+              <dd className={hud.slip > 0.3 ? 'is-warn' : ''}>{Math.round(hud.slip * 100)}%</dd>
+            </div>
+            <div>
+              <dt>{t('game.hud.science')}</dt>
+              <dd>{exp.science}</dd>
+            </div>
+          </dl>
+          <div className="game-tools">
+            <button
+              type="button"
+              className={`btn btn-icon ${hud.autonav ? 'is-on' : ''}`}
+              aria-pressed={!!hud.autonav}
+              onClick={() => (hud.autonav ? session.stopAutoNav() : session.startAutoNav())}
+            >
+              {t('game.hud.autonav')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-icon"
+              disabled={hud.laserTarget !== 'ready' || !!hud.laser}
+              onClick={() => session.fireLaser()}
+            >
+              {t('game.hud.laser')}
+            </button>
+            <button type="button" className="btn btn-icon" onClick={() => session.openInventory()}>
+              {t('game.hud.inventory')}
+            </button>
+            <button type="button" className="btn btn-icon" onClick={() => session.enterPhoto()}>
+              {t('game.hud.photo')}
+            </button>
+            <button type="button" className="btn btn-icon" onClick={() => session.cycleCamera()}>
+              {t('game.hud.camera')}: {t(`game.hud.cameraModes.${camera}`)}
+            </button>
+            <button
+              type="button"
+              className="btn btn-icon"
+              aria-pressed={mapOpen}
+              onClick={() => useGame.getState().set({ mapOpen: !mapOpen })}
+            >
+              {t('game.hud.map')}
+            </button>
+            <button type="button" className="btn btn-icon" onClick={() => session.pause()}>
+              {t('game.hud.pause')}
+            </button>
+            <SoundToggle session={session} />
           </div>
-          <strong>{Math.round(hud.wheelsPct)}%</strong>
-        </div>
-        <dl>
-          <div>
-            <dt>{t('game.hud.speed')}</dt>
-            <dd className={hud.boosting ? 'is-boost' : ''}>
-              {Math.abs(hud.speedMps).toFixed(1)} m/s
-            </dd>
-          </div>
-          <div>
-            <dt>{t('game.hud.tilt')}</dt>
-            <dd className={hud.tiltDeg >= DRIVE.tiltWarnDeg ? 'is-warn' : ''}>
-              {formatDegrees(hud.tiltDeg, lang)}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('game.hud.time')}</dt>
-            <dd>{formatClock(hud.elapsedS)}</dd>
-          </div>
-          <div>
-            <dt>{t('game.hud.driven')}</dt>
-            <dd>{formatDistance(hud.odometerM, lang)}</dd>
-          </div>
-          <div>
-            <dt>{t('game.hud.slip')}</dt>
-            <dd className={hud.slip > 0.3 ? 'is-warn' : ''}>{Math.round(hud.slip * 100)}%</dd>
-          </div>
-          <div>
-            <dt>{t('game.hud.science')}</dt>
-            <dd>{exp.science}</dd>
-          </div>
-        </dl>
-        <div className="game-tools">
-          <button
-            type="button"
-            className={`btn btn-icon ${hud.autonav ? 'is-on' : ''}`}
-            aria-pressed={!!hud.autonav}
-            onClick={() => (hud.autonav ? session.stopAutoNav() : session.startAutoNav())}
-          >
-            {t('game.hud.autonav')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-icon"
-            disabled={hud.laserTarget !== 'ready' || !!hud.laser}
-            onClick={() => session.fireLaser()}
-          >
-            {t('game.hud.laser')}
-          </button>
-          <button type="button" className="btn btn-icon" onClick={() => session.openInventory()}>
-            {t('game.hud.inventory')}
-          </button>
-          <button type="button" className="btn btn-icon" onClick={() => session.enterPhoto()}>
-            {t('game.hud.photo')}
-          </button>
-          <button type="button" className="btn btn-icon" onClick={() => session.cycleCamera()}>
-            {t('game.hud.camera')}: {t(`game.hud.cameraModes.${camera}`)}
-          </button>
-          <button
-            type="button"
-            className="btn btn-icon"
-            aria-pressed={mapOpen}
-            onClick={() => useGame.getState().set({ mapOpen: !mapOpen })}
-          >
-            {t('game.hud.map')}
-          </button>
-          <button type="button" className="btn btn-icon" onClick={() => session.pause()}>
-            {t('game.hud.pause')}
-          </button>
-          <SoundToggle session={session} />
-        </div>
-      </section>
+        </section>
       )}
 
       {phase === 'playing' && <Prompt />}
-      {phase === 'playing' && hud.deploy && <DeployPanel session={session} slide={hud.deploy.slide} />}
+      {phase === 'playing' && hud.deploy && (
+        <DeployPanel session={session} slide={hud.deploy.slide} />
+      )}
       {mapOpen && <GameMap session={session} />}
       <TouchPad session={session} />
     </div>
@@ -845,7 +863,10 @@ function Prompt() {
     text = t('game.deploy.status');
   } else if (action?.kind === 'moxie') {
     text = t('game.prompt.moxie', {
-      g: (hud.moxieG ?? 0).toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      g: (hud.moxieG ?? 0).toLocaleString(i18n.language, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
     });
   } else if (devil?.recording !== null && devil?.recording !== undefined) {
     text = t('game.devil.recording');
@@ -943,11 +964,16 @@ function Prompt() {
         </span>
       )}
       {fraction !== null &&
-        (action || hud.laser || drive || hud.deploy || (hud.pilot?.photo ?? null) !== null || (hud.devil?.recording ?? null) !== null) && (
-        <div className="game-bar game-action-bar" aria-hidden="true">
-          <div style={{ width: `${fraction * 100}%` }} />
-        </div>
-      )}
+        (action ||
+          hud.laser ||
+          drive ||
+          hud.deploy ||
+          (hud.pilot?.photo ?? null) !== null ||
+          (hud.devil?.recording ?? null) !== null) && (
+          <div className="game-bar game-action-bar" aria-hidden="true">
+            <div style={{ width: `${fraction * 100}%` }} />
+          </div>
+        )}
     </div>
   );
 }
@@ -967,7 +993,11 @@ function DeployPanel({ session, slide }: { session: GameSession; slide: number }
     for (const k of DEPLOY_SLIDES) new Image().src = src(k);
   }, []);
   return (
-    <aside className="game-panel game-deploy" aria-live="polite" aria-label={t('game.deploy.title')}>
+    <aside
+      className="game-panel game-deploy"
+      aria-live="polite"
+      aria-label={t('game.deploy.title')}
+    >
       <div className="game-deploy-head">
         <span className="game-panel-title">{t('game.deploy.title')}</span>
         <button type="button" className="game-deploy-skip" onClick={() => session.skipDeploy()}>
@@ -1124,7 +1154,8 @@ const MAP_BAR_PX = 40;
 
 /** How much the map may grow without covering the objectives panel or the prompt. */
 function largeMapScale(): number {
-  const objectives = document.querySelector('.game-objectives')?.getBoundingClientRect().bottom ?? 140;
+  const objectives =
+    document.querySelector('.game-objectives')?.getBoundingClientRect().bottom ?? 140;
   const byWidth = (window.innerWidth / 2 - PROMPT_HALF_PX - 16) / MAP_W;
   const byHeight = (window.innerHeight - 16 - MAP_BAR_PX - objectives - 12) / MAP_H;
   return Math.max(1, Math.min(MAP_SCALE_LARGE, byWidth, byHeight));
@@ -1455,7 +1486,12 @@ function PauseMenu({ session }: { session: GameSession }) {
           aria-modal="true"
           aria-labelledby="game-pause-sub"
         >
-          <button type="button" className="game-video-back" autoFocus onClick={() => setView('main')}>
+          <button
+            type="button"
+            className="game-video-back"
+            autoFocus
+            onClick={() => setView('main')}
+          >
             {t('game.pause.backToPause')}
           </button>
           <h2 id="game-pause-sub">{t(`game.pause.${view}`)}</h2>
@@ -1602,16 +1638,29 @@ function StoryCard({ session }: { session: GameSession }) {
   if (!key) return null;
   return (
     <div className="game-screen">
-      <div className="game-dialog game-card game-story" role="dialog" aria-modal="true" aria-labelledby="game-story-title">
+      <div
+        className="game-dialog game-card game-story"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="game-story-title"
+      >
         <figure>
-          <img src={dataUrl(`game/story/${key}.webp?v=${DATA_VERSION}`)} alt={t(`game.story.${key}.title`)} />
+          <img
+            src={dataUrl(`game/story/${key}.webp?v=${DATA_VERSION}`)}
+            alt={t(`game.story.${key}.title`)}
+          />
           <figcaption>{t(`game.story.${key}.credit`)}</figcaption>
         </figure>
         <div className="game-card-body">
           <div className="game-panel-title">{t(`game.story.${key}.kicker`)}</div>
           <h2 id="game-story-title">{t(`game.story.${key}.title`)}</h2>
           <p>{t(`game.story.${key}.text`)}</p>
-          <button type="button" className="btn btn-primary" autoFocus onClick={() => session.closeStory()}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            autoFocus
+            onClick={() => session.closeStory()}
+          >
             {t('game.card.continue')}
           </button>
         </div>
@@ -1718,7 +1767,12 @@ function Complete({ session }: { session: GameSession }) {
       >
         {card && (
           <figure className="game-done-img">
-            <img src={dataUrl(`game/cards/${card.key}.webp?v=${DATA_VERSION}`)} alt="" width={640} height={360} />
+            <img
+              src={dataUrl(`game/cards/${card.key}.webp?v=${DATA_VERSION}`)}
+              alt=""
+              width={640}
+              height={360}
+            />
             <span className="game-done-badge">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path d="M3 8.5l3.2 3L13 4.5" />
@@ -1795,15 +1849,24 @@ function Complete({ session }: { session: GameSession }) {
         </p>
         {m.epilogue && (
           <figure className="game-epilogue">
-            <img src={dataUrl(`game/story/${m.epilogue}.webp?v=${DATA_VERSION}`)} alt={t(`game.story.${m.epilogue}.title`)} />
+            <img
+              src={dataUrl(`game/story/${m.epilogue}.webp?v=${DATA_VERSION}`)}
+              alt={t(`game.story.${m.epilogue}.title`)}
+            />
             <figcaption>
-              <strong>{t(`game.story.${m.epilogue}.title`)}</strong> {t(`game.story.${m.epilogue}.text`)}{' '}
+              <strong>{t(`game.story.${m.epilogue}.title`)}</strong>{' '}
+              {t(`game.story.${m.epilogue}.text`)}{' '}
               <span className="meta">{t(`game.story.${m.epilogue}.credit`)}</span>
             </figcaption>
           </figure>
         )}
         <div className="btn-stack">
-          <button type="button" className="btn btn-primary" autoFocus onClick={() => session.quit()}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            autoFocus
+            onClick={() => session.quit()}
+          >
             {t('game.complete.menu')}
           </button>
           <button type="button" className="btn" onClick={() => session.keepExploring()}>
@@ -1840,7 +1903,12 @@ function MissionFilm({ session }: { session: GameSession }) {
   const id = session.missionDef.film;
   if (!id) return null;
   return (
-    <VideoPlayer id={id} doneLabel={t('game.video.next')} onDone={() => session.endFilm()} doneAtEnd />
+    <VideoPlayer
+      id={id}
+      doneLabel={t('game.video.next')}
+      onDone={() => session.endFilm()}
+      doneAtEnd
+    />
   );
 }
 

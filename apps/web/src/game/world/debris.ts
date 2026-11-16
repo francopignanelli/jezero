@@ -408,7 +408,8 @@ export class Ledges {
         // Outcrops follow particular layers: the harder beds crop out in bands at the same
         // elevation along the slope (strata), not as ledges dotted evenly over it.
         const h = ground.height(px, pn);
-        const bed = 0.5 + 0.5 * Math.sin((h / 5.5) * Math.PI * 2 + 2.5 * Math.sin(px * 0.013 + pn * 0.009));
+        const bed =
+          0.5 + 0.5 * Math.sin((h / 5.5) * Math.PI * 2 + 2.5 * Math.sin(px * 0.013 + pn * 0.009));
         if (bed < 0.55) continue;
         const odds = 0.75 * Math.min(1, (slope - 0.025) / 0.08) * Math.min(1, (b - 0.4) / 0.15);
         if (rand() > odds) continue;

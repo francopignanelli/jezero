@@ -79,7 +79,15 @@ export const isDriveStep = (s: StepId): s is DriveStep => s === 'aim' || s === '
  * four legs out (four), and set down (two, the last one on the ground).
  */
 export const DEPLOY_SLIDE_S = 3;
-export const DEPLOY_SLIDES = ['shield', 'stowed', 'lock', 'swing', 'upright', 'legs', 'down'] as const;
+export const DEPLOY_SLIDES = [
+  'shield',
+  'stowed',
+  'lock',
+  'swing',
+  'upright',
+  'legs',
+  'down',
+] as const;
 /** Seconds each step's sequence runs (the film: a moment stopped before NASA's video). */
 export const STEP_S: Record<TimedStep, number> = {
   shield: DEPLOY_SLIDE_S,
@@ -364,7 +372,13 @@ export const LANDING: MissionDef = {
   ],
   reach: [
     { id: 'descent-stage', name: 'Descent stage', lat: 18.45224, lon: 77.441434, radiusM: 30 },
-    { id: 'parachute', name: 'Parachute and backshell', lat: 18.45199, lon: 77.431905, radiusM: 35 },
+    {
+      id: 'parachute',
+      name: 'Parachute and backshell',
+      lat: 18.45199,
+      lon: 77.431905,
+      radiusM: 35,
+    },
     { id: 'heat-shield', name: 'Heat shield', lat: 18.455335, lon: 77.474436, radiusM: 25 },
   ],
   panoramas: [],
@@ -413,7 +427,9 @@ export const INGENUITY_MISSION: MissionDef = {
       // Sols 44–58: to Van Zyl Overlook, where Mastcam-Z filmed the first flight (NASA's video).
       id: 'firstFlight',
       sols: [44, 58],
-      objectives: [{ id: 'film-flight', kind: 'step', step: 'film', at: 'overlook', run: 'arrive' }],
+      objectives: [
+        { id: 'film-flight', kind: 'step', step: 'film', at: 'overlook', run: 'arrive' },
+      ],
     },
   ],
   reach: [],
@@ -470,7 +486,9 @@ export const FIRST_SAMPLE: MissionDef = {
   flights: [],
   earlierSamples: [],
   routeSols: [120, 200],
-  stations: [{ id: 'moxie', name: 'MOXIE', lat: 18.439571, lon: 77.449411, radiusM: 25, icon: 'reach' }],
+  stations: [
+    { id: 'moxie', name: 'MOXIE', lat: 18.439571, lon: 77.449411, radiusM: 25, icon: 'reach' },
+  ],
   spots: [{ id: 'rochette', name: 'Rochette', ...ROCHETTE, radiusM: 25 }],
 };
 
@@ -526,7 +544,16 @@ export const CHEYAVA = { lat: 18.49747, lon: 77.30515 };
 export const VALINOR = { lat: 18.497269, lon: 77.322534 };
 
 const CRATER_FLOOR_AND_DELTA = [
-  '1', '2 & 3', '4 & 5', '6 & 7', '8 & 9', '10 & 11', '12 & 13', '14 & 15', '16', '17 & 18',
+  '1',
+  '2 & 3',
+  '4 & 5',
+  '6 & 7',
+  '8 & 9',
+  '10 & 11',
+  '12 & 13',
+  '14 & 15',
+  '16',
+  '17 & 18',
 ];
 const MARGIN_SAMPLES = ['19', '20', '21', '22', '23', '24'];
 
@@ -659,7 +686,13 @@ const freeOf = (m: MissionDef, id: MissionId): MissionDef => {
   return {
     ...map,
     id,
-    chapters: [{ id: 'free', sols: [m.chapters[0]!.sols[0], m.chapters[m.chapters.length - 1]!.sols[1]], objectives }],
+    chapters: [
+      {
+        id: 'free',
+        sols: [m.chapters[0]!.sols[0], m.chapters[m.chapters.length - 1]!.sols[1]],
+        objectives,
+      },
+    ],
     free: true,
   };
 };
@@ -829,7 +862,10 @@ export const aimError = (rover: RoverState, toward: { lat: number; lon: number }
 /** A move of the mission is done: far enough, or facing its place (and still). */
 function driveDone(d: NonNullable<ReturnType<typeof driveStep>>, rover: RoverState): boolean {
   if (d.toward)
-    return Math.abs(aimError(rover, d.toward)) <= AIM_TOLERANCE_RAD && Math.abs(rover.speed) <= STOPPED_MPS;
+    return (
+      Math.abs(aimError(rover, d.toward)) <= AIM_TOLERANCE_RAD &&
+      Math.abs(rover.speed) <= STOPPED_MPS
+    );
   return groundDistanceM(rover, d.from) >= d.m;
 }
 
@@ -849,7 +885,10 @@ export function objectiveCount(
 }
 
 /** The spot of an open laser objective the rover is at (its analyses count there), or null. */
-export function laserSpotAt(s: ExpeditionState, rover: { lat: number; lon: number }): string | null {
+export function laserSpotAt(
+  s: ExpeditionState,
+  rover: { lat: number; lon: number },
+): string | null {
   const m = missionOf(s);
   const c = m.chapters[s.chapter];
   for (const o of c?.objectives ?? []) {
@@ -877,7 +916,8 @@ export function newlyDone(before: ExpeditionState, s: ExpeditionState): Objectiv
     const c = m.chapters[i];
     if (!c) continue;
     for (const o of c.objectives)
-      if (objectiveDone(s, o, c) && !(i === before.chapter && objectiveDone(before, o, c))) out.push(o);
+      if (objectiveDone(s, o, c) && !(i === before.chapter && objectiveDone(before, o, c)))
+        out.push(o);
   }
   return out;
 }
@@ -1041,7 +1081,13 @@ export function nextTarget(
  * depot, then a panorama; among equals, the nearest.
  */
 export function targetHere(rover: RoverState, open: Target[]): Target | null {
-  const rank: Record<TargetKind, number> = { sample: 0, station: 1, depot: 2, panorama: 3, reach: 4 };
+  const rank: Record<TargetKind, number> = {
+    sample: 0,
+    station: 1,
+    depot: 2,
+    panorama: 3,
+    reach: 4,
+  };
   let best: Target | null = null;
   let bestKey = Infinity;
   for (const t of open) {
@@ -1064,13 +1110,7 @@ export interface Action {
 }
 
 export const actionSeconds = (k: ActionKind): number =>
-  k === 'core'
-    ? CORE_S
-    : k === 'panorama'
-      ? PANORAMA_S
-      : k === 'deposit'
-        ? DEPOSIT_S
-        : STEP_S[k];
+  k === 'core' ? CORE_S : k === 'panorama' ? PANORAMA_S : k === 'deposit' ? DEPOSIT_S : STEP_S[k];
 
 export type ExpeditionEvent =
   | { kind: 'reached'; target: Target }

@@ -23,10 +23,9 @@ test('the planner links to the rover game from the Mars tab, the route card and 
     './play.html',
   );
   await page.getByRole('tab', { name: 'Surface' }).click();
-  await expect(page.getByRole('link', { name: 'Drive Perseverance in the game →' })).toHaveAttribute(
-    'href',
-    './play.html',
-  );
+  await expect(
+    page.getByRole('link', { name: 'Drive Perseverance in the game →' }),
+  ).toHaveAttribute('href', './play.html');
   // A site on one of the game's maps opens there (free exploration at that point).
   // (Inside closed cards, so found by their address rather than their role.)
   await expect(page.locator('a[href^="./play.html#explore="]')).not.toHaveCount(0);
@@ -120,7 +119,9 @@ test('rover game: the delta-front expedition, a core, the inventory, AutoNav, sa
     .getByRole('dialog', { name: 'Paused' })
     .getByRole('button', { name: 'Main menu' })
     .click();
-  await expect(page.getByRole('button', { name: 'Continue · chapter 2: The delta front' })).toBeVisible({
+  await expect(
+    page.getByRole('button', { name: 'Continue · chapter 2: The delta front' }),
+  ).toBeVisible({
     timeout: 60_000,
   });
   await expect(page.locator('.game-mc').filter({ hasText: 'The delta front' })).toContainText(

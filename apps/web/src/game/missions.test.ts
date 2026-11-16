@@ -57,14 +57,16 @@ const at = (p: { lat: number; lon: number }): RoverState => initialRover(p.lat, 
 const SAMPLES = ['1', '2 & 3', '25', '26', '27', '28'].map((n, i) => ({
   sampleNumber: n,
   name: `S${n}`,
-  ...({
-    '1': { lat: 18.42767, lon: 77.45167 },
-    '2 & 3': ROCHETTE,
-    '25': { lat: 18.49747, lon: 77.30515 },
-    '26': { lat: 18.46059, lon: 77.26474 },
-    '27': { lat: 18.46059, lon: 77.26466 },
-    '28': { lat: 18.46172, lon: 77.25846 },
-  } as Record<string, { lat: number; lon: number }>)[n]!,
+  ...(
+    {
+      '1': { lat: 18.42767, lon: 77.45167 },
+      '2 & 3': ROCHETTE,
+      '25': { lat: 18.49747, lon: 77.30515 },
+      '26': { lat: 18.46059, lon: 77.26474 },
+      '27': { lat: 18.46059, lon: 77.26466 },
+      '28': { lat: 18.46172, lon: 77.25846 },
+    } as Record<string, { lat: number; lon: number }>
+  )[n]!,
   sol: i,
 })) as never;
 
@@ -92,11 +94,31 @@ describe('missions 3, 4, 6 and 7', () => {
           }
         }
         for (const o of c.objectives) {
-          if (o.kind === 'reach') expect(m.reach.some((r) => r.id === o.target), o.id).toBe(true);
-          if (o.kind === 'panorama') expect(m.panoramas.some((p) => p.id === o.panorama), o.id).toBe(true);
-          if (o.kind === 'laser' && o.at) expect(m.spots?.some((p) => p.id === o.at), o.id).toBe(true);
-          if (o.kind === 'step' && o.at) expect(m.stations?.some((p) => p.id === o.at), o.id).toBe(true);
-          if (o.kind === 'sample' && o.after) expect(c.objectives.some((x) => x.id === o.after), o.id).toBe(true);
+          if (o.kind === 'reach')
+            expect(
+              m.reach.some((r) => r.id === o.target),
+              o.id,
+            ).toBe(true);
+          if (o.kind === 'panorama')
+            expect(
+              m.panoramas.some((p) => p.id === o.panorama),
+              o.id,
+            ).toBe(true);
+          if (o.kind === 'laser' && o.at)
+            expect(
+              m.spots?.some((p) => p.id === o.at),
+              o.id,
+            ).toBe(true);
+          if (o.kind === 'step' && o.at)
+            expect(
+              m.stations?.some((p) => p.id === o.at),
+              o.id,
+            ).toBe(true);
+          if (o.kind === 'sample' && o.after)
+            expect(
+              c.objectives.some((x) => x.id === o.after),
+              o.id,
+            ).toBe(true);
         }
       }
       if (m.epilogue) for (const [, j] of STRINGS) expect(j.game.story![m.epilogue]).toBeTruthy();
@@ -109,14 +131,19 @@ describe('missions 3, 4, 6 and 7', () => {
     expect(climb).toBeGreaterThan(1800);
     expect(climb).toBeLessThan(2200);
     // Flight 26: takeoff → backshell → parachute → airfield, about 320 m (NASA: 360 m flown).
-    const [back, chute, field] = ['backshell', 'chute', 'airfield-26'].map((id) => CHUTE.reach.find((r) => r.id === id)!);
-    const legs = groundDistanceM(FLIGHT_26.from, back!) + groundDistanceM(back!, chute!) + groundDistanceM(chute!, field!);
+    const [back, chute, field] = ['backshell', 'chute', 'airfield-26'].map((id) =>
+      CHUTE.reach.find((r) => r.id === id)!,
+    );
+    const legs =
+      groundDistanceM(FLIGHT_26.from, back!) +
+      groundDistanceM(back!, chute!) +
+      groundDistanceM(chute!, field!);
     expect(legs).toBeGreaterThan(280);
     expect(legs).toBeLessThan(380);
     // At the game's cruise speed it fits in the 159 s, with time to hover for the photos.
-    expect(legs / HELI.maxMps + 2 * HELI.photoHoldS + HELI.spinUpS + HELI.cruiseM / HELI.climbMps).toBeLessThan(
-      FLIGHT_26.seconds * 0.75,
-    );
+    expect(
+      legs / HELI.maxMps + 2 * HELI.photoHoldS + HELI.spinUpS + HELI.cruiseM / HELI.climbMps,
+    ).toBeLessThan(FLIGHT_26.seconds * 0.75);
   });
 
   it('the empty tube: MOXIE at the start, then Roubion; Rochette must be analysed before it is cored', () => {
@@ -156,7 +183,11 @@ describe('missions 3, 4, 6 and 7', () => {
   it('flight 26: the places are reached by Ingenuity, not by driving', () => {
     const all = allTargets([], CHUTE);
     const s = newExpedition('chute');
-    expect(airObjectives(s, all).map((a) => a.o.target)).toEqual(['backshell', 'chute', 'airfield-26']);
+    expect(airObjectives(s, all).map((a) => a.o.target)).toEqual([
+      'backshell',
+      'chute',
+      'airfield-26',
+    ]);
     const back = CHUTE.reach.find((r) => r.id === 'backshell')!;
     // The rover's state passing there marks nothing.
     expect(stepExpedition(s, null, at(back), all, false, 0.1).state.reached).toEqual([]);
@@ -169,7 +200,13 @@ describe('missions 3, 4, 6 and 7', () => {
     const s: ExpeditionState = { ...newExpedition('leopard'), chapter: 1 };
     const c = LEOPARD.chapters[1]!;
     expect(sampleLockedBy(s, '25')).toBe('leopard-laser');
-    const f = (k: string): Find => ({ type: 'sulfate', key: k, points: 20, first: false, at: 'cheyava' });
+    const f = (k: string): Find => ({
+      type: 'sulfate',
+      key: k,
+      points: 20,
+      first: false,
+      at: 'cheyava',
+    });
     const two = { ...s, finds: [f('a'), f('b')] };
     expect(objectiveDone(two, c.objectives[0]!, c)).toBe(false);
     const three = { ...s, finds: [f('a'), f('b'), f('c')] };
@@ -200,11 +237,22 @@ describe('missions 3, 4, 6 and 7', () => {
 
 describe('Ingenuity flown by the player', () => {
   const B = { west: 77.4, south: 18.4, east: 77.5, north: 18.5 };
-  const run = (h0: HeliState, input: Partial<Parameters<typeof stepHeli>[1]>, s: number, canLand = false) => {
+  const run = (
+    h0: HeliState,
+    input: Partial<Parameters<typeof stepHeli>[1]>,
+    s: number,
+    canLand = false,
+  ) => {
     let h = h0;
     const events: string[] = [];
     for (let k = 0; k < s / 0.05; k++) {
-      const r = stepHeli(h, { throttle: 0, steer: 0, boost: false, action: false, ...input }, 0.05, canLand, B);
+      const r = stepHeli(
+        h,
+        { throttle: 0, steer: 0, boost: false, action: false, ...input },
+        0.05,
+        canLand,
+        B,
+      );
       h = r.h;
       if (r.event) events.push(r.event);
     }
@@ -215,7 +263,13 @@ describe('Ingenuity flown by the player', () => {
   it('takes off with the key, spins up and climbs to 8 m; flight time runs only in the air', () => {
     expect(run(start, {}, 3).h.phase).toBe('ground');
     expect(run(start, {}, 3).h.airS).toBe(0);
-    const first = stepHeli(start, { throttle: 0, steer: 0, boost: false, action: true }, 0.05, false, B);
+    const first = stepHeli(
+      start,
+      { throttle: 0, steer: 0, boost: false, action: true },
+      0.05,
+      false,
+      B,
+    );
     expect(first.event).toBe('takeoff');
     const up = run(first.h, {}, HELI.spinUpS + HELI.cruiseM / HELI.climbMps + 0.5);
     expect(up.h.phase).toBe('fly');
@@ -244,16 +298,23 @@ describe('Ingenuity flown by the player', () => {
     expect(r.h.forced).toBe(true);
     expect(timeLeftS(r.h)).toBe(0);
     // No take-off again on an empty battery.
-    expect(stepHeli(r.h, { throttle: 0, steer: 0, boost: false, action: true }, 0.05, false, B).event).toBeNull();
+    expect(
+      stepHeli(r.h, { throttle: 0, steer: 0, boost: false, action: true }, 0.05, false, B).event,
+    ).toBeNull();
   });
 
   it('takes an aerial photo after hovering slowly over a place', () => {
     let h: HeliState = { ...start, phase: 'fly', altM: HELI.cruiseM };
     let taken: string | null = null;
-    for (let k = 0; k < HELI.photoHoldS / 0.1 + 2 && !taken; k++) ({ h, taken } = stepPhoto(h, 'backshell', 0.1));
+    for (let k = 0; k < HELI.photoHoldS / 0.1 + 2 && !taken; k++)
+      ({ h, taken } = stepPhoto(h, 'backshell', 0.1));
     expect(taken).toBe('backshell');
     // Too fast: the hold restarts.
-    const fast = stepPhoto({ ...h, speed: HELI.photoMaxMps + 1, photo: { id: 'backshell', s: 1 } }, 'backshell', 0.1);
+    const fast = stepPhoto(
+      { ...h, speed: HELI.photoMaxMps + 1, photo: { id: 'backshell', s: 1 } },
+      'backshell',
+      0.1,
+    );
     expect(fast.taken).toBeNull();
     expect(fast.h.photo).toBeNull();
   });

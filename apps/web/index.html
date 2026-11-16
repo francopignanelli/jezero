@@ -3,18 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Jezero Crater rebuilt from NASA data. Plan a crewed Marswalk, or relive Perseverance's mission on the same ground." />
+    <meta
+      name="description"
+      content="Jezero Crater rebuilt from NASA data. Plan a crewed Marswalk, or relive Perseverance's mission on the same ground."
+    />
     <meta name="color-scheme" content="dark" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Jezero" />
     <meta property="og:title" content="Jezero" />
-    <meta property="og:description" content="Jezero Crater rebuilt from NASA data: plan a crewed Marswalk, or relive Perseverance's mission on the same ground." />
+    <meta
+      property="og:description"
+      content="Jezero Crater rebuilt from NASA data: plan a crewed Marswalk, or relive Perseverance's mission on the same ground."
+    />
     <meta property="og:image" content="%VITE_SITE_URL%/data/landing/mars-1920.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <title>Jezero</title>
-    <link rel="icon" type="image/png" href="./logo.png" /><link rel="apple-touch-icon" href="./logo.png" />
-    <link rel="preload" as="image" href="./data/landing/mars-1920.webp" media="(max-width: 1600px)" />
-    <link rel="preload" as="image" href="./data/landing/mars-3840.webp" media="(min-width: 1601px)" />
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <link rel="apple-touch-icon" href="./logo.png" />
+    <link
+      rel="preload"
+      as="image"
+      href="./data/landing/mars-1920.webp"
+      media="(max-width: 1600px)"
+    />
+    <link
+      rel="preload"
+      as="image"
+      href="./data/landing/mars-3840.webp"
+      media="(min-width: 1601px)"
+    />
     <script>
       // Planner links shared before the home page existed (/#m=…) open the planner.
       if (/^#m=/.test(location.hash)) location.replace('./planner.html' + location.hash);
@@ -27,70 +44,245 @@
     -->
     <style>
       :root {
-        --bg: #07080c; --fg: #eceae6; --muted: #b9c0ca; --mars: #e0784a; --line: rgb(255 255 255 / 0.14);
+        --bg: #07080c;
+        --fg: #eceae6;
+        --muted: #b9c0ca;
+        --mars: #e0784a;
+        --line: rgb(255 255 255 / 0.14);
         --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         color-scheme: dark;
       }
-      * { box-sizing: border-box; }
-      html { background: var(--bg); }
-      body { margin: 0; min-height: 100%; color: var(--fg); font: 16px/1.5 var(--sans); }
-      a { color: inherit; }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--bg);
+      }
+      body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--fg);
+        font: 16px/1.5 var(--sans);
+      }
+      a {
+        color: inherit;
+      }
       .bg {
-        position: fixed; inset: 0; z-index: -1;
+        position: fixed;
+        inset: 0;
+        z-index: -1;
         background: url('./data/landing/mars-1920.webp') center 42% / cover no-repeat #3a2418;
       }
       @media (min-width: 1601px), (min-width: 1000px) and (min-resolution: 1.5dppx) {
-        .bg { background-image: url('./data/landing/mars-3840.webp'); }
+        .bg {
+          background-image: url('./data/landing/mars-3840.webp');
+        }
       }
       /* Darker at the top and towards the bottom, where the text and the cards are. */
       .bg::after {
-        content: ''; position: absolute; inset: 0;
+        content: '';
+        position: absolute;
+        inset: 0;
         background:
-          linear-gradient(180deg, rgb(7 8 12 / 0.55) 0%, rgb(7 8 12 / 0.1) 28%, rgb(7 8 12 / 0.35) 58%, rgb(7 8 12 / 0.88) 100%),
+          linear-gradient(
+            180deg,
+            rgb(7 8 12 / 0.55) 0%,
+            rgb(7 8 12 / 0.1) 28%,
+            rgb(7 8 12 / 0.35) 58%,
+            rgb(7 8 12 / 0.88) 100%
+          ),
           linear-gradient(90deg, rgb(7 8 12 / 0.45) 0%, transparent 55%);
       }
       .shell {
-        min-height: 100vh; min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto;
-        width: min(1180px, 100%); margin: 0 auto;
-        padding: calc(14px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) 14px max(18px, env(safe-area-inset-left, 0px));
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        width: min(1180px, 100%);
+        margin: 0 auto;
+        padding: calc(14px + env(safe-area-inset-top, 0px))
+          max(18px, env(safe-area-inset-right, 0px)) 14px max(18px, env(safe-area-inset-left, 0px));
       }
-      .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-      .brand { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
-      .brand img { width: 22px; height: 22px; display: block; }
-      .lang { display: flex; gap: 6px; }
-      .lang button { display: grid; place-items: center; width: 38px; height: 28px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: rgb(0 0 0 / 0.4); cursor: pointer; opacity: 0.7; }
-      .lang button[aria-pressed='true'] { opacity: 1; border-color: var(--mars); }
-      .lang button:focus-visible { outline: 2px solid #f2b84b; outline-offset: 1px; }
-      .lang svg { width: 100%; height: 100%; display: block; border-radius: 2px; }
-      main { align-self: end; display: grid; gap: 14px; padding: 4vh 0 2vh; }
-      .eyebrow { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #f29a6c; }
-      h1 { margin: 0; font-size: clamp(2.6rem, 6.5vw, 4.4rem); line-height: 1; letter-spacing: -0.01em; text-shadow: 0 2px 24px rgb(0 0 0 / 0.5); }
-      .lede { margin: 0; max-width: 62ch; font-size: 1.08rem; color: #e4e0da; text-shadow: 0 1px 12px rgb(0 0 0 / 0.6); }
-      .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; margin-top: 10px; }
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+      }
+      .brand img {
+        width: 22px;
+        height: 22px;
+        display: block;
+      }
+      .lang {
+        display: flex;
+        gap: 6px;
+      }
+      .lang button {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 28px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgb(0 0 0 / 0.4);
+        cursor: pointer;
+        opacity: 0.7;
+      }
+      .lang button[aria-pressed='true'] {
+        opacity: 1;
+        border-color: var(--mars);
+      }
+      .lang button:focus-visible {
+        outline: 2px solid #f2b84b;
+        outline-offset: 1px;
+      }
+      .lang svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        border-radius: 2px;
+      }
+      main {
+        align-self: end;
+        display: grid;
+        gap: 14px;
+        padding: 4vh 0 2vh;
+      }
+      .eyebrow {
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #f29a6c;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(2.6rem, 6.5vw, 4.4rem);
+        line-height: 1;
+        letter-spacing: -0.01em;
+        text-shadow: 0 2px 24px rgb(0 0 0 / 0.5);
+      }
+      .lede {
+        margin: 0;
+        max-width: 62ch;
+        font-size: 1.08rem;
+        color: #e4e0da;
+        text-shadow: 0 1px 12px rgb(0 0 0 / 0.6);
+      }
+      .modes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 16px;
+        margin-top: 10px;
+      }
       .mode {
-        display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr); min-width: 0; overflow: hidden;
-        border: 1px solid var(--line); border-radius: 14px; background: rgb(14 17 23 / 0.82); backdrop-filter: blur(8px);
-        text-decoration: none; transition: border-color 0.15s ease, transform 0.15s ease;
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr);
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgb(14 17 23 / 0.82);
+        backdrop-filter: blur(8px);
+        text-decoration: none;
+        transition:
+          border-color 0.15s ease,
+          transform 0.15s ease;
       }
-      .mode:hover, .mode:focus-visible { border-color: var(--mars); transform: translateY(-2px); outline: none; }
-      .mode img { display: block; width: 100%; height: 100%; min-height: 150px; object-fit: cover; background: #000; }
-      .mode.planner img { object-position: 75% 50%; }
-      .mode div { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; min-width: 0; }
-      .mode small { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-      .mode h2 { margin: 0; font-size: 1.3rem; line-height: 1.2; }
-      .mode p { margin: 0; color: var(--muted); font-size: 0.92rem; }
-      .mode span { margin-top: auto; padding-top: 4px; color: #f29a6c; font-weight: 600; }
-      .shared { margin: 0; color: var(--muted); font-size: 0.88rem; }
-      .credits { margin: 0; color: #8d95a2; font-size: 0.74rem; line-height: 1.4; }
+      .mode:hover,
+      .mode:focus-visible {
+        border-color: var(--mars);
+        transform: translateY(-2px);
+        outline: none;
+      }
+      .mode img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 150px;
+        object-fit: cover;
+        background: #000;
+      }
+      .mode.planner img {
+        object-position: 75% 50%;
+      }
+      .mode div {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 14px 16px 16px;
+        min-width: 0;
+      }
+      .mode small {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .mode h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        line-height: 1.2;
+      }
+      .mode p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .mode span {
+        margin-top: auto;
+        padding-top: 4px;
+        color: #f29a6c;
+        font-weight: 600;
+      }
+      .shared {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .credits {
+        margin: 0;
+        color: #8d95a2;
+        font-size: 0.74rem;
+        line-height: 1.4;
+      }
       /* Phones: the two modes without their pictures, so both show without scrolling. */
       @media (max-width: 640px) {
-        .mode { grid-template-columns: 1fr; }
-        .mode img { display: none; }
-        .mode div { padding: 12px 14px 14px; }
-        main { padding-top: 6vh; gap: 10px; }
-        .lede { font-size: 1rem; }
+        .mode {
+          grid-template-columns: 1fr;
+        }
+        .mode img {
+          display: none;
+        }
+        .mode div {
+          padding: 12px 14px 14px;
+        }
+        main {
+          padding-top: 6vh;
+          gap: 10px;
+        }
+        .lede {
+          font-size: 1rem;
+        }
       }
-      @media (prefers-reduced-motion: reduce) { .mode { transition: none; } }
+      @media (prefers-reduced-motion: reduce) {
+        .mode {
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -100,24 +292,48 @@
         <a class="brand" href="./"><img src="./logo.png" alt="" width="22" height="22" />Jezero</a>
         <div class="lang" role="group" aria-label="Language / Idioma">
           <button type="button" data-lang="en" aria-label="English" title="English">
-            <svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="uks"><path d="M0 0v30h60V0z" /></clipPath><clipPath id="ukt"><path d="M30 15h30v15zv15H0zH0V0zV0h30z" /></clipPath><g clip-path="url(#uks)"><path d="M0 0v30h60V0z" fill="#012169" /><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6" /><path d="M0 0l60 30m0-30L0 30" clip-path="url(#ukt)" stroke="#c8102e" stroke-width="4" /><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10" /><path d="M30 0v30M0 15h60" stroke="#c8102e" stroke-width="6" /></g></svg>
+            <svg viewBox="0 0 60 30" aria-hidden="true">
+              <clipPath id="uks"><path d="M0 0v30h60V0z" /></clipPath>
+              <clipPath id="ukt"><path d="M30 15h30v15zv15H0zH0V0zV0h30z" /></clipPath>
+              <g clip-path="url(#uks)">
+                <path d="M0 0v30h60V0z" fill="#012169" />
+                <path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6" />
+                <path
+                  d="M0 0l60 30m0-30L0 30"
+                  clip-path="url(#ukt)"
+                  stroke="#c8102e"
+                  stroke-width="4"
+                />
+                <path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10" />
+                <path d="M30 0v30M0 15h60" stroke="#c8102e" stroke-width="6" />
+              </g>
+            </svg>
           </button>
           <button type="button" data-lang="es" aria-label="Español" title="Español">
-            <svg viewBox="0 0 750 500" aria-hidden="true"><rect width="750" height="500" fill="#c60b1e" /><rect y="125" width="750" height="250" fill="#ffc400" /></svg>
+            <svg viewBox="0 0 750 500" aria-hidden="true">
+              <rect width="750" height="500" fill="#c60b1e" />
+              <rect y="125" width="750" height="250" fill="#ffc400" />
+            </svg>
           </button>
         </div>
       </header>
       <main>
         <span class="eyebrow" data-t="eyebrow">Jezero Crater, Mars · NASA Space Apps 2026</span>
         <h1>Jezero</h1>
-        <p class="lede" data-t="lede">Jezero Crater rebuilt from NASA's own data. Two ways into the same place: plan a crewed walk across it, or relive Perseverance's mission on the ground it drove.</p>
+        <p class="lede" data-t="lede">
+          Jezero Crater rebuilt from NASA's own data. Two ways into the same place: plan a crewed
+          walk across it, or relive Perseverance's mission on the ground it drove.
+        </p>
         <nav class="modes" aria-label="Jezero modes" data-t-label="modes">
           <a class="mode planner" href="./planner.html">
             <img src="./data/landing/planner.webp" alt="" width="960" height="570" />
             <div>
               <small data-t="plannerKicker">For a crew</small>
               <h2 data-t="planner">Planner</h2>
-              <p data-t="plannerText">Plan a Marswalk: terrain, slopes, sunlight and the sites Perseverance studied, with routes of lower estimated risk.</p>
+              <p data-t="plannerText">
+                Plan a Marswalk: terrain, slopes, sunlight and the sites Perseverance studied, with
+                routes of lower estimated risk.
+              </p>
               <span data-t="plannerGo">Open the planner →</span>
             </div>
           </a>
@@ -126,15 +342,25 @@
             <div>
               <small data-t="gameKicker">For the rover</small>
               <h2 data-t="game">Rover game</h2>
-              <p data-t="gameText">Drive Perseverance through its real episodes, from the landing to the delta, or explore freely.</p>
+              <p data-t="gameText">
+                Drive Perseverance through its real episodes, from the landing to the delta, or
+                explore freely.
+              </p>
               <span data-t="gameGo">Play →</span>
             </div>
           </a>
         </nav>
-        <p class="shared" data-t="shared">Same terrain, places and rover route in both: a site in the planner can be driven to in the game.</p>
+        <p class="shared" data-t="shared">
+          Same terrain, places and rover route in both: a site in the planner can be driven to in
+          the game.
+        </p>
       </main>
       <footer>
-        <p class="credits" data-t="credits">Background: Mastcam-Z, NASA/JPL-Caltech/ASU/MSSS (PIA24765). Terrain and imagery: HiRISE, CTX and MOLA (NASA, USGS, University of Arizona). Rover route and places: NASA/JPL MMGIS. 3D models: NASA 3D Resources. Research and education prototype.</p>
+        <p class="credits" data-t="credits">
+          Background: Mastcam-Z, NASA/JPL-Caltech/ASU/MSSS (PIA24765). Terrain and imagery: HiRISE,
+          CTX and MOLA (NASA, USGS, University of Arizona). Rover route and places: NASA/JPL MMGIS.
+          3D models: NASA 3D Resources. Research and education prototype.
+        </p>
       </footer>
     </div>
     <script>
@@ -145,31 +371,53 @@
           modes: 'Modos de Jezero',
           plannerKicker: 'Para una tripulación',
           planner: 'Planificador',
-          plannerText: 'Planifica una caminata: terreno, pendientes, luz solar y los sitios que estudió Perseverance, con rutas de menor riesgo estimado.',
+          plannerText:
+            'Planifica una caminata: terreno, pendientes, luz solar y los sitios que estudió Perseverance, con rutas de menor riesgo estimado.',
           plannerGo: 'Abrir el planificador →',
           gameKicker: 'Para el rover',
           game: 'Juego del rover',
-          gameText: 'Conduce a Perseverance por sus episodios reales, del aterrizaje al delta, o explora libremente.',
+          gameText:
+            'Conduce a Perseverance por sus episodios reales, del aterrizaje al delta, o explora libremente.',
           gameGo: 'Jugar →',
-          shared: 'El mismo terreno, los mismos lugares y la misma ruta del rover en los dos: a un sitio del planificador se puede ir conduciendo en el juego.',
-          credits: 'Fondo: Mastcam-Z, NASA/JPL-Caltech/ASU/MSSS (PIA24765). Terreno e imágenes: HiRISE, CTX y MOLA (NASA, USGS, Universidad de Arizona). Ruta y lugares del rover: NASA/JPL MMGIS. Modelos 3D: NASA 3D Resources. Prototipo de investigación y educación.',
+          shared:
+            'El mismo terreno, los mismos lugares y la misma ruta del rover en los dos: a un sitio del planificador se puede ir conduciendo en el juego.',
+          credits:
+            'Fondo: Mastcam-Z, NASA/JPL-Caltech/ASU/MSSS (PIA24765). Terreno e imágenes: HiRISE, CTX y MOLA (NASA, USGS, Universidad de Arizona). Ruta y lugares del rover: NASA/JPL MMGIS. Modelos 3D: NASA 3D Resources. Prototipo de investigación y educación.',
         },
       };
       const EN = {};
       document.querySelectorAll('[data-t]').forEach((el) => (EN[el.dataset.t] = el.textContent));
-      document.querySelectorAll('[data-t-label]').forEach((el) => (EN[el.dataset.tLabel] = el.getAttribute('aria-label')));
+      document
+        .querySelectorAll('[data-t-label]')
+        .forEach((el) => (EN[el.dataset.tLabel] = el.getAttribute('aria-label')));
       function setLang(lang, save) {
         const d = lang === 'es' ? T.es : EN;
         document.documentElement.lang = lang;
-        document.querySelectorAll('[data-t]').forEach((el) => (el.textContent = d[el.dataset.t] ?? EN[el.dataset.t]));
-        document.querySelectorAll('[data-t-label]').forEach((el) => el.setAttribute('aria-label', d[el.dataset.tLabel] ?? EN[el.dataset.tLabel]));
-        document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
-        if (save) try { localStorage.setItem('copernico.lang', lang); } catch {}
+        document
+          .querySelectorAll('[data-t]')
+          .forEach((el) => (el.textContent = d[el.dataset.t] ?? EN[el.dataset.t]));
+        document
+          .querySelectorAll('[data-t-label]')
+          .forEach((el) =>
+            el.setAttribute('aria-label', d[el.dataset.tLabel] ?? EN[el.dataset.tLabel]),
+          );
+        document
+          .querySelectorAll('[data-lang]')
+          .forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
+        if (save)
+          try {
+            localStorage.setItem('copernico.lang', lang);
+          } catch {}
       }
       let lang = navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en';
-      try { const s = localStorage.getItem('copernico.lang'); if (s === 'en' || s === 'es') lang = s; } catch {}
+      try {
+        const s = localStorage.getItem('copernico.lang');
+        if (s === 'en' || s === 'es') lang = s;
+      } catch {}
       setLang(lang, false);
-      document.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang, true)));
+      document
+        .querySelectorAll('[data-lang]')
+        .forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang, true)));
     </script>
   </body>
 </html>

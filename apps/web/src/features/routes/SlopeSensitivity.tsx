@@ -46,12 +46,16 @@ export function SlopeSensitivity({ metrics }: { metrics: RouteMetrics }) {
     maxSlopeOnRouteDeg: metrics.maxTerrainSlopeDeg,
     walkbackOk: metrics.walkback.ok,
   };
-  const rows = scenarios ? [...scenarios, base].sort((a, b) => a.maxSlopeDeg - b.maxSlopeDeg) : null;
+  const rows = scenarios
+    ? [...scenarios, base].sort((a, b) => a.maxSlopeDeg - b.maxSlopeDeg)
+    : null;
 
   return (
     <section aria-labelledby="slope-sensitivity" className="sensitivity">
       <h4 id="slope-sensitivity">{t('route.sensitivity.title')}</h4>
-      <p className="meta">{t('route.sensitivity.intro', { deg: DEFAULT_EVA_PARAMS.maxSlopeDeg })}</p>
+      <p className="meta">
+        {t('route.sensitivity.intro', { deg: DEFAULT_EVA_PARAMS.maxSlopeDeg })}
+      </p>
       {failed && <p className="meta">{t('route.sensitivity.failed')}</p>}
       {!rows && !failed && <p className="meta">{t('route.sensitivity.computing')}</p>}
       {rows && (
@@ -60,9 +64,15 @@ export function SlopeSensitivity({ metrics }: { metrics: RouteMetrics }) {
             <thead>
               <tr>
                 <th scope="col">{t('route.sensitivity.limit')}</th>
-                <th scope="col" className="num">{t('metrics.distance')}</th>
-                <th scope="col" className="num">{t('metrics.duration')}</th>
-                <th scope="col" className="num">{t('metrics.maxSlope')}</th>
+                <th scope="col" className="num">
+                  {t('metrics.distance')}
+                </th>
+                <th scope="col" className="num">
+                  {t('metrics.duration')}
+                </th>
+                <th scope="col" className="num">
+                  {t('metrics.maxSlope')}
+                </th>
                 <th scope="col">{t('metrics.walkback')}</th>
               </tr>
             </thead>
@@ -108,7 +118,9 @@ function verdict(
   const upper = rows.find((r) => r.maxSlopeDeg > base.maxSlopeDeg);
   if (lower && !lower.found) return t('route.sensitivity.needsSteep', { deg: lower.maxSlopeDeg });
   const change = (r?: SlopeScenario) =>
-    r?.found && r.distanceM && base.distanceM ? Math.abs(r.distanceM - base.distanceM) / base.distanceM : 0;
+    r?.found && r.distanceM && base.distanceM
+      ? Math.abs(r.distanceM - base.distanceM) / base.distanceM
+      : 0;
   const worst = Math.max(change(lower), change(upper));
   if (worst < 0.1) return t('route.sensitivity.robust');
   return t('route.sensitivity.depends', { pct: Math.round(worst * 100) });

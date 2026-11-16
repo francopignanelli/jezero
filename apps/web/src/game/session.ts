@@ -301,7 +301,11 @@ export class GameSession {
         this.world.loadRover(dataUrl(`models/perseverance.glb?v=${DATA_VERSION}`)),
         this.world.loadIngenuity(dataUrl(`models/ingenuity.glb?v=${DATA_VERSION}`)),
       ]);
-      const [manifest, samples, rover] = await Promise.all([loadManifest(), loadSamples(), loadRover()]);
+      const [manifest, samples, rover] = await Promise.all([
+        loadManifest(),
+        loadSamples(),
+        loadRover(),
+      ]);
       if (this.destroyed || !samples) return false;
       this.manifest = manifest;
       this.samples = samples.samples;
@@ -385,7 +389,11 @@ export class GameSession {
     this.world.placeIngenuity(null);
     const f = this.world.frame;
     const parked = this.mission.pilot ? { ...st } : this.mission.parkedHelicopter;
-    if (f && parked) this.world.placeIngenuity(f.toLocal(parked.lat, parked.lon), (parked.headingDeg * Math.PI) / 180);
+    if (f && parked)
+      this.world.placeIngenuity(
+        f.toLocal(parked.lat, parked.lon),
+        (parked.headingDeg * Math.PI) / 180,
+      );
     this.world.setRoute(null);
     this.clearLabels();
     useGame.getState().set({
@@ -508,7 +516,13 @@ export class GameSession {
       energyUsedPct: 0,
     };
     this.rover = this.settle({ ...initialRover(at.lat, at.lon, at.headingRad), ...at });
-    if (this.pilot) this.rover = { ...this.rover, lat: this.pilot.lat, lon: this.pilot.lon, headingRad: this.pilot.headingRad };
+    if (this.pilot)
+      this.rover = {
+        ...this.rover,
+        lat: this.pilot.lat,
+        lon: this.pilot.lon,
+        headingRad: this.pilot.headingRad,
+      };
     this.laser = null;
     this.world.setLaser(null);
     this.stopAutoNav();
@@ -517,7 +531,9 @@ export class GameSession {
       phase: 'clear',
       t: 0,
       // Ingenuity flew in calm air: no storm while it does.
-      nextS: this.mission.calm ? Infinity : this.elapsedS + STORM.firstS + Math.random() * STORM.firstJitterS,
+      nextS: this.mission.calm
+        ? Infinity
+        : this.elapsedS + STORM.firstS + Math.random() * STORM.firstJitterS,
       level: 0,
     };
     this.recording = null;
@@ -525,7 +541,11 @@ export class GameSession {
     // Mission 4: the player flies Ingenuity from its airfield (a flight starts there again).
     this.world.setRoverVisible(!this.mission.pilot);
     this.pilot = this.mission.pilot
-      ? newHeli(this.mission.start, (this.mission.start.headingDeg * Math.PI) / 180, FLIGHT_26.seconds)
+      ? newHeli(
+          this.mission.start,
+          (this.mission.start.headingDeg * Math.PI) / 180,
+          FLIGHT_26.seconds,
+        )
       : null;
     this.chaseSet = false;
     this.world.setWatch(null);
@@ -858,12 +878,16 @@ export class GameSession {
    */
   private stepDeploy(): void {
     const drive = driveStep(this.exp);
-    const leaving = this.mission.stowedHelicopter && (drive?.step === 'aim' || drive?.step === 'away');
+    const leaving =
+      this.mission.stowedHelicopter && (drive?.step === 'aim' || drive?.step === 'away');
     if (this.running && leaving && this.world.ingenuity.root.visible) {
       const hp = this.world.ingenuity.position;
       const p = this.world.rover!.root.position;
       if (!this.awayShot) {
-        const to = drive.toward ?? driveStep({ ...this.exp, steps: (this.exp.steps ?? []).filter((x) => x !== 'aim') })?.toward;
+        const to =
+          drive.toward ??
+          driveStep({ ...this.exp, steps: (this.exp.steps ?? []).filter((x) => x !== 'aim') })
+            ?.toward;
         const h = to && this.exp.dropAt ? bearingRad(this.exp.dropAt, to) : this.rover.headingRad;
         const [fx, fz, rx, rz] = [Math.sin(h), -Math.cos(h), Math.cos(h), Math.sin(h)];
         this.shotFrom.set(hp.x - fx * 5 + rx * 2.4, 0, hp.z - fz * 5 + rz * 2.4);
@@ -953,7 +977,11 @@ export class GameSession {
     if (this.mission.pilot) return; // drawn where the player flies it (drawPilot)
     const parked = this.mission.parkedHelicopter;
     if (parked) {
-      if (f) this.world.placeIngenuity(f.toLocal(parked.lat, parked.lon), (parked.headingDeg * Math.PI) / 180);
+      if (f)
+        this.world.placeIngenuity(
+          f.toLocal(parked.lat, parked.lon),
+          (parked.headingDeg * Math.PI) / 180,
+        );
       return;
     }
     this.heli = this.running ? ingenuity(this.exp) : null;
@@ -1206,7 +1234,8 @@ export class GameSession {
   ): void {
     const adv = advance(this.exp, before, events);
     this.exp = adv.state;
-    for (const o of newlyDone(storiesFrom, this.exp)) if (o.story) this.pending.stories.push(o.story);
+    for (const o of newlyDone(storiesFrom, this.exp))
+      if (o.story) this.pending.stories.push(o.story);
     for (const e of adv.events) {
       if (e.kind === 'chapter') {
         this.pending.chapter = true;
@@ -1332,7 +1361,10 @@ export class GameSession {
       this.ground,
       this.bounds,
       // AutoNav slows down when the storm hides the terrain; the mission's own drives are slow.
-      { speedFactor: drive && !drive.toward ? DRIVE_STEP_SPEED[drive.step] : 1 - 0.45 * this.storm.level },
+      {
+        speedFactor:
+          drive && !drive.toward ? DRIVE_STEP_SPEED[drive.step] : 1 - 0.45 * this.storm.level,
+      },
     );
     if (this.rover.stuck && !stuckBefore) this.audio.warn();
     if (this.rover.wearPct > 0) this.wearShownS = 1.2;
@@ -1500,13 +1532,17 @@ export class GameSession {
           stopped: Math.abs(r.speed) <= STOPPED_MPS,
           step: here.kind === 'station' ? (stationStep(this.exp, here)?.step ?? null) : null,
           run: here.kind === 'station' ? (stationStep(this.exp, here)?.run ?? null) : null,
-          locked: here.kind === 'sample' ? sampleLockedBy(this.exp, here.site?.sampleNumber ?? '') : null,
+          locked:
+            here.kind === 'sample' ? sampleLockedBy(this.exp, here.site?.sampleNumber ?? '') : null,
         },
         deploy: ((): Hud['deploy'] => {
           const t = this.deployClock();
           if (t === null) return null;
           const total = DEPLOY_SLIDE_S * DEPLOY_SLIDES.length;
-          return { slide: Math.min(DEPLOY_SLIDES.length - 1, Math.floor(t / DEPLOY_SLIDE_S)), fraction: Math.min(1, t / total) };
+          return {
+            slide: Math.min(DEPLOY_SLIDES.length - 1, Math.floor(t / DEPLOY_SLIDE_S)),
+            fraction: Math.min(1, t / total),
+          };
         })(),
         drive: ((): Hud['drive'] => {
           const d = driveStep(this.exp);
@@ -1547,7 +1583,9 @@ export class GameSession {
         pilot: this.pilotHud(),
         devil: this.devilHud(camRad),
         moxieG:
-          this.action?.kind === 'moxie' && fraction !== null ? Math.min(1, fraction) * MOXIE_O2_G : null,
+          this.action?.kind === 'moxie' && fraction !== null
+            ? Math.min(1, fraction) * MOXIE_O2_G
+            : null,
       },
     });
   }
@@ -1586,7 +1624,10 @@ export class GameSession {
     }
     if (res.event === 'down') {
       if (canLand && landing) {
-        this.exp = { ...this.exp, reached: [...this.exp.reached, landing.t.id.slice('reach-'.length)] };
+        this.exp = {
+          ...this.exp,
+          reached: [...this.exp.reached, landing.t.id.slice('reach-'.length)],
+        };
         this.audio.chime(false);
         toast('game.pilot.landed', { s: Math.round(h.airS) });
       } else if (h.forced) {
@@ -1608,7 +1649,13 @@ export class GameSession {
     }
     this.pilot = h;
     // The rover's state follows the helicopter over the ground: compass, map and labels use it.
-    this.rover = { ...this.rover, lat: h.lat, lon: h.lon, headingRad: h.headingRad, speed: h.speed };
+    this.rover = {
+      ...this.rover,
+      lat: h.lat,
+      lon: h.lon,
+      headingRad: h.headingRad,
+      speed: h.speed,
+    };
     this.elapsedS += dt;
     this.sinceHud += dt;
     this.sinceSave += dt;
@@ -1681,7 +1728,8 @@ export class GameSession {
     const p = this.world.rover!.root.position;
     const near = this.world.nearestDevil(p.x, p.z);
     if ((!near || near.distanceM > 400) && this.elapsedS >= this.devilDueS) {
-      if (this.world.summonDevil(p.x, p.z, 150 + Math.random() * 60)) this.devilDueS = this.elapsedS + 45;
+      if (this.world.summonDevil(p.x, p.z, 150 + Math.random() * 60))
+        this.devilDueS = this.elapsedS + 45;
     }
     const inRange = !!near && near.distanceM <= DEVIL_RANGE_M;
     const still = Math.abs(this.rover.speed) <= STOPPED_MPS;
@@ -1712,7 +1760,8 @@ export class GameSession {
 
   private devilHud(camRad: number): Hud['devil'] {
     const c = this.mission.chapters[this.exp.chapter];
-    if (!c?.objectives.some((o) => o.kind === 'devil' && !objectiveDone(this.exp, o, c))) return null;
+    if (!c?.objectives.some((o) => o.kind === 'devil' && !objectiveDone(this.exp, o, c)))
+      return null;
     const p = this.world.rover!.root.position;
     const near = this.world.nearestDevil(p.x, p.z);
     const f = this.world.frame;
@@ -1795,12 +1844,19 @@ export class GameSession {
     if (--this.hudBoxesAge <= 0) {
       this.hudBoxesAge = 10;
       const host = this.world.host.getBoundingClientRect();
-      this.hudBoxes = [...document.querySelectorAll('.game-hud .game-panel, .game-compass, .game-map, .game-prompt > span, .game-toast, .game-deploy')].map(
-        (e) => {
-          const r = e.getBoundingClientRect();
-          return [r.left - host.left - 6, r.top - host.top - 6, r.right - host.left + 6, r.bottom - host.top + 6];
-        },
-      );
+      this.hudBoxes = [
+        ...document.querySelectorAll(
+          '.game-hud .game-panel, .game-compass, .game-map, .game-prompt > span, .game-toast, .game-deploy',
+        ),
+      ].map((e) => {
+        const r = e.getBoundingClientRect();
+        return [
+          r.left - host.left - 6,
+          r.top - host.top - 6,
+          r.right - host.left + 6,
+          r.bottom - host.top + 6,
+        ];
+      });
     }
     const p = this.world.camera.position;
     const w = this.world.host.clientWidth;

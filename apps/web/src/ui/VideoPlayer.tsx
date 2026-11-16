@@ -1,16 +1,14 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DATA_VERSION, dataUrl } from '../config';
 import './video.css';
 
 /** The missions' NASA videos, served with the game's data (no third-party request). */
 export type VideoId = 'landing' | 'firstFlight';
-const VIDEOS: Record<VideoId, { src: string; captions?: string; poster?: string; silent?: boolean }> = {
+const VIDEOS: Record<
+  VideoId,
+  { src: string; captions?: string; poster?: string; silent?: boolean }
+> = {
   landing: { src: 'game/media/landing.mp4', captions: 'game/media/landing.en.vtt' },
   // Mastcam-Z's images of the flight, cut to the flight itself (scripts/data/fetch-first-flight-video.ts).
   firstFlight: {
@@ -159,7 +157,7 @@ export function VideoPlayer({
           </video>
           <button type="button" className="game-video-skip" autoFocus onClick={onDone}>
             <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d={doneAtEnd ? "M3 3l5 5-5 5M8.5 3l5 5-5 5" : "M4 4l8 8M12 4l-8 8"} />
+              <path d={doneAtEnd ? 'M3 3l5 5-5 5M8.5 3l5 5-5 5' : 'M4 4l8 8M12 4l-8 8'} />
             </svg>
             {doneLabel}
           </button>
@@ -177,7 +175,11 @@ export function VideoPlayer({
               onClick={toggle}
             >
               <svg viewBox="0 0 16 16" aria-hidden="true">
-                {playing ? <path d="M5 3v10M11 3v10" /> : <path d="M4.5 2.5l9 5.5-9 5.5z" className="is-fill" />}
+                {playing ? (
+                  <path d="M5 3v10M11 3v10" />
+                ) : (
+                  <path d="M4.5 2.5l9 5.5-9 5.5z" className="is-fill" />
+                )}
               </svg>
             </button>
             <span className="game-video-time">
@@ -207,7 +209,11 @@ export function VideoPlayer({
                 >
                   <svg viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M2.5 6h2.5l3.5-3v10L5 10H2.5z" className="is-fill" />
-                    {muted ? <path d="M11 6l4 4M15 6l-4 4" /> : <path d="M11 5.5c1.2 1.4 1.2 3.6 0 5M12.8 3.8c2.2 2.4 2.2 6 0 8.4" />}
+                    {muted ? (
+                      <path d="M11 6l4 4M15 6l-4 4" />
+                    ) : (
+                      <path d="M11 5.5c1.2 1.4 1.2 3.6 0 5M12.8 3.8c2.2 2.4 2.2 6 0 8.4" />
+                    )}
                   </svg>
                 </button>
                 <input
@@ -253,4 +259,3 @@ export function VideoPlayer({
     </div>
   );
 }
-

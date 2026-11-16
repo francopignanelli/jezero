@@ -45,7 +45,6 @@ import { SunShadows, receiveSunShadow } from './sunShadow';
 import { LandingSite, type HardwareKind } from './landing';
 import { loadTube } from './tube';
 
-
 import { DepotTubes, RouteLine } from './route';
 import { CORE_SHOULDER, Rover3D, type ArmPose } from './rover3d';
 import { HORIZON_LINEAR, SkyDome, sunDirection } from './sky';
@@ -1239,7 +1238,9 @@ export class World {
     rover.led.visible = coring !== null && c > 0.28 && c < 0.88;
     // The tube rides in the bit from the moment it presses on the rock until the arm folds back
     // (then it goes into the rover to be measured, imaged and sealed).
-    const lift = Math.min(1, Math.max(0, (c - DRILL_PHASE[1]) / 0.05)) * (1 - Math.min(1, Math.max(0, (c - 0.9) / 0.05)));
+    const lift =
+      Math.min(1, Math.max(0, (c - DRILL_PHASE[1]) / 0.05)) *
+      (1 - Math.min(1, Math.max(0, (c - 0.9) / 0.05)));
     rover.showTube(coring !== null && c > 0.3 && c < 0.97, 0.06 * lift * lift * (3 - 2 * lift));
     if (pose.drill > 0) {
       // Cuttings thrown out by the percussive drill, more as it bites deeper.

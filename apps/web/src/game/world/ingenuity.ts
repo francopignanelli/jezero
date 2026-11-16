@@ -1,5 +1,4 @@
-import type {
-  BufferGeometry} from 'three';
+import type { BufferGeometry } from 'three';
 import {
   BoxGeometry,
   CircleGeometry,
@@ -77,7 +76,13 @@ export class Ingenuity {
   private readonly standIn: Object3D[] = [];
   private model: {
     /** Each rotor: its node, rest pose, mast axis (parent frame), turning direction, stowed angle. */
-    rotors: Array<{ node: Object3D; base: Quaternion; axis: Vector3; dir: number; stowRad: number }>;
+    rotors: Array<{
+      node: Object3D;
+      base: Quaternion;
+      axis: Vector3;
+      dir: number;
+      stowRad: number;
+    }>;
   } | null = null;
   private readonly qSpin = new Quaternion();
   private spin = 0;
@@ -203,7 +208,8 @@ export class Ingenuity {
         const m = c as Mesh;
         if (!m.isMesh) return;
         const pa = m.geometry.getAttribute('position');
-        for (let i = 0; i < pa.count; i++) each(v.fromBufferAttribute(pa, i).applyMatrix4(m.matrixWorld));
+        for (let i = 0; i < pa.count; i++)
+          each(v.fromBufferAttribute(pa, i).applyMatrix4(m.matrixWorld));
       });
 
     const rotors: NonNullable<Ingenuity['model']>['rotors'] = [];
@@ -228,7 +234,13 @@ export class Ingenuity {
       let stowRad = phi - Math.PI / 2;
       while (stowRad > Math.PI / 2) stowRad -= Math.PI;
       while (stowRad <= -Math.PI / 2) stowRad += Math.PI;
-      rotors.push({ node, base: node.quaternion.clone(), axis: up.clone().applyQuaternion(toParent), dir, stowRad });
+      rotors.push({
+        node,
+        base: node.quaternion.clone(),
+        axis: up.clone().applyQuaternion(toParent),
+        dir,
+        stowRad,
+      });
     }
 
     scene.traverse((o) => {
@@ -255,7 +267,8 @@ export class Ingenuity {
   setSkyLight(k: number): void {
     if (Math.abs(k - this.skyLight) < 0.01) return;
     this.skyLight = k;
-    for (const m of this.materials) if ('envMapIntensity' in m) (m as MeshStandardMaterial).envMapIntensity = k;
+    for (const m of this.materials)
+      if ('envMapIntensity' in m) (m as MeshStandardMaterial).envMapIntensity = k;
   }
   private skyLight = 1;
 

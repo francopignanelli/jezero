@@ -187,7 +187,10 @@ export class DepotTubes {
       if (!tube) return;
       this.geometry.dispose();
       // Lying along x, centred.
-      this.geometry = tube.geometry.clone().translate(0, -tube.lengthM / 2, 0).rotateZ(Math.PI / 2);
+      this.geometry = tube.geometry
+        .clone()
+        .translate(0, -tube.lengthM / 2, 0)
+        .rotateZ(Math.PI / 2);
       this.material = tube.material;
       for (const m of this.group.children as Mesh[]) {
         m.geometry = this.geometry;

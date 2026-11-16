@@ -16,7 +16,12 @@ export function ModeSwitch({ current }: { current: 'planner' | 'game' }) {
     <nav className="mode-switch" aria-label={t('modes.label')}>
       {modes.map(({ id, href, Icon }) =>
         id === current ? (
-          <span key={id} className="mode-switch-item is-on" aria-current="page" title={t(`modes.${id}Hint`)}>
+          <span
+            key={id}
+            className="mode-switch-item is-on"
+            aria-current="page"
+            title={t(`modes.${id}Hint`)}
+          >
             <Icon aria-hidden="true" />
             <span className="mode-switch-label">{t(`modes.${id}`)}</span>
           </span>

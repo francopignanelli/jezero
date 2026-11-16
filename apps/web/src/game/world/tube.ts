@@ -114,7 +114,14 @@ export function tubePicture(horizontal = false): Promise<string | null> {
     const s = box.getSize(new Vector3());
     const margin = 1.08;
     const halfW = Math.max(s.x / 2, (s.y / 2) * (W / H)) * margin;
-    const camera = new OrthographicCamera(-halfW, halfW, halfW * (H / W), -halfW * (H / W), 0.01, 10);
+    const camera = new OrthographicCamera(
+      -halfW,
+      halfW,
+      halfW * (H / W),
+      -halfW * (H / W),
+      0.01,
+      10,
+    );
     camera.position.set(c.x, c.y, c.z + 1);
     camera.lookAt(c);
     renderer.render(scene, camera);

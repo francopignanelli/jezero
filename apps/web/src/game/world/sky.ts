@@ -117,8 +117,8 @@ export class SkyDome {
     // No solar disc in the environment: it would make specular highlights double the sun light.
     (dome.material as ShaderMaterial).fragmentShader = (
       dome.material as ShaderMaterial
-    )
-      .fragmentShader.replace('sky += vec3(1.0, 0.97, 0.92) * disc * 40.0 * clear * clear;', '')
+    ).fragmentShader
+      .replace('sky += vec3(1.0, 0.97, 0.92) * disc * 40.0 * clear * clear;', '')
       // Below the horizon the environment sees the ground, not sky: sunlit regolith is about a
       // sixth as bright as the horizon sky and redder (measured on the Wildcat Ridge panorama).
       // Without this, everything facing down (the rover's sides and belly, the rocks' flanks)

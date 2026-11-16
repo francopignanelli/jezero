@@ -481,7 +481,6 @@ export class Tracks {
   }
 }
 
-
 /** The ground mark a core leaves: a grey abraded patch, the borehole, a ring of cuttings. */
 function coreMarkTexture(): CanvasTexture {
   const c = document.createElement('canvas');

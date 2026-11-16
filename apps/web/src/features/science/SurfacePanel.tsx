@@ -71,9 +71,11 @@ export function SurfacePanel() {
     void loadGameAreas().then((areas) =>
       setInGame(
         new Set(
-          POIS.filter((p) => areas.some((b) => p.lat >= b.south && p.lat <= b.north && p.lon >= b.west && p.lon <= b.east)).map(
-            (p) => p.id,
-          ),
+          POIS.filter((p) =>
+            areas.some(
+              (b) => p.lat >= b.south && p.lat <= b.north && p.lon >= b.west && p.lon <= b.east,
+            ),
+          ).map((p) => p.id),
         ),
       ),
     );
@@ -109,7 +111,9 @@ export function SurfacePanel() {
       {rover && (
         <div className="card" data-tour="rover">
           <div className="card-title">{t('science.rover')}</div>
-          <p className="lede">{t('science.roverWhere', { sol: rover.latest.sol, date: updated })}</p>
+          <p className="lede">
+            {t('science.roverWhere', { sol: rover.latest.sol, date: updated })}
+          </p>
           <LayerChips ids={MISSION_LAYERS} />
           <p className="meta">{rover.provenance}</p>
           <a className="btn" href="./play.html">

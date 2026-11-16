@@ -57,7 +57,11 @@ export interface HeliInput {
   action: boolean;
 }
 
-export const newHeli = (at: { lat: number; lon: number }, headingRad: number, budgetS: number): HeliState => ({
+export const newHeli = (
+  at: { lat: number; lon: number },
+  headingRad: number,
+  budgetS: number,
+): HeliState => ({
   lat: at.lat,
   lon: at.lon,
   headingRad,
@@ -123,7 +127,8 @@ export function stepHeli(
   const rate = steerable && input.throttle !== 0 ? HELI.accelMps2 : HELI.brakeMps2;
   const dv = want - s.speed;
   s.speed += Math.sign(dv) * Math.min(Math.abs(dv), rate * dt);
-  if (steerable || s.phase === 'climb') s.headingRad = wrapAngle(s.headingRad + input.steer * HELI.yawRadS * dt);
+  if (steerable || s.phase === 'climb')
+    s.headingRad = wrapAngle(s.headingRad + input.steer * HELI.yawRadS * dt);
   const d = s.speed * dt;
   if (d !== 0) {
     const north = Math.cos(s.headingRad) * d;

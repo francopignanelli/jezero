@@ -84,8 +84,18 @@ class RoutingClient {
   }
 
   /** The lower-risk route again under other maximum slopes (the default one is an assumption). */
-  async scenarios(waypoints: Waypoint[], returnToStart: boolean, slopesDeg: number[]): Promise<SlopeScenario[]> {
-    const msg = await this.request({ type: 'scenarios', id: 0, waypoints, returnToStart, slopesDeg });
+  async scenarios(
+    waypoints: Waypoint[],
+    returnToStart: boolean,
+    slopesDeg: number[],
+  ): Promise<SlopeScenario[]> {
+    const msg = await this.request({
+      type: 'scenarios',
+      id: 0,
+      waypoints,
+      returnToStart,
+      slopesDeg,
+    });
     if (msg.type !== 'scenarios') throw new Error('unexpected worker response');
     return msg.scenarios;
   }

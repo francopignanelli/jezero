@@ -48,7 +48,10 @@ const EXCLUDE: Array<[RegExp, string]> = [
   [/^game\/margin_/, 'old game map (the margin area is no longer a mission map)'],
   [/\.raw\.glb$/, 'intermediate model (the optimised .glb is served)'],
   [/\.srt$/, 'subtitles kept for reference (the player reads the .vtt)'],
-  [/^regions\/jezero\/validation\.json$/, 'pipeline validation report (docs/datasets.md), not loaded'],
+  [
+    /^regions\/jezero\/validation\.json$/,
+    'pipeline validation report (docs/datasets.md), not loaded',
+  ],
   [/\.aux\.xml$/, 'GDAL sidecar'],
 ];
 
@@ -71,7 +74,13 @@ interface Entry {
   cacheControl: string;
 }
 
-function walk(dir: string, base: string, prefix: string, out: Entry[], skipped: Array<[string, string]>): void {
+function walk(
+  dir: string,
+  base: string,
+  prefix: string,
+  out: Entry[],
+  skipped: Array<[string, string]>,
+): void {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, e.name);
     if (e.isDirectory()) {
@@ -138,6 +147,7 @@ console.log(`${files.length} files, ${mb(total)} (skipped ${skipped.length})`);
 for (const [k, g] of [...groups].sort((a, b) => b[1].bytes - a[1].bytes))
   console.log(`  ${k.padEnd(22)} ${String(g.n).padStart(6)} files  ${mb(g.bytes).padStart(9)}`);
 console.log('largest:');
-for (const f of [...files].sort((a, b) => b.bytes - a.bytes).slice(0, 8)) console.log(`  ${mb(f.bytes).padStart(9)}  ${f.path}`);
+for (const f of [...files].sort((a, b) => b.bytes - a.bytes).slice(0, 8))
+  console.log(`  ${mb(f.bytes).padStart(9)}  ${f.path}`);
 if (warnings.length) console.log(`warnings:\n  ${warnings.join('\n  ')}`);
 console.log(`→ ${relative(ROOT, OUT)}`);

@@ -56,7 +56,9 @@ export function TopBar() {
           <span className="show-sm">{t('status.plannedEvaShort')}</span>
         </span>
         <b>{t('status.sol', { sol: m2020Sol(eva) })}</b>
-        <span className="hide-xs">{t('status.ltstShort', { time: formatHours(sun.ltstHours) })}</span>
+        <span className="hide-xs">
+          {t('status.ltstShort', { time: formatHours(sun.ltstHours) })}
+        </span>
         <span className="hide-sm">{t('status.ls', { ls: s.lsDeg.toFixed(1) })}</span>
       </button>
       <HelpMenu />

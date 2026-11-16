@@ -21,12 +21,16 @@ describe('slope-limit scenarios', () => {
     // A north–south ridge rising at 18° on both sides blocks the whole width of the grid.
     const spec = syntheticSpec(60, 40);
     const k = Math.tan((18 * Math.PI) / 180);
-    const layers = { spec, elevation: elevationFrom(spec, (east) => -2570 + Math.max(0, 40 - Math.abs(east)) * k) };
+    const layers = {
+      spec,
+      elevation: elevationFrom(spec, (east) => -2570 + Math.max(0, 40 - Math.abs(east)) * k),
+    };
     const req = {
       waypoints: [cellLatLon(spec, 3, 20), cellLatLon(spec, 56, 20)],
       profile: 'lower-risk' as const,
     };
-    const at = (deg: number) => planRoute(prepareTerrain(layers, withMaxSlope(DEFAULT_EVA_PARAMS, deg)), req);
+    const at = (deg: number) =>
+      planRoute(prepareTerrain(layers, withMaxSlope(DEFAULT_EVA_PARAMS, deg)), req);
     expect(at(15).status).toBe('no-route');
     expect(at(20).status).toBe('ok');
     const r25 = at(25);

@@ -163,7 +163,8 @@ export class LandingSite {
   readonly group = new Group();
   readonly materials: Material[] = [];
   readonly marks: GroundMark[] = [];
-  private readonly solids: Array<{ x: number; north: number; radiusM: number; heightM: number }> = [];
+  private readonly solids: Array<{ x: number; north: number; radiusM: number; heightM: number }> =
+    [];
   private readonly disposables: Array<{ dispose(): void }> = [];
 
   constructor(
@@ -265,7 +266,13 @@ export class LandingSite {
     const geo = new LatheGeometry(pts, 48, 0.9, Math.PI * 2 - 0.7);
     const shell = new Mesh(
       geo,
-      this.mat(new MeshStandardMaterial({ color: new Color(0.5, 0.47, 0.42), roughness: 0.85, side: DoubleSide })),
+      this.mat(
+        new MeshStandardMaterial({
+          color: new Color(0.5, 0.47, 0.42),
+          roughness: 0.85,
+          side: DoubleSide,
+        }),
+      ),
     );
     // Tipped over, resting on its rim and side.
     const y = this.ground(p.x, p.north);
@@ -277,7 +284,9 @@ export class LandingSite {
     this.debris(p.x, p.north, 70, 14, new Color(0.6, 0.57, 0.52), 0.15, 0.9, 21);
     // Suspension lines: bundles from the backshell to the canopy's edge, slack on the ground.
     if (chute) {
-      const lineMat = this.mat(new MeshStandardMaterial({ color: new Color(0.7, 0.64, 0.56), roughness: 0.9 }));
+      const lineMat = this.mat(
+        new MeshStandardMaterial({ color: new Color(0.7, 0.64, 0.56), roughness: 0.9 }),
+      );
       const rand = mulberry(5);
       for (let b = 0; b < 7; b++) {
         const curve: Vector3[] = [];
@@ -312,7 +321,10 @@ export class LandingSite {
     tex.repeat.set(6, 3);
     tex.wrapS = tex.wrapT = RepeatWrapping;
     this.disposables.push(tex);
-    const shield = new Mesh(geo, this.mat(new MeshStandardMaterial({ map: tex, roughness: 0.95, side: DoubleSide })));
+    const shield = new Mesh(
+      geo,
+      this.mat(new MeshStandardMaterial({ map: tex, roughness: 0.95, side: DoubleSide })),
+    );
     const y = this.ground(p.x, p.north);
     shield.position.set(p.x, y - 0.45, -p.north);
     shield.rotation.set(0.5, 0.6, -0.2);
@@ -332,7 +344,14 @@ export class LandingSite {
     // The main wreck: a crumpled frame and a propellant tank.
     const frame = new Mesh(
       new CylinderGeometry(0.9, 1.3, 0.7, 7, 1, true),
-      this.mat(new MeshStandardMaterial({ color: new Color(0.35, 0.33, 0.3), metalness: 0.6, roughness: 0.55, side: DoubleSide })),
+      this.mat(
+        new MeshStandardMaterial({
+          color: new Color(0.35, 0.33, 0.3),
+          metalness: 0.6,
+          roughness: 0.55,
+          side: DoubleSide,
+        }),
+      ),
     );
     const y = this.ground(p.x, p.north);
     frame.position.set(p.x, y + 0.15, -p.north);
@@ -340,9 +359,19 @@ export class LandingSite {
     this.add(frame);
     const tank = new Mesh(
       new CylinderGeometry(0.35, 0.35, 1.0, 12),
-      this.mat(new MeshStandardMaterial({ color: new Color(0.55, 0.5, 0.42), metalness: 0.7, roughness: 0.4 })),
+      this.mat(
+        new MeshStandardMaterial({
+          color: new Color(0.55, 0.5, 0.42),
+          metalness: 0.7,
+          roughness: 0.4,
+        }),
+      ),
     );
-    tank.position.set(p.x + dir.x * 6, this.ground(p.x + dir.x * 6, p.north + dir.y * 6) + 0.25, -(p.north + dir.y * 6));
+    tank.position.set(
+      p.x + dir.x * 6,
+      this.ground(p.x + dir.x * 6, p.north + dir.y * 6) + 0.25,
+      -(p.north + dir.y * 6),
+    );
     tank.rotation.set(Math.PI / 2, 0, 0.7);
     this.add(tank);
     this.solids.push({ x: p.x, north: p.north, radiusM: 1.8, heightM: 1 });
@@ -359,7 +388,16 @@ export class LandingSite {
     this.debrisAt(list, new Color(0.42, 0.4, 0.37), 0.12, 0.8, 41, 0.5);
   }
 
-  private debris(x: number, north: number, n: number, spread: number, colour: Color, min: number, max: number, seed: number): void {
+  private debris(
+    x: number,
+    north: number,
+    n: number,
+    spread: number,
+    colour: Color,
+    min: number,
+    max: number,
+    seed: number,
+  ): void {
     const rand = mulberry(seed);
     const list: Array<[number, number]> = [];
     for (let i = 0; i < n; i++) {
@@ -371,7 +409,14 @@ export class LandingSite {
   }
 
   /** Flat, angular fragments (panels, foil, insulation) lying on the ground. */
-  private debrisAt(list: Array<[number, number]>, colour: Color, min: number, max: number, seed: number, metal: number): void {
+  private debrisAt(
+    list: Array<[number, number]>,
+    colour: Color,
+    min: number,
+    max: number,
+    seed: number,
+    metal: number,
+  ): void {
     const geo = new CylinderGeometry(0.5, 0.5, 0.06, 5);
     const mesh = new InstancedMesh(
       geo,
@@ -401,7 +446,8 @@ export class LandingSite {
     let lift = 0;
     for (const o of this.solids) {
       const d2 = (o.x - x) ** 2 + (o.north - north) ** 2;
-      if (d2 < o.radiusM * o.radiusM) lift = Math.max(lift, o.heightM * Math.sqrt(1 - d2 / o.radiusM ** 2));
+      if (d2 < o.radiusM * o.radiusM)
+        lift = Math.max(lift, o.heightM * Math.sqrt(1 - d2 / o.radiusM ** 2));
     }
     return lift;
   }

@@ -64,7 +64,8 @@ function serveDirectory(mount: string, root: string, cache: (file: string) => st
         // starts playing before it has all downloaded, when the server answers them.
         const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
         if (range && (range[1] || range[2])) {
-          const end = range[2] && range[1] ? Math.min(Number(range[2]), stat.size - 1) : stat.size - 1;
+          const end =
+            range[2] && range[1] ? Math.min(Number(range[2]), stat.size - 1) : stat.size - 1;
           const start = range[1] ? Number(range[1]) : Math.max(0, stat.size - Number(range[2]));
           if (start > end || start >= stat.size) {
             res.statusCode = 416;
@@ -79,7 +80,10 @@ function serveDirectory(mount: string, root: string, cache: (file: string) => st
           return;
         }
         // Text data compressed, as CloudFront does for JSON (so local load measurements match).
-        if (COMPRESSED.has(extname(file)) && /\bgzip\b/.test(String(req.headers['accept-encoding']))) {
+        if (
+          COMPRESSED.has(extname(file)) &&
+          /\bgzip\b/.test(String(req.headers['accept-encoding']))
+        ) {
           res.setHeader('Content-Encoding', 'gzip');
           res.setHeader('Vary', 'Accept-Encoding');
           createReadStream(file).on('error', next).pipe(createGzip()).pipe(res);

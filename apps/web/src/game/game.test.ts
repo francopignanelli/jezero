@@ -813,10 +813,25 @@ describe('the Ingenuity deployment mission', () => {
     expect(aimed.state.steps).toContain('aim');
     // 12 m on towards the overlook from where it was set down: clear, the chapter is done.
     const k = (DRIVE_STEP_M.away + 0.3) / groundDistanceM(at(off), VAN_ZYL);
-    const on = { lat: off.lat + (VAN_ZYL.lat - off.lat) * k, lon: off.lon + (VAN_ZYL.lon - off.lon) * k };
-    const half = { lat: off.lat + (VAN_ZYL.lat - off.lat) * k * 0.5, lon: off.lon + (VAN_ZYL.lon - off.lon) * k * 0.5 };
-    expect(stepExpedition(aimed.state, null, at(half), all, false, 0.1).state.steps).not.toContain('away');
-    const away = stepExpedition(aimed.state, null, { ...at(on), headingRad: facing.headingRad }, all, false, 0.1);
+    const on = {
+      lat: off.lat + (VAN_ZYL.lat - off.lat) * k,
+      lon: off.lon + (VAN_ZYL.lon - off.lon) * k,
+    };
+    const half = {
+      lat: off.lat + (VAN_ZYL.lat - off.lat) * k * 0.5,
+      lon: off.lon + (VAN_ZYL.lon - off.lon) * k * 0.5,
+    };
+    expect(stepExpedition(aimed.state, null, at(half), all, false, 0.1).state.steps).not.toContain(
+      'away',
+    );
+    const away = stepExpedition(
+      aimed.state,
+      null,
+      { ...at(on), headingRad: facing.headingRad },
+      all,
+      false,
+      0.1,
+    );
     expect(away.state.steps).toContain('away');
     expect(away.state.chapter).toBe(1);
     expect(objectiveDone(away.state, deploy.objectives[0]!, deploy)).toBe(true);
@@ -829,7 +844,11 @@ describe('the Ingenuity deployment mission', () => {
   });
 
   it('the film waits for the rover to stop in the overlook zone', () => {
-    const s = { ...newExpedition('ingenuity'), chapter: 1, steps: ['shield', 'rotate', 'drop', 'aim', 'away'] } as ExpeditionState;
+    const s = {
+      ...newExpedition('ingenuity'),
+      chapter: 1,
+      steps: ['shield', 'rotate', 'drop', 'aim', 'away'],
+    } as ExpeditionState;
     const moving = { ...at(VAN_ZYL), speed: 2 };
     expect(stepExpedition(s, null, moving, all, false, 0.1).action).toBeNull();
     expect(stepExpedition(s, null, at(VAN_ZYL), all, false, 0.1).action?.kind).toBe('film');
